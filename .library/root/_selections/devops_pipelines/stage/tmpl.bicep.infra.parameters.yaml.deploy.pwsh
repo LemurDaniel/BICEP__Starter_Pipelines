@@ -153,7 +153,7 @@ stages:
                   displayName: "Bicep WhatIf Artifact"
                   inputs:
                     targetPath: "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
-                    artifactName: "bicep_whatif"
+                    artifactName: "bicep_whatif_${{ parameters.stage }}"
 
       - job: approve_${{ parameters.stage }}
         condition: eq(${{ parameters.WhatIfOnly }}, false)

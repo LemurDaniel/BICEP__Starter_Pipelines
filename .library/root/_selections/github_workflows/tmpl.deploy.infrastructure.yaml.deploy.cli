@@ -180,7 +180,7 @@ jobs:
 
 
   deploy_bicep:
-    needs
+    needs:
     - what_if
     if: ${{ inputs.what_if_only == false }}
     name: Deploy ${{ inputs.template_file }}
