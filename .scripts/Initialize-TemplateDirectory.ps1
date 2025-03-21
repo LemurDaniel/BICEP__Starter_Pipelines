@@ -84,15 +84,15 @@ function Initialize-TemplateDirectory {
     $tempDir = [System.IO.DirectoryInfo]::new("$sourceDir/staging")
     $initPs1 = [System.IO.FileInfo]::new("$sourceDir/init.ps1")
 
-    if (-NOT [System.IO.Path]::IsPathFullyQualified($Target)) {
+    if ([System.IO.Path]::IsPathFullyQualified($Target)) {
         $targetDir = [System.IO.DirectoryInfo]::new($Target)
     }
     else {
         $targetDir = [System.IO.DirectoryInfo]::new("$((Get-Location).Path)/$Target")
     }
 
-    if (-NOT $Target.Exists) {
-        $Target.Create()
+    if (-NOT $targetDir.Exists) {
+        $targetDir.Create()
     }
 
     <#

@@ -55,7 +55,7 @@ stages:
 
       # runBicepTests: true
       # NOTE: 
-      # - This requires bicep or at least azure cli to be installed on the used pipeline agent/runner.
+      # - This will always fail due to being an expermimental feature (As of Date: 2025.03.21)
       # - Bicep tests are still an experimental feature and not yet production ready.
       whatIfOnly: ${{ parameters.whatIfOnly }}
 
@@ -63,7 +63,7 @@ stages:
       scope: ${{ variables.DEPLOYMENT_SCOPE }}
       deployment: ${{ variables.DEPLOYMENT_NAME }} 
       templateFile: ${{ variables.DEPLOYMENT_FILE }}
-      parametersFile: ./params/dev.main.bicepparam
+      parametersFile: ./params/main.dev.bicepparam
 
       # --- on subscription scope
       location: germanywestcentral
@@ -80,7 +80,7 @@ stages:
 
       # runBicepTests: true
       # NOTE: 
-      # - This requires bicep or at least azure cli to be installed on the used pipeline agent/runner.
+      # - This will always fail due to being an expermimental feature (As of Date: 2025.03.21)
       # - Bicep tests are still an experimental feature and not yet production ready.
       whatIfOnly: ${{ parameters.whatIfOnly }}
 
@@ -88,7 +88,7 @@ stages:
       scope: ${{ variables.DEPLOYMENT_SCOPE }}
       deployment: ${{ variables.DEPLOYMENT_NAME }} 
       templateFile: ${{ variables.DEPLOYMENT_FILE }}
-      parametersFile: ./params/test.main.bicepparam
+      parametersFile: ./params/main.test.bicepparam
 
       # --- on subscription scope
       location: germanywestcentral
@@ -105,7 +105,7 @@ stages:
 
       # runBicepTests: true
       # NOTE: 
-      # - This requires bicep or at least azure cli to be installed on the used pipeline agent/runner.
+      # - This will always fail due to being an expermimental feature (As of Date: 2025.03.21)
       # - Bicep tests are still an experimental feature and not yet production ready.
       whatIfOnly: ${{ parameters.whatIfOnly }}
 
@@ -113,7 +113,7 @@ stages:
       scope: ${{ variables.DEPLOYMENT_SCOPE }}
       deployment: ${{ variables.DEPLOYMENT_NAME }} 
       templateFile: ${{ variables.DEPLOYMENT_FILE }}
-      parametersFile: ./params/prod.main.bicepparam
+      parametersFile: ./params/main.prod.bicepparam
 
       # --- on subscription scope
       location: germanywestcentral

@@ -8,7 +8,7 @@ parameters:
     type: string
   - name: variableGroup
     type: string
-    default: null
+    default: ''
 
   # General deployment parameter
   - name: deployment
@@ -51,8 +51,6 @@ parameters:
   - name: runBicepTests
     type: boolean
     default: false
-  - name: installBicep
-    default: false
 
 stages:
   - stage: ${{ parameters.stage }}
@@ -85,16 +83,20 @@ stages:
                   displayName: Show build agent directory tree
                 #////////////////////////////////////////////////////////////
                 #////// Bicep Tests
-                - script: |
-                    if [ "${{ parameters.installBicep }}" = "true" ]; then
-                      az bicep install
-                    fi
-                    test_files=$(find . -type f -name "*test.bicep" -maxdepth 4)
-                    for file in $test_files; do
-                      bicep test "$file"
-                    done
-                  displayName: Run Bicep Tests
+                - task: AzureCLI@2
                   condition: eq(${{ parameters.runBicepTests }}, true)
+                  displayName: Bicep Test ${{ parameters.stage }}
+                  inputs:
+                    azureSubscription: ${{ parameters.serviceConnection }}
+                    addSpnToEnvironment: true
+                    useGlobalConfig: true
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      testFiles=$(find "$(Build.SourcesDirectory)" -type f -name "*test.bicep" -maxdepth 4)
+                      for file in $testFiles; do
+                        bicep test "$file"
+                      done
                 #////////////////////////////////////////////////////////////
                 #////// WhatIf
                 - task: AzureCLI@2
@@ -153,7 +155,7 @@ stages:
                     artifactName: "bicep_whatif_${{ parameters.stage }}"
 
       - job: approve_${{ parameters.stage }}
-        condition: eq(${{ parameters.WhatIfOnly }}, false)
+        condition: and(succeeded(), eq(${{ parameters.WhatIfOnly }}, false))
         dependsOn: what_if_${{ parameters.stage }}
         displayName: Approve
         pool: server
@@ -165,7 +167,7 @@ stages:
       #////////////////////////////////////////////////////////////
       #////// Deploy
       - deployment: deployment_${{ parameters.stage }}
-        condition: eq(${{ parameters.WhatIfOnly }}, false)
+        condition: and(succeeded(), eq(${{ parameters.WhatIfOnly }}, false))
         dependsOn: approve_${{ parameters.stage }}
         displayName: Deploy ${{ parameters.stage }}
         environment: ${{ parameters.stage }}
