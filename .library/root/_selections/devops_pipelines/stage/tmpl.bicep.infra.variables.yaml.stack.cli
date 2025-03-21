@@ -1,0 +1,198 @@
+parameters:
+  - name: condition
+    type: string
+    default: true
+  - name: stage
+    type: string
+  - name: serviceConnection
+    type: string
+  - name: variableGroup
+    type: string
+    default: ''
+
+  # General deployment parameter
+  - name: denySettingsMode
+    type: string
+  - name: actionOnUnmanage
+    type: string
+  - name: WhatIfOnly
+    type: boolean
+    default: true
+  - name: WhatIfExcludeChange
+    type: string
+    default: 'NoChange' # Ignore | NoChange | Deploy | Create | Modify | Delete
+
+  # others
+  - name: showTree
+    type: boolean
+    default: false
+  - name: runBicepTests
+    type: boolean
+    default: false
+  - name: installBicep
+    default: false
+
+stages:
+  - stage: ${{ parameters.stage }}
+    condition: ${{ parameters.condition }}
+    displayName: Deploy ${{ parameters.stage }}
+    variables:
+      - ${{ if ne(parameters.variableGroup, '') }}:
+          - group: ${{ parameters.variableGroup }}
+    jobs:
+      #////////////////////////////////////////////////////////////
+      #////// WhatIf
+      - deployment: what_if_${{ parameters.stage }}
+        displayName: WhatIf ${{ parameters.stage }}
+        environment: ${{ parameters.stage }}
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                #////////////////////////////////////////////////////////////
+                #////// Tree Command
+                - script: |
+                    sudo apt-get update
+                    sudo apt-get install -y tree
+                  displayName: "Install directory tree command"
+                  condition: ${{ parameters.showTree }}
+                - script: |
+                    tree $(Build.SourcesDirectory)
+                  condition: ${{ parameters.showTree }}
+                  displayName: Show build agent directory tree
+                #////////////////////////////////////////////////////////////
+                #////// Bicep Tests
+                - script: |
+                    if [ "${{ parameters.installBicep }}" = "true" ]; then
+                      az bicep install
+                    fi
+                    test_files=$(find . -type f -name "*test.bicep" -maxdepth 4)
+                    for file in $test_files; do
+                      bicep test "$file"
+                    done
+                  displayName: Run Bicep Tests
+                  condition: eq(${{ parameters.runBicepTests }}, true)
+                #////////////////////////////////////////////////////////////
+                #////// WhatIf
+                - task: AzureCLI@2
+                  displayName: WhatIf ${{ parameters.stage }}
+                  inputs:
+                    azureSubscription: ${{ parameters.serviceConnection }}
+                    addSpnToEnvironment: true
+                    useGlobalConfig: true
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      if [ -n "$(SUBSCRIPTION_ID)" ]; then
+                        echo "Subscription: $(SUBSCRIPTION_ID)"
+                        az account set --subscription "$(SUBSCRIPTION_ID)"
+                      fi
+
+                      DeploymentArgs=(
+                        --name "$(DEPLOYMENT_NAME)"
+                        --template-file "$(TEMPLATE_FILE)"
+                        --parameters "@$(PARAMETERS_FILE)"
+                        --what-if
+                        --what-if-result-format FullResourcePayloads
+                      )
+
+                      if [ -n "${{ parameters.WhatIfExcludeChange }}" ]; then
+                        DeploymentArgs+=(--what-if-exclude-change-type "${{ parameters.WhatIfExcludeChange }}")
+                      fi
+
+                      if [ "$(SCOPE)" = "subscription" ]; then
+                        if [ -z "$(LOCATION)" ]; then
+                          echo "Error: Subscription Deployment needs a location!" >&2
+                          exit 1
+                        fi
+
+                        DeploymentArgs+=(--location "$(LOCATION)")
+                        az deployment sub what-if "${DeploymentArgs[@]}" | tee "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
+                      
+                      elif [ "$(SCOPE)" = "resourceGroup" ]; then
+                        if [ -z "$(RESOURCE_GROUP)" ]; then
+                          echo "Error: Resource Group Deployment needs a resource group!" >&2
+                          exit 1
+                        fi
+
+                        DeploymentArgs+=(--resource-group "$(RESOURCE_GROUP)")
+                        az deployment group what-if "${DeploymentArgs[@]}" | tee "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
+                      
+                      else
+                        echo "Error: Invalid Scope $(SCOPE)!" >&2
+                        exit 1
+                      fi
+
+                - task: PublishBuildArtifacts@1
+                  displayName: "Bicep WhatIf Artifact"
+                  inputs:
+                    targetPath: "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
+                    artifactName: "bicep_whatif"
+
+      - job: approve_${{ parameters.stage }}
+        condition: eq(${{ parameters.WhatIfOnly }}, false)
+        dependsOn: what_if_${{ parameters.stage }}
+        displayName: Approve
+        pool: server
+        steps:
+          - task: ManualValidation@0
+            displayName: Manual Validation
+            timeoutInMinutes: 1440
+
+      #////////////////////////////////////////////////////////////
+      #////// Deploy
+      - deployment: deployment_${{ parameters.stage }}
+        condition: eq(${{ parameters.WhatIfOnly }}, false)
+        dependsOn: approve_${{ parameters.stage }}
+        displayName: Deploy ${{ parameters.stage }}
+        environment: ${{ parameters.stage }}
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - task: AzureCLI@2
+                  displayName: Deploy to ${{ parameters.stage }}
+                  inputs:
+                    azureSubscription: ${{ parameters.serviceConnection }}
+                    addSpnToEnvironment: true
+                    useGlobalConfig: true
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      if [ -n "$(SUBSCRIPTION_ID)" ]; then
+                        echo "Subscription: $(SUBSCRIPTION_ID)"
+                        az account set --subscription "$(SUBSCRIPTION_ID)"
+                      fi
+
+                      DeploymentArgs=(
+                        --name "$(DEPLOYMENT_NAME)"
+                        --template-file "$(TEMPLATE_FILE)"
+                        --parameters "@$(PARAMETERS_FILE)"
+                        --deny-settings-mode "${{ parameters.denySettingsMode }}"
+                        --action-on-unmanage "${{ parameters.actionOnUnmanage }}"
+                      )
+
+                      if [ "$(SCOPE)" = "subscription" ]; then
+                        if [ -z "$(LOCATION)" ]; then
+                          echo "Error: Subscription Deployment needs a location!" >&2
+                          exit 1
+                        fi
+
+                        DeploymentArgs+=(--location "$(LOCATION)")
+                        az deployment sub create "${DeploymentArgs[@]}" --confirm-with-what-if
+
+                      elif [ "$(SCOPE)" = "resourceGroup" ]; then
+                        if [ -z "$(RESOURCE_GROUP)" ]; then
+                          echo "Error: Resource Group Deployment needs a resource group!" >&2
+                          exit 1
+                        fi
+
+                        DeploymentArgs+=(--resource-group "$(RESOURCE_GROUP)")
+                        az deployment group create "${DeploymentArgs[@]}" --confirm-with-what-if
+
+                      else
+                        echo "Error: Invalid Scope $(SCOPE)!" >&2
+                        exit 1
+                      fi

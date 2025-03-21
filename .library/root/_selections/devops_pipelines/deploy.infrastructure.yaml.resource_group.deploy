@@ -1,0 +1,110 @@
+name: Bicep Deployment
+
+#
+# This is a template for deploying a Bicep file
+#
+
+# NOTE:
+# This needs to be adjusted to correct pool name or agents used.
+pool:
+  name: custom
+# vmImage: 'ubuntu-latest'
+
+trigger:
+  branches:
+    include:
+      - master
+  paths:
+    include:
+      - main.bicep
+      - main.*.bicepparam
+
+variables:
+  - name: DEPLOYMENT_FILE
+    value: ./main.bicep
+  - name: DEPLOYMENT_NAME
+    value: demo
+  - name: DEPLOYMENT_SCOPE
+    value: resourceGroup # subscription | resourceGroup
+
+parameters:
+  - name: WhatIfOnly
+    type: boolean
+    default: true
+
+# NOTE:
+# ServiceConnection must be known at pipeline compile time.
+#
+#
+# The Following Parameters can be set in the variables group instead:
+# This requried using the 'stage/tmpl.bicep.deploy.variables.yaml' instead!
+#   - SCOPE: resourceGroup | subscription
+#   - DEPLOYMENT_NAME:
+#   - TEMPLATE_FILE:
+#   - PARAMETERS_FILE:
+#   - LOCATION:
+#   - RESOURCE_GROUP:
+#
+stages:
+  - template: stage/tmpl.bicep.infra.parameters.yaml
+    parameters:
+      stage: dev
+      condition: ne(variables['Build.SourceBranch'], 'refs/heads/master')
+      serviceConnection: project-connection-dev
+      # variableGroup: bicep-deploy-dev
+
+      whatIfOnly: ${{ parameters.whatIfOnly }}
+
+      # env parameters
+      scope: ${{ variables.DEPLOYMENT_SCOPE }}
+      deployment: ${{ variables.DEPLOYMENT_NAME }} 
+      templateFile: ${{ variables.DEPLOYMENT_FILE }}
+      parametersFile: ./params/dev.main.bicepparam
+
+      # --- on subscription scope
+      # location: germanywestcentral
+
+      # --- on resource group scope
+      resourceGroup: rg-demo-dev-001
+
+  - template: stage/tmpl.bicep.infra.parameters.yaml
+    parameters:
+      stage: test
+      condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/feature')
+      serviceConnection: project-connection-test
+      # variableGroup: bicep-deploy-test
+
+      whatIfOnly: ${{ parameters.whatIfOnly }}
+
+      # env parameters
+      scope: ${{ variables.DEPLOYMENT_SCOPE }}
+      deployment: ${{ variables.DEPLOYMENT_NAME }} 
+      templateFile: ${{ variables.DEPLOYMENT_FILE }}
+      parametersFile: ./params/test.main.bicepparam
+
+      # --- on subscription scope
+      # location: germanywestcentral
+
+      # --- on resource group scope
+      resourceGroup: rg-demo-test-001
+
+  - template: stage/tmpl.bicep.infra.parameters.yaml
+    parameters:
+      stage: prod
+      condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
+      serviceConnection: project-connection-prod
+      # variableGroup: bicep-deploy-prod
+
+      whatIfOnly: ${{ parameters.whatIfOnly }}
+
+      # env parameters
+      scope: ${{ variables.DEPLOYMENT_SCOPE }}
+      deployment: ${{ variables.DEPLOYMENT_NAME }} 
+      templateFile: ${{ variables.DEPLOYMENT_FILE }}
+      parametersFile: ./params/prod.main.bicepparam
+
+      # --- on subscription scope
+      # location: germanywestcentral
+
+      # --- on resource group scope
+      resourceGroup: rg-demo-prod-001

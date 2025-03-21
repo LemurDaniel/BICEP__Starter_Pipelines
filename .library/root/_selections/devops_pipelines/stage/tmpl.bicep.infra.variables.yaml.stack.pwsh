@@ -1,0 +1,203 @@
+parameters:
+  - name: condition
+    type: string
+    default: true
+  - name: stage
+    type: string
+  - name: serviceConnection
+    type: string
+  - name: variableGroup
+    type: string
+    default: ''
+
+  # General deployment parameter
+  - name: denySettingsMode
+    type: string
+  - name: actionOnUnmanage
+    type: string
+  - name: WhatIfOnly
+    type: boolean
+    default: true
+  - name: WhatIfExcludeChange
+    type: string
+    default: 'NoChange' # Ignore | NoChange | Deploy | Create | Modify | Delete
+
+  # others
+  - name: showTree
+    type: boolean
+    default: false
+  - name: runBicepTests
+    type: boolean
+    default: false
+  - name: installBicep
+    default: false
+
+stages:
+  - stage: ${{ parameters.stage }}
+    condition: ${{ parameters.condition }}
+    displayName: Deploy ${{ parameters.stage }}
+    variables:
+      - ${{ if ne(parameters.variableGroup, '') }}:
+          - group: ${{ parameters.variableGroup }}
+    jobs:
+      #////////////////////////////////////////////////////////////
+      #////// WhatIf
+      - deployment: what_if_${{ parameters.stage }}
+        displayName: WhatIf ${{ parameters.stage }}
+        environment: ${{ parameters.stage }}
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                #////////////////////////////////////////////////////////////
+                #////// Tree Command
+                - script: |
+                    sudo apt-get update
+                    sudo apt-get install -y tree
+                  displayName: "Install directory tree command"
+                  condition: ${{ parameters.showTree }}
+                - script: |
+                    tree $(Build.SourcesDirectory)
+                  condition: ${{ parameters.showTree }}
+                  displayName: Show build agent directory tree
+                #////////////////////////////////////////////////////////////
+                #////// Bicep Tests
+                - task: PowerShell@2
+                  condition: eq(${{ parameters.runBicepTests }}, true)
+                  displayName: Run Bicep Tests
+                  inputs:
+                    pwsh: true
+                    targetType: 'inline'
+                    script: |
+                      if(${{ parameters.InstallBicep }}){
+                        az bicep install
+                      }
+                      $testFiles = Get-ChildItem -Path "$(Build.SourcesDirectory)" -Filter *test.bicep -Recurse -Depth 4
+                      foreach($file in $testFiles) {
+                        bicep test $file.FullName
+                      } 
+                #////////////////////////////////////////////////////////////
+                #////// WhatIf
+                - task: AzureCLI@2
+                  displayName: WhatIf ${{ parameters.stage }}
+                  inputs:
+                    azureSubscription: ${{ parameters.serviceConnection }}
+                    addSpnToEnvironment: true
+                    useGlobalConfig: true
+                    scriptType: pscore
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      if(-NOT [System.String]::IsNullOrEmpty('$(SUBSCRIPTION_ID)')) {
+                         Write-Host 'Subscription: $(SUBSCRIPTION_ID)'
+                         Set-AzContext -Subscription $(SUBSCRIPTION_ID)
+                      }
+
+                      $Deployment = @{
+                          Name                    = '$(DEPLOYMENT_NAME)'
+                          TemplateFile            = '$(TEMPLATE_FILE)'
+                          TemplateParameterFile   = '$(PARAMETERS_FILE)'
+                          WhatIf                  = $true
+                          WhatIfResultFormat      = 'FullResourcePayloads'
+                      }
+
+                      if(-NOT [System.String]::IsNullOrEmpty('${{ parameters.WhatIfExcludeChange }}')) {
+                          $Deployment.Add('WhatIfExcludeChangeType', '${{ parameters.WhatIfExcludeChange }}')
+                      }
+
+
+                      if('$(SCOPE)' -EQ 'subscription') {
+                        [System.String]::IsNullOrEmpty('$(LOCATION)') {
+                          throw "Subscription Deployment needs a location!"
+                        }
+
+                        $Deployment.Add('location', '$(LOCATION)')
+
+                        Start-Transcript -Path "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
+                        New-AzSubscriptionDeployment @Deployment
+                        Stop-Transcript
+                      } 
+                      elseif('$(SCOPE)' -EQ 'resourceGroup') {
+                        if([System.String]::IsNullOrEmpty('$(RESOURCE_GROUP)')) {
+                          throw "Resource Group Deployment needs a resource group!"
+                        }
+
+                        $Deployment.Add('ResourceGroupName', '$(RESOURCE_GROUP)')
+
+                        Start-Transcript -Path "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
+                        New-AzResourceGroupDeployment @Deployment
+                        Stop-Transcript
+                      } else {
+                        throw "Invalid Scope $(SCOPE)!"
+                      }
+
+                - task: PublishBuildArtifacts@1
+                  displayName: "Bicep WhatIf Artifact"
+                  inputs:
+                    targetPath: "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
+                    artifactName: "bicep_whatif"
+
+      - job: approve_${{ parameters.stage }}
+        condition: eq(${{ parameters.WhatIfOnly }}, false)
+        dependsOn: what_if_${{ parameters.stage }}
+        displayName: Approve
+        pool: server
+        steps:
+          - task: ManualValidation@0
+            displayName: Manual Validation
+            timeoutInMinutes: 1440
+
+      #////////////////////////////////////////////////////////////
+      #////// Deploy
+      - deployment: deployment_${{ parameters.stage }}
+        condition: eq(${{ parameters.WhatIfOnly }}, false)
+        dependsOn: approve_${{ parameters.stage }}
+        displayName: Deploy ${{ parameters.stage }}
+        environment: ${{ parameters.stage }}
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - task: AzureCLI@2
+                  displayName: Deploy to ${{ parameters.stage }}
+                  inputs:
+                    azureSubscription: ${{ parameters.serviceConnection }}
+                    addSpnToEnvironment: true
+                    useGlobalConfig: true
+                    scriptType: pscore
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      if(-NOT [System.String]::IsNullOrEmpty('$(SUBSCRIPTION_ID)')) {
+                         Write-Host 'Subscription: $(SUBSCRIPTION_ID)'
+                         Set-AzContext -Subscription $(SUBSCRIPTION_ID)
+                      }
+
+                      $Deployment = @{
+                          Name                    = '$(DEPLOYMENT_NAME)'
+                          TemplateFile            = '$(TEMPLATE_FILE)'
+                          TemplateParameterFile   = '$(PARAMETERS_FILE)'
+                          DenySettingsMode        = '${{ parameters.denySettingsMode }}'
+                          ActionOnUnmanage        = '${{ parameters.actionOnUnmanage }}'
+                      }
+
+                      if('$(SCOPE)' -EQ 'subscription') {
+                        [System.String]::IsNullOrEmpty('$(LOCATION)') {
+                          throw "Subscription Deployment needs a location!"
+                        }
+
+                        $Deployment.Add('location', '$(LOCATION)')
+
+                        New-AzSubscriptionDeploymentStack @Deployment -Verbose -Force -Confirm:$false
+                      } 
+                      elseif('$(SCOPE)' -EQ 'resourceGroup') {
+                        if([System.String]::IsNullOrEmpty('$(RESOURCE_GROUP)')) {
+                          throw "Resource Group Deployment needs a resource group!"
+                        }
+
+                        $Deployment.Add('ResourceGroupName', '$(RESOURCE_GROUP)')
+
+                        New-AzResourceGroupDeploymentStack @Deployment -Verbose -Force -Confirm:$false
+                      } else {
+                        throw "Invalid Scope $(SCOPE)!"
+                      }

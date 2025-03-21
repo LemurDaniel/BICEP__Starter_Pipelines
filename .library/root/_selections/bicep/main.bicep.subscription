@@ -1,0 +1,49 @@
+targetScope = 'subscription'
+
+/*
+
+  #################################################
+  #### Imports
+
+*/
+import {
+  demoExportedVariable
+  demoTypeDefinition
+} from './export/demo.bicep'
+
+/*
+
+  #################################################
+  #### Parameters
+
+*/
+param subDeploymentName string = substring(uniqueString(deployment().name), 0, 8)
+param config demoTypeDefinition
+
+/*
+
+  #################################################
+  #### Resources and Modules
+
+*/
+
+resource resGroup 'Microsoft.Resources/resourceGroups@2024-11-01' = {
+  location: deployment().location
+  name: 'rg-bicep-demo-001'
+}
+
+module demoModule 'module/demo.bicep' = {
+  scope: resGroup
+  name: '${subDeploymentName}.module.demo'
+  params: {
+    config: config
+  }
+}
+
+/*
+
+  #################################################
+  #### Outputs
+
+*/
+output config demoTypeDefinition = demoModule.outputs.ref

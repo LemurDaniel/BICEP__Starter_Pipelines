@@ -1,0 +1,42 @@
+targetScope = 'resourceGroup'
+
+/*
+
+  #################################################
+  #### Imports
+
+*/
+import {
+  demoExportedVariable
+  demoTypeDefinition
+} from './export/demo.bicep'
+
+/*
+
+  #################################################
+  #### Parameters
+
+*/
+param subDeploymentName string = substring(uniqueString(deployment().name), 0, 8)
+param config demoTypeDefinition
+
+/*
+
+  #################################################
+  #### Resources and Modules
+
+*/
+module demoModule 'module/demo.bicep' = {
+  name: '${subDeploymentName}.module.demo'
+  params: {
+    config: config
+  }
+}
+
+/*
+
+  #################################################
+  #### Outputs
+
+*/
+output config demoTypeDefinition = demoModule.outputs.ref
