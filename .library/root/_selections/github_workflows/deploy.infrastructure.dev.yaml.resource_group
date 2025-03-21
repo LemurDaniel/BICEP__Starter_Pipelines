@@ -13,16 +13,16 @@ on:
       - dev
     paths:
       - 'main.bicep'
-      - 'main.dev.bicep'
-      - 'main.test.bicep'
+      - './params/main.dev.bicepparam'
+      - './params/main.test.bicepparam'
 
   pull_request:
     branches:
       - dev
     paths:
       - 'main.bicep'
-      - 'main.dev.bicep'
-      - 'main.test.bicep'
+      - './params/main.dev.bicepparam'
+      - './params/main.test.bicepparam'
    
 jobs:
   deploy_dev:

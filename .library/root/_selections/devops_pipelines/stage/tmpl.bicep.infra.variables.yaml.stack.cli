@@ -111,7 +111,7 @@ stages:
                         fi
 
                         DeploymentArgs+=(--location "$(LOCATION)")
-                        az deployment sub create "${DeploymentArgs[@]}" | tee "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
+                        az deployment sub create "${DeploymentArgs[@]}" > "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt" 
                       
                       elif [ "$(SCOPE)" = "resourceGroup" ]; then
                         if [ -z "$(RESOURCE_GROUP)" ]; then
@@ -120,7 +120,7 @@ stages:
                         fi
 
                         DeploymentArgs+=(--resource-group "$(RESOURCE_GROUP)")
-                        az deployment group create "${DeploymentArgs[@]}" | tee "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
+                        az deployment group create "${DeploymentArgs[@]}" > "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
                       
                       else
                         echo "Error: Invalid Scope $(SCOPE)!" >&2

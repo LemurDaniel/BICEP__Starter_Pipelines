@@ -53,10 +53,11 @@ stages:
       serviceConnection: project-connection-dev
       # variableGroup: bicep-deploy-dev
 
-      # runBicepTests: true
       # NOTE: 
       # - This will always fail due to being an expermimental feature (As of Date: 2025.03.21)
       # - Bicep tests are still an experimental feature and not yet production ready.
+      # runBicepTests: true
+
       whatIfOnly: ${{ parameters.whatIfOnly }}
 
       # env parameters
@@ -78,10 +79,11 @@ stages:
       serviceConnection: project-connection-test
       # variableGroup: bicep-deploy-test
 
-      # runBicepTests: true
       # NOTE: 
       # - This will always fail due to being an expermimental feature (As of Date: 2025.03.21)
       # - Bicep tests are still an experimental feature and not yet production ready.
+      # runBicepTests: true
+
       whatIfOnly: ${{ parameters.whatIfOnly }}
 
       # env parameters
@@ -103,10 +105,11 @@ stages:
       serviceConnection: project-connection-prod
       # variableGroup: bicep-deploy-prod
 
-      # runBicepTests: true
       # NOTE: 
       # - This will always fail due to being an expermimental feature (As of Date: 2025.03.21)
       # - Bicep tests are still an experimental feature and not yet production ready.
+      # runBicepTests: true
+
       whatIfOnly: ${{ parameters.whatIfOnly }}
 
       # env parameters

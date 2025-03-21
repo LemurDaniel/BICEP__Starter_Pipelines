@@ -133,7 +133,7 @@ stages:
                         fi
 
                         DeploymentArgs+=(--location "${{ parameters.location }}")
-                        az deployment sub create "${DeploymentArgs[@]}" | tee "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
+                        az deployment sub create "${DeploymentArgs[@]}" > "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt" 
                        
                       elif [ "${{ parameters.scope }}" == "resourceGroup" ]; then
                         if [ -z "${{ parameters.resourceGroup }}" ]; then
@@ -142,12 +142,18 @@ stages:
                         fi
 
                         DeploymentArgs+=(--resource-group "${{ parameters.resourceGroup }}")
-                        az deployment group create "${DeploymentArgs[@]}" | tee "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
+                        az deployment group create "${DeploymentArgs[@]}" > "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
                       
                       else
                         echo "Error: Invalid Scope ${{ parameters.scope }}!" >&2
                         exit 1
                       fi
+
+                      echo 
+                      echo "----------------------------------------"
+                      cat "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
+                      echo "----------------------------------------"
+                      echo
 
                 - task: PublishBuildArtifacts@1
                   displayName: "Bicep WhatIf Artifact"
@@ -221,3 +227,9 @@ stages:
                         echo "Error: Invalid Scope ${{ parameters.scope }}!" >&2
                         exit 1
                       fi
+
+                      echo 
+                      echo "----------------------------------------"
+                      cat "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
+                      echo "----------------------------------------"
+                      echo
