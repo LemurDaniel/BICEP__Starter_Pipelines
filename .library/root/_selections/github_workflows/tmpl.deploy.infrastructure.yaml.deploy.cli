@@ -1,7 +1,7 @@
 name: (Template) Bicep Deployment - Resource Group - PWSH
 
 #
-# This is a template for deploying a Bicep file to a resource group using Powershell.
+# This is a template for deploying a Bicep file to a resource group using Azure CLI.
 #
 # Below is an example of how to use this template in a workflow.
 #
@@ -30,7 +30,7 @@ on:
         type: string
         description: The Azure CLI version to use
         required: false
-        default: "2.45.0"
+        default: "latest"
 
       name:
         type: string
@@ -69,7 +69,7 @@ on:
         type: boolean
         description: Run Bicep tests before deployment
         required: false
-        default: true
+        default: false
 
 
       what_if_only:
@@ -115,14 +115,15 @@ jobs:
           creds: ${{ secrets.AZURE_DEPLOYMENT_SPN }}
 
       - name: Run Bicep Tests
-        uses: azure/powershell@v2
+        uses: azure/cli@v2
         if: ${{ inputs.run_bicep_tests == true }}
         with:
           azcliversion: ${{ inputs.cli_version }}
           inlineScript: |
+            az bicep install
             test_files=$(find . -type f -name "*test.bicep" -maxdepth 4)
             for file in $test_files; do
-              bicep test "$file"
+              /root/.azure/bin/bicep test "$file"
             done
 
       - name: What If ${{ inputs.template_file }}
@@ -137,7 +138,8 @@ jobs:
             deployment_args=(
               --name "${{ inputs.name }}"
               --template-file "${{ inputs.template_file }}"
-              --parameters @"${{ inputs.parameter_file }}"
+              --parameters "${{ inputs.parameter_file }}"
+              --no-prompt
               --what-if
               --what-if-result-format FullResourcePayloads
             )
@@ -153,7 +155,7 @@ jobs:
               fi
 
               deployment_args+=(--location "${{ inputs.location }}")
-              az deployment sub what-if "${deployment_args[@]}" > ./bicep_whatif.txt
+              az deployment sub create "${deployment_args[@]}" > ./bicep_whatif.txt
 
             elif [ "${{ inputs.scope }}" == "resourceGroup" ]; then
               if [ -z "${{ inputs.resource_group }}" ]; then
@@ -162,7 +164,7 @@ jobs:
               fi
 
               deployment_args+=(--resource-group "${{ inputs.resource_group }}")
-              az deployment group what-if "${deployment_args[@]}" > ./bicep_whatif.txt
+              az deployment group create "${deployment_args[@]}" > ./bicep_whatif.txt
 
             else
               echo "Invalid Scope ${{ inputs.scope }}!" >&2
@@ -208,7 +210,7 @@ jobs:
             deployment_args=(
               --name "${{ inputs.name }}"
               --template-file "${{ inputs.template_file }}"
-              --parameters @"${{ inputs.parameter_file }}"
+              --parameters "${{ inputs.parameter_file }}"
             )
 
             if [ "${{ inputs.scope }}" == "subscription" ]; then

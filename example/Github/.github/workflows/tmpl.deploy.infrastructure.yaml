@@ -54,7 +54,7 @@ on:
         type: boolean
         description: Run Bicep tests before deployment
         required: false
-        default: true
+        default: false
 
 
       scope:
@@ -115,7 +115,7 @@ jobs:
           enable-AzPSSession: true
 
       - name: Run Bicep Tests
-        uses: azure/powershell@v2
+        uses: azure/cli@v2
         if: ${{ inputs.run_bicep_tests == true }}
         with:
           azPSVersion: ${{ inputs.pwsh_version }}

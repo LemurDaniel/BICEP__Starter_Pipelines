@@ -117,6 +117,7 @@ stages:
                         --name "${{ parameters.deployment }}"
                         --template-file "${{ parameters.templateFile }}"
                         --parameters @"${{ parameters.parametersFile }}"
+                        --no-prompt
                         --what-if
                         --what-if-result-format FullResourcePayloads
                       )
@@ -132,7 +133,7 @@ stages:
                         fi
 
                         DeploymentArgs+=(--location "${{ parameters.location }}")
-                        az deployment sub what-if "${DeploymentArgs[@]}" | tee "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
+                        az deployment sub create "${DeploymentArgs[@]}" | tee "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
                        
                       elif [ "${{ parameters.scope }}" == "resourceGroup" ]; then
                         if [ -z "${{ parameters.resourceGroup }}" ]; then
@@ -141,7 +142,7 @@ stages:
                         fi
 
                         DeploymentArgs+=(--resource-group "${{ parameters.resourceGroup }}")
-                        az deployment group what-if "${DeploymentArgs[@]}" | tee "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
+                        az deployment group create "${DeploymentArgs[@]}" | tee "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
                       
                       else
                         echo "Error: Invalid Scope ${{ parameters.scope }}!" >&2

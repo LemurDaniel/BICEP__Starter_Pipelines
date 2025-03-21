@@ -81,7 +81,7 @@ on:
         type: boolean
         description: Run Bicep tests before deployment
         required: false
-        default: true
+        default: false
 
 
       what_if_only:

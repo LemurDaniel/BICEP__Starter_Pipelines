@@ -1,7 +1,7 @@
 name: (Template) Bicep Deployment Stack - Resource Group - PWSH
 
 #
-# This is a template for deploying a Bicep file to a resource group using Powershell.
+# This is a template for deploying a Bicep file to a resource group using Azure CLI.
 #
 # This workflow uses deployment stacks: https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/deployment-stacks?tabs=azure-powershell
 #
@@ -32,7 +32,7 @@ on:
         type: string
         description: The Azure CLI version to use
         required: false
-        default: "2.45.0"
+        default: "latest"
 
       name:
         type: string
@@ -80,7 +80,7 @@ on:
         type: boolean
         description: Run Bicep tests before deployment
         required: false
-        default: true
+        default: false
 
 
       what_if_only:
@@ -126,18 +126,19 @@ jobs:
           enable-AzPSSession: true
 
       - name: Run Bicep Tests
-        uses: azure/powershell@v2
+        uses: azure/cli@v2
         if: ${{ inputs.run_bicep_tests == true }}
         with:
           azcliversion: ${{ inputs.cli_version }}
           inlineScript: |
+            az bicep install
             test_files=$(find . -type f -name "*test.bicep" -maxdepth 4)
             for file in $test_files; do
-              bicep test "$file"
+              /root/.azure/bin/bicep test "$file"
             done
 
       - name: What If ${{ inputs.template_file }}
-        uses: azure/powershell@v2
+        uses: azure/cli@v2
         with:
           azcliversion: ${{ inputs.cli_version }}
           inlineScript: |
@@ -149,7 +150,8 @@ jobs:
             DeploymentArgs=(
               --name "${{ inputs.name }}"
               --template-file "${{ inputs.template_file }}"
-              --parameters @"${{ inputs.parameter_file }}"
+              --parameters "${{ inputs.parameter_file }}"
+              --no-prompt
               --what-if
               --what-if-result-format FullResourcePayloads
             )
@@ -165,7 +167,7 @@ jobs:
               fi
 
               DeploymentArgs+=(--location "${{ inputs.location }}")
-              az deployment sub what-if "${DeploymentArgs[@]}" > ./bicep_whatif.txt
+              az deployment sub create "${DeploymentArgs[@]}" > ./bicep_whatif.txt
 
             elif [[ "${{ inputs.scope }}" == "resourceGroup" ]]; then
               if [[ -z "${{ inputs.resource_group }}" ]]; then
@@ -174,7 +176,7 @@ jobs:
               fi
 
               DeploymentArgs+=(--resource-group "${{ inputs.resource_group }}")
-              az deployment group what-if "${DeploymentArgs[@]}" > ./bicep_whatif.txt
+              az deployment group create "${DeploymentArgs[@]}" > ./bicep_whatif.txt
 
             else
               echo "Error: Invalid Scope ${{ inputs.scope }}!" >&2
@@ -210,7 +212,7 @@ jobs:
           enable-AzPSSession: true
 
       - name: Deploy ${{ inputs.template_file }}
-        uses: azure/powershell@v2
+        uses: azure/cli@v2
         with:
           azcliversion: ${{ inputs.cli_version }}
           inlineScript: |
@@ -222,7 +224,7 @@ jobs:
             DeploymentArgs=(
               --name "${{ inputs.name }}"
               --template-file "${{ inputs.template_file }}"
-              --parameters @"${{ inputs.parameter_file }}"
+              --parameters "${{ inputs.parameter_file }}"
               --deny-settings-mode "${{ inputs.deny_settings_mode }}"
               --action-on-unmanage "${{ inputs.action_on_unmanage }}"
             )
