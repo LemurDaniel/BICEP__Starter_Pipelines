@@ -53,6 +53,10 @@ stages:
       serviceConnection: project-connection-dev
       # variableGroup: bicep-deploy-dev
 
+      # runBicepTests: true
+      # NOTE: 
+      # - This requires bicep or at least azure cli to be installed on the used pipeline agent/runner.
+      # - Bicep tests are still an experimental feature and not yet production ready.
       whatIfOnly: ${{ parameters.whatIfOnly }}
 
       # env parameters
@@ -74,6 +78,10 @@ stages:
       serviceConnection: project-connection-test
       # variableGroup: bicep-deploy-test
 
+      # runBicepTests: true
+      # NOTE: 
+      # - This requires bicep or at least azure cli to be installed on the used pipeline agent/runner.
+      # - Bicep tests are still an experimental feature and not yet production ready.
       whatIfOnly: ${{ parameters.whatIfOnly }}
 
       # env parameters
@@ -95,6 +103,10 @@ stages:
       serviceConnection: project-connection-prod
       # variableGroup: bicep-deploy-prod
 
+      # runBicepTests: true
+      # NOTE: 
+      # - This requires bicep or at least azure cli to be installed on the used pipeline agent/runner.
+      # - Bicep tests are still an experimental feature and not yet production ready.
       whatIfOnly: ${{ parameters.whatIfOnly }}
 
       # env parameters
