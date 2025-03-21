@@ -23,24 +23,26 @@ This is supposed to be a central place for starting with a new bicep project.
 1. Open the repository in Visual Studio Code.
 2. Press `F5` to start a Launch Task.
 ```PowerShell
-PS> init ./destinationFolder
+PS> bicep-init ./destinationFolder
 ```
+
+---
 
 ### Method 2: Directly call from PowerShell Terminal
 
 ```PowerShell
-PS> . \init.ps1 ./destinationFolder
+PS> ./bicep-init.ps1 ./destinationFolder
 ```
 
-### Method 3: Put in PowerShell Profile and use whenever needed
+---
 
-1. Copy .library and .scripts at $PROFILE location
+### Method 3: Directly copy to PowerShell Profile and use whenever needed
+
+1. Copy ./BicepStarterPipelines to PowerShell Profile location
 2. Add following in Microsoft.PowerShell_profile.ps1
 ```PowerShell
-# Load Functions
-. $PSScriptRoot/.scripts/Get-UtilsEscapeCode.ps1
-. $PSScriptRoot/.scripts/Read-UtilsUserOption.ps1
-. $PSScriptRoot/.scripts/Initialize-TemplateDirectory.ps1
+Import-Module -Name ./BicepStarterPipelines/
 ```
+3. User bicep-init whenever needed in terminal
 
 ![Example](./.assets/example.01.png)

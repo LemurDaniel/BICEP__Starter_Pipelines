@@ -5,10 +5,6 @@ function Prompt {
     return "PS> "
 }
 
-# Load functions
-. $cwd/.scripts/Get-UtilsEscapeCode.ps1
-. $cwd/.scripts/Read-UtilsUserOption.ps1
-. $cwd/.scripts/Initialize-TemplateDirectory.ps1
-
+Import-Module -Name .\BicepStarterPipelines\
 
 Clear-Host

@@ -1,4 +1,4 @@
-function Initialize-TemplateDirectory {
+function Initialize-BicepStarterPipeline {
     <#
     .SYNOPSIS
     Initializes a directory with files from a predefined template library.
@@ -13,7 +13,7 @@ function Initialize-TemplateDirectory {
     .LINK
     
     #>
-    [Alias('init')]
+    [Alias('bicep-init')]
     [CmdletBinding()]
     param (
         [Parameter(
@@ -76,7 +76,7 @@ function Initialize-TemplateDirectory {
 
     #>
 
-    $sourceDir = [System.IO.DirectoryInfo]::new("$PSScriptRoot/../.library/")
+    $sourceDir = [System.IO.DirectoryInfo]::new("$PSScriptRoot/libary/")
 
     $targetDir = $null
 
