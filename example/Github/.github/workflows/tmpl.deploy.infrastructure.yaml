@@ -115,7 +115,7 @@ jobs:
           enable-AzPSSession: true
 
       - name: Run Bicep Tests
-        uses: azure/cli@v2
+        uses: azure/powershell@v2
         if: ${{ inputs.run_bicep_tests == true }}
         with:
           azPSVersion: ${{ inputs.pwsh_version }}
@@ -125,7 +125,7 @@ jobs:
               bicep test $file.FullName
             }
 
-      - name: Deploy ${{ inputs.template_file }}
+      - name: What If ${{ inputs.template_file }}
         uses: azure/powershell@v2
         with:
           azPSVersion: ${{ inputs.pwsh_version }}
