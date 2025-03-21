@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package>
+    <metadata>
+        <id>BicepStarterPipelines</id>
+        <version>0.0.2</version>
+        <authors>LemurDaniel</authors>
+        <owners>LemurDaniel</owners>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>Provides templates for initializing a bicep repository.</description>
+        <copyright>(c) LemurDaniel.</copyright>
+        <tags>Bicep</tags>
+        <projectUrl>https://github.com/LemurDaniel/BICEP__Starter_Pipelines</projectUrl>
+    </metadata>
+</package>

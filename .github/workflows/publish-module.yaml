@@ -1,0 +1,25 @@
+name: Publish PowerShell Module
+
+on:
+  workflow_dispatch:
+
+env:
+  MODULE_PATH: ./BicepStarterPipelines
+    
+jobs:
+  publish:
+    name: Publish to PS Gallery
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+    
+      - name: Pack Module
+        shell: pwsh
+        run: |
+          nuget pack ${{ env.MODULE_PATH }} -OutputDirectory ${{ env.MODULE_PATH }}
+    
+      - name: Push Module
+        shell: pwsh
+        run: |
+          $nupkg = Get-ChildItem -Path ${{ env.MODULE_PATH }} -Filter *.nupkg
+          nuget push $nupkg -ApiKey ${{ secrets.PS_GALLERY_TOKEN }} -Source "https://www.powershellgallery.com/api/v2/package/"

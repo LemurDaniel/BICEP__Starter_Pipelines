@@ -18,7 +18,7 @@ function Initialize-BicepStarterPipeline {
     param (
         [Parameter(
             Position = 1,
-            Mandatory = $true
+            Mandatory = $false
         )]
         [ArgumentCompleter(
             {
@@ -30,7 +30,7 @@ function Initialize-BicepStarterPipeline {
             }
         )]
         [System.IO.DirectoryInfo]
-        $Target
+        $Target = '.'
     )
 
     <#

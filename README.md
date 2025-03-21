@@ -36,13 +36,28 @@ PS> ./bicep-init.ps1 ./destinationFolder
 
 ---
 
-### Method 3: Directly copy to PowerShell Profile and use whenever needed
+### Method 3: Install from [PowerShell Gallery](https://www.powershellgallery.com/packages/BicepStarterPipelines)
 
-1. Copy ./BicepStarterPipelines to PowerShell Profile location
-2. Add following in Microsoft.PowerShell_profile.ps1
-```PowerShell
-Import-Module -Name ./BicepStarterPipelines/
-```
-3. User bicep-init whenever needed in terminal
+1. Install the module from the PowerShell Gallery:
+    ```PowerShell
+    Install-Module -Name BicepStarterPipelines -Scope CurrentUser
+    ```
+2. Use the `bicep-init` in current directory:
+    ```PowerShell
+    bicep-init .
+    ```
+
+---
+### Method 4: Add to PowerShell Profile for Persistent Use
+
+1. Copy the `BicepStarterPipelines` folder to your PowerShell profile location.  
+2. Edit your PowerShell profile (`Microsoft.PowerShell_profile.ps1`) and add the following line:  
+    ```PowerShell
+    Import-Module -Name ./BicepStarterPipelines/
+    ``` 
+3. Use the `bicep-init` in current directory:  
+    ```PowerShell
+    bicep-init .
+    ```
 
 ![Example](./.assets/example.01.png)
