@@ -1,0 +1,42 @@
+    
+name: Deploy Infrastructure Prod
+
+on:
+  workflow_dispatch:
+    inputs:
+      what_if_only:
+        type: boolean
+        default: true
+
+  push:
+    branches:
+      - master
+    paths:
+      - 'main.bicep'
+      - 'main.prod.bicep'
+
+  pull_request:
+    branches:
+      - master
+      - dev
+    paths:
+      - 'main.bicep'
+      - 'main.prod.bicep'
+   
+jobs:
+  deploy_prod:
+    name: Deploy Infrastructure PROD
+    uses: ./.github/workflows/tmpl.deploy.infrastructure.yaml
+    secrets:
+      AZURE_DEPLOYMENT_SPN: ${{ secrets.AZURE_CICDSPN }}
+    with:
+      # NOTE:
+      # You can add an approval gate via the environment deployment protection rule for approvers
+      # environment: prod
+      scope: subscription
+      location: 'westeurope'
+
+      name: 'sample-prod'
+      template_file: ./main.bicep
+      parameter_file: ./params/main.prod.bicepparam
+      what_if_only: ${{ github.EVENT_NAME  == 'pull_request' || inputs.what_if_only == true }}
