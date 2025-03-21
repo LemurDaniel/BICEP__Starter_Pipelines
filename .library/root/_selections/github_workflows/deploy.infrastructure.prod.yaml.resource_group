@@ -40,3 +40,4 @@ jobs:
       template_file: ./main.bicep
       parameter_file: ./params/main.prod.bicepparam
       what_if_only: ${{ github.EVENT_NAME  == 'pull_request' || inputs.what_if_only == true }}
+      what_if_artifact_name: what_if_result

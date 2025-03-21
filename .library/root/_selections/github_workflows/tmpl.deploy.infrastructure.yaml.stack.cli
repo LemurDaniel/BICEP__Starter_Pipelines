@@ -136,7 +136,7 @@ jobs:
               bicep test "$file"
             done
 
-      - name: WhatIf ${{ inputs.template_file }}
+      - name: What If ${{ inputs.template_file }}
         uses: azure/powershell@v2
         with:
           azcliversion: ${{ inputs.cli_version }}

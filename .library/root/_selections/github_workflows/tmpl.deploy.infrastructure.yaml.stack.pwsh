@@ -137,7 +137,7 @@ jobs:
           creds: ${{ secrets.AZURE_DEPLOYMENT_SPN }}
           enable-AzPSSession: true
 
-      - name: WhatIf ${{ inputs.template_file }}
+      - name: What If ${{ inputs.template_file }}
         uses: azure/powershell@v2
         with:
           azPSVersion: ${{ inputs.pwsh_version }}

@@ -1,5 +1,5 @@
     
-name: Deploy Infrastructure
+name: Deploy Infrastructure Dev / Test
 
 on:
   workflow_dispatch:
@@ -38,6 +38,7 @@ jobs:
       template_file: ./main.bicep
       parameter_file: ./params/main.dev.bicepparam
       what_if_only: ${{ github.EVENT_NAME  == 'pull_request' || inputs.what_if_only == true }}
+      what_if_artifact_name: what_if_result_dev
 
   deploy_test:
     needs:
@@ -54,3 +55,4 @@ jobs:
       template_file: ./main.bicep
       parameter_file: ./params/main.test.bicepparam
       what_if_only: ${{ github.EVENT_NAME  == 'pull_request' || inputs.what_if_only == true }}
+      what_if_artifact_name: what_if_result_test
