@@ -8,7 +8,6 @@ function Prompt {
 # Load functions
 . $cwd/.scripts/Get-UtilsEscapeCode.ps1
 . $cwd/.scripts/Read-UtilsUserOption.ps1
-. $cwd/.scripts/Select-UtilsConsoleMenu.ps1
 . $cwd/.scripts/Initialize-TemplateDirectory.ps1
 
 
