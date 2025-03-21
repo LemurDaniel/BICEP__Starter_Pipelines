@@ -32,5 +32,7 @@ PS> init ./destinationFolder
 PS> . \init.ps1 ./destinationFolder
 ```
 
+### Method 3: Put in PowerShell Profile and use whenever needed
+
 
 ![Example](./.assets/example.01.png)
