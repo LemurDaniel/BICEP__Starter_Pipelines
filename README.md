@@ -34,5 +34,14 @@ PS> . \init.ps1 ./destinationFolder
 
 ### Method 3: Put in PowerShell Profile and use whenever needed
 
+1. Copy .library and .scripts at $PROFILE location
+2. Add following in Microsoft.PowerShell_profile.ps1
+```PowerShell
+# Load Functions
+. $PSScriptRoot/.scripts/Get-UtilsEscapeCode.ps1
+. $PSScriptRoot/.scripts/Read-UtilsUserOption.ps1
+. $PSScriptRoot/.scripts/Select-UtilsConsoleMenu.ps1
+. $PSScriptRoot/.scripts/Initialize-TemplateDirectory.ps1
+```
 
 ![Example](./.assets/example.01.png)
