@@ -49,7 +49,7 @@ stages:
   - template: stage/tmpl.bicep.infra.parameters.yaml
     parameters:
       stage: dev
-      condition: ne(variables['Build.SourceBranch'], 'refs/heads/master')
+      condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/feature')
       serviceConnection: project-connection-dev
       # variableGroup: bicep-deploy-dev
 
@@ -75,7 +75,7 @@ stages:
   - template: stage/tmpl.bicep.infra.parameters.yaml
     parameters:
       stage: test
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/feature')
+      condition: eq(variables['Build.SourceBranch'], 'refs/heads/dev')
       serviceConnection: project-connection-test
       # variableGroup: bicep-deploy-test
 
