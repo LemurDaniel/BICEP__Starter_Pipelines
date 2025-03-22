@@ -53,11 +53,11 @@ PS> ./bicep-init.ps1 ./destinationFolder
 1. Copy the `BicepStarterPipelines` folder to your PowerShell profile location.
 2. Edit your PowerShell profile (`Microsoft.PowerShell_profile.ps1`) and add the following line:  
     ```PowerShell
-    Import-Module -Name ./BicepStarterPipelines/
+    Import-Module -Name $PSScriptRoot/BicepStarterPipelines/
     ``` 
 3. Use the `bicep-init` in current directory:  
     ```PowerShell
     bicep-init .
     ```
 
-![Example](./.assets/example.01.png)
+![Example](./.assets/example.png)

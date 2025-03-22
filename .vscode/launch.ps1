@@ -5,6 +5,7 @@ function Prompt {
     return "PS> "
 }
 
-Import-Module -Name .\BicepStarterPipelines\
+Remove-Module -Name BicepStarterPipelines -Force -ErrorAction SilentlyContinue
+Import-Module -Name .\BicepStarterPipelines -Force
 
 Clear-Host

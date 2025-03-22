@@ -4,7 +4,8 @@ on:
   workflow_dispatch:
 
 env:
-  MODULE_PATH: ./BicepStarterPipelines
+  MODULE_NAME: BicepStarterPipelines
+  GALLERY_URL: https://www.powershellgallery.com/api/v2/package/
     
 jobs:
   publish:
@@ -16,10 +17,35 @@ jobs:
       - name: Pack Module
         shell: pwsh
         run: |
-          nuget pack ${{ env.MODULE_PATH }} -OutputDirectory ${{ env.MODULE_PATH }}
+          $psd1 = Import-PowerShellDataFile -Path "./${{ env.MODULE_NAME }}/BicepStarterPipelines.psd1"
+
+          @"
+          <?xml version="1.0"?>
+          <package>
+              <metadata>
+                  <id>${{ env.MODULE_NAME }}</id>
+                  <version>$($psd1.ModuleVersion)</version>
+                  <authors>$($psd1.Author)</authors>
+                  <owners>$($psd1.Author)</owners>
+                  <requireLicenseAcceptance>false</requireLicenseAcceptance>
+                  <description>$($psd1.Description)</description>
+                  <copyright>(c) $($psd1.Author).</copyright>
+                  <tags>$($psd1.PrivateData.PSData.Tags -join " ")</tags>
+                  <projectUrl>$($psd1.PrivateData.PSData.ProjectUri)</projectUrl>
+              </metadata>
+          </package>
+          "@ | Out-File -FilePath "./${{ env.MODULE_NAME }}/BicepStarterPipelines.nuspec"
+
+          nuget pack "./${{ env.MODULE_NAME }}" -OutputDirectory "./${{ env.MODULE_NAME }}"
     
+      - name: Upload nupkg as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: module-package
+          path: "./${{ env.MODULE_NAME }}"
+
       - name: Push Module
         shell: pwsh
         run: |
-          $nupkg = Get-ChildItem -Path ${{ env.MODULE_PATH }} -Filter *.nupkg
-          nuget push $nupkg -ApiKey ${{ secrets.PS_GALLERY_TOKEN }} -Source "https://www.powershellgallery.com/api/v2/package/"
+          $nupkg = Get-ChildItem -Path "./${{ env.MODULE_NAME }}" -Filter *.nupkg
+          nuget push $nupkg -ApiKey ${{ secrets.PS_GALLERY_TOKEN }} -Source ${{ env.GALLERY_URL }}

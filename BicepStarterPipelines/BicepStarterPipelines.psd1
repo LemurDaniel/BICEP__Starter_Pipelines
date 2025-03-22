@@ -30,7 +30,7 @@ CompanyName = 'Unknown'
 Copyright = '(c) LemurDaniel.'
 
 # Description of the functionality provided by this module
-Description = 'Provides templates for initializing a bicep repository.'
+Description = 'Provides starter pipeline templates for initializing a bicep repository.'
 
 # Minimum version of the PowerShell engine required by this module
 PowerShellVersion = '7.2'
@@ -95,7 +95,7 @@ PrivateData = @{
     PSData = @{
 
         # Tags applied to this module. These help with module discovery in online galleries.
-        # Tags = @()
+        Tags = @('Bicep')
 
         # A URL to the license for this module.
         # LicenseUri = ''
