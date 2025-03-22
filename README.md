@@ -2,7 +2,7 @@
 
 Welcome to my **BICEP Starter Pipelines** repository! 😊  
 
-This is supposed to be a central place for starting with a new bicep project.
+This is a collection of pipelines for starting a bicep project.
 
 
 ## ⚠️ Attention  
@@ -50,7 +50,7 @@ PS> ./bicep-init.ps1 ./destinationFolder
 ---
 ### Method 4: Directly add to PowerShell Profile
 
-1. Copy the `BicepStarterPipelines` folder to your PowerShell profile location.  
+1. Copy the `BicepStarterPipelines` folder to your PowerShell profile location.
 2. Edit your PowerShell profile (`Microsoft.PowerShell_profile.ps1`) and add the following line:  
     ```PowerShell
     Import-Module -Name ./BicepStarterPipelines/
