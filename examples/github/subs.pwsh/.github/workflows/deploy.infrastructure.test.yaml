@@ -1,5 +1,5 @@
     
-name: Deploy Infrastructure PreProd
+name: Deploy Infrastructure Test
 
 on:
   workflow_dispatch:
@@ -13,7 +13,7 @@ on:
       - master
     paths:
       - 'main.bicep'
-      - './params/main.preprod.bicep'
+      - './params/main.test.bicep'
 
   pull_request:
     branches:
@@ -21,23 +21,23 @@ on:
       - dev
     paths:
       - 'main.bicep'
-      - './params/main.preprod.bicep'
+      - './params/main.test.bicep'
    
 jobs:
-  deploy_preprod:
-    name: Deploy Infrastructure PreProd
+  deploy_test:
+    name: Deploy Infrastructure Test
     uses: ./.github/workflows/tmpl.deploy.infrastructure.yaml
     secrets:
       AZURE_DEPLOYMENT_SPN: ${{ secrets.AZURE_CICDSPN }}
     with:
       # NOTE:
       # You can add an approval gate via the environment deployment protection rule for approvers
-      # environment: preProd
-      scope: resourceGroup
-      resource_group: 'sample-preProd'
-      
-      name: 'sample-preProd'
+      # environment: test
+      scope: subscription
+      location: 'westeurope'
+
+      name: 'sample-test'
       template_file: ./main.bicep
-      parameter_file: ../params/main.preprod.bicepparam
+      parameter_file: ../params/main.test.bicepparam
       what_if_only: ${{ github.EVENT_NAME  == 'pull_request' || inputs.what_if_only == true }}
       what_if_artifact_name: what_if_result
