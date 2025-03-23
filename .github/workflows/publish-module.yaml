@@ -2,13 +2,19 @@ name: Publish PowerShell Module
 
 on:
   workflow_dispatch:
+    inputs:
+      skip_publish:
+        description: 'Skip publishing the module'
+        required: false
+        default: true
+        type: boolean
 
 env:
   MODULE_NAME: BicepStarterPipelines
   GALLERY_URL: https://www.powershellgallery.com/api/v2/package/
     
 jobs:
-  publish:
+  pack_module:
     name: Publish to PS Gallery
     runs-on: windows-latest
     steps:
@@ -44,6 +50,53 @@ jobs:
           name: module-package
           path: "./${{ env.MODULE_NAME }}"
 
+  #//////////////////////////////////////////////////////
+  # Run Tests
+  # 
+  run_pester:
+    needs: 
+    - pack_module
+    name: Run Pester Tests - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true  # Allow all jobs in the matrix to continue, even on failure
+    
+    strategy:
+      matrix:
+        os: [windows-latest] # [ubuntu-latest, macos-latest] maybe support for other PLatforms in the future
+
+    steps:
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: module-package
+          path: "./${{ env.MODULE_NAME }}"
+            
+      - name: Install Pester
+        shell: pwsh
+        run: Install-Module -Name Pester -Force -SkipPublisherCheck
+      - name: Run Pester Tests
+        shell: pwsh
+        run: |
+          Import-Module ./${{ env.MODULE_NAME }}
+          Invoke-Pester -Path ./${{ env.MODULE_NAME }} -Output Detailed -CI
+
+
+  #//////////////////////////////////////////////////////
+  # Publish to PowerShell Gallery
+  # 
+  publish:
+    if: inputs.skip_publish == false
+    needs: 
+    - pack_module
+    - run_pester
+    runs-on: windows-latest
+    name: Publish to PowerShell Gallery
+    steps:
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: module-package
+          path: "./${{ env.MODULE_NAME }}"
       - name: Push Module
         shell: pwsh
         run: |

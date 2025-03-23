@@ -58,6 +58,9 @@ stages:
       # - Bicep tests are still an experimental feature and not yet production ready.
       # runBicepTests: true
 
+      # Show a tree structure of the folder
+      # showTree: true
+
       whatIfOnly: ${{ parameters.whatIfOnly }}
 
       # env parameters
@@ -84,6 +87,9 @@ stages:
       # - Bicep tests are still an experimental feature and not yet production ready.
       # runBicepTests: true
 
+      # Show a tree structure of the folder
+      # showTree: true
+
       whatIfOnly: ${{ parameters.whatIfOnly }}
 
       # env parameters
@@ -109,6 +115,9 @@ stages:
       # - This will always fail due to being an expermimental feature (As of Date: 2025.03.21)
       # - Bicep tests are still an experimental feature and not yet production ready.
       # runBicepTests: true
+
+      # Show a tree structure of the folder
+      # showTree: true
 
       whatIfOnly: ${{ parameters.whatIfOnly }}
 
