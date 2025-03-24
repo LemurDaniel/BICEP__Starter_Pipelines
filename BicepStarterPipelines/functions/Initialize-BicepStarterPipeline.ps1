@@ -38,24 +38,26 @@ function Initialize-BicepStarterPipeline {
         Helper script for copying files.
 
     #>
-    $copyHelper = {
+    function Copy-Helper {
+
         param(
             [System.IO.DirectoryInfo] $sourceDir,
             [System.IO.DirectoryInfo] $targetDir
         )
         
-        $sourceDirs = Get-ChildItem -Recurse -Directory -Path "$sourceDir"
-        $sourceFiles = Get-ChildItem -Recurse -File -Path "$sourceDir"
+        $sourceDirs = Get-ChildItem -Recurse -Directory -Path $sourceDir
         foreach ($dir in $sourceDirs) {
-            $relativePath = Resolve-Path -Relative -Path $dir.FullName -RelativeBasePath "$sourceDir"
+            $relativePath = Resolve-Path -Relative -Path $dir.FullName -RelativeBasePath $sourceDir
             $templateDir = [System.IO.DirectoryInfo]::new("$targetDir/$relativePath")
     
             if (-NOT $templateDir.Exists) {
                 $null = $templateDir.Create()
             }
         }
+
+        $sourceFiles = Get-ChildItem -Recurse -File -Path $sourceDir
         foreach ($file in $sourceFiles) {
-            $relativePath = Resolve-Path -Relative -Path $file.FullName -RelativeBasePath "$sourceDir"
+            $relativePath = Resolve-Path -Relative -Path $file.FullName -RelativeBasePath $sourceDir
             $templateFile = [System.IO.FileInfo]::new("$targetDir/$relativePath")
     
             if ($templateFile.Exists) {
@@ -65,6 +67,7 @@ function Initialize-BicepStarterPipeline {
                 $file.CopyTo($templateFile)
             }
         }
+
     }
 
     <#
@@ -78,11 +81,12 @@ function Initialize-BicepStarterPipeline {
 
     $sourceDir = [System.IO.DirectoryInfo]::new("$PSScriptRoot/libary/")
 
-    $targetDir = $null
-
     $rootDir = [System.IO.DirectoryInfo]::new("$sourceDir/root")
     $tempDir = [System.IO.DirectoryInfo]::new("$sourceDir/staging")
     $initPs1 = [System.IO.FileInfo]::new("$sourceDir/init.ps1")
+
+
+    $targetDir = $null
 
     if ([System.IO.Path]::IsPathFullyQualified($Target)) {
         $targetDir = [System.IO.DirectoryInfo]::new($Target)
@@ -108,19 +112,25 @@ function Initialize-BicepStarterPipeline {
     $tempDir.Create()
 
     try {
-        $null = $copyHelper.Invoke($rootDir, $tempDir)
+        $null = Copy-Helper -sourceDir $rootDir -targetDir $tempDir
         
         . $initPs1.FullName -stagingDir $tempDir
 
-        <#
-            This is the final copy operation from staging to the user directory
-            Shows the windows dialog in case of duplicate files.
-        #>
-        $destination = New-Object -ComObject "Shell.Application"
-        $destination = $destination.NameSpace($targetDir.FullName)
-        $destination.CopyHere("$tempDir/*")
+        if ($IsWindows -AND -NOT $Global:BicepStarterPipelinesNonInteractive) {
+            <#
+                This is the final copy operation from staging to the user directory
+                Shows the windows dialog in case of duplicate files.
+            #>
+            $destination = New-Object -ComObject "Shell.Application"
+            $destination = $destination.NameSpace($targetDir.FullName)
+            $destination.CopyHere("$tempDir/*")
+        }
+        else {
+            Copy-Item -Path "$tempDir/*" -Recurse -Destination $targetDir -ErrorAction Continue
+            Get-ChildItem -Path $tempDir -Hidden | Copy-Item -Recurse -Destination $targetDir -ErrorAction SilentlyContinue
+        }
     }
     finally {
-       $tempDir.Delete($true)
+        $tempDir.Delete($true)
     }
 }

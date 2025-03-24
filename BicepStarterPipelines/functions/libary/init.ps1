@@ -10,9 +10,11 @@ $deploymentMethods = [ordered]@{
   'Deployment Stack'  = 'stack'
 }
 
-Write-Host -ForegroundColor Magenta "`nSelect deployment method: "
-$selectedMethod = Read-UtilsUserOption -Options $deploymentMethods.Keys
-$selectedMethod = $deploymentMethods[$selectedMethod]
+if (-NOT $Global:BicepStarterPipelinesNonInteractive) {
+  Write-Host -ForegroundColor Magenta "`nSelect deployment method: "
+  $selectedMethod = Read-UtilsUserOption -Options $deploymentMethods.Keys
+  $selectedMethod = $deploymentMethods[$selectedMethod]
+}
 
 <#
     #############################
@@ -26,9 +28,11 @@ $deploymentScopes = [ordered]@{
   # 'Tenant Level'     = 'tenant'
 }
 
-Write-Host -ForegroundColor Magenta "`nSelect deployment scope: "
-$selectedScope = Read-UtilsUserOption -Options $deploymentScopes.Keys
-$selectedScope = $deploymentScopes[$selectedScope]
+if (-NOT $Global:BicepStarterPipelinesNonInteractive) {
+  Write-Host -ForegroundColor Magenta "`nSelect deployment scope: "
+  $selectedScope = Read-UtilsUserOption -Options $deploymentScopes.Keys
+  $selectedScope = $deploymentScopes[$selectedScope]
+}
 
 <#
     #############################
@@ -40,9 +44,15 @@ $deploymentScripts = [ordered]@{
   'Azure CLI'  = 'cli'
 }
 
-Write-Host -ForegroundColor Magenta "`nSelect deployment Script: "
-$selectedScript = Read-UtilsUserOption -Options $deploymentScripts.Keys
-$selectedScript = $deploymentScripts[$selectedScript]
+if (-NOT [System.String]::IsNullOrEmpty($Global:BSP_selectedScript)) {
+  $selectedScript = $deploymentScripts[$Global:BSP_selectedScript]
+}
+
+if (-NOT $Global:BicepStarterPipelinesNonInteractive) {
+  Write-Host -ForegroundColor Magenta "`nSelect deployment Script: "
+  $selectedScript = Read-UtilsUserOption -Options $deploymentScripts.Keys
+  $selectedScript = $deploymentScripts[$selectedScript]
+}
 
 <#
     #############################
@@ -60,10 +70,19 @@ $deploymentPipelines = [ordered]@{
   }
 }
 
-Write-Host -ForegroundColor Magenta "`nSelect Pipeline Template: "
-$selectedPipeline = Read-UtilsUserOption -Options $deploymentPipelines.Keys
+if (-NOT $Global:BicepStarterPipelinesNonInteractive) {
+  Write-Host -ForegroundColor Magenta "`nSelect Pipeline Template: "
+  $selectedPipeline = Read-UtilsUserOption -Options $deploymentPipelines.Keys
+  $selectedPipeline = $deploymentPipelines[$selectedPipeline]
+}
 
-$selectedPipeline = $deploymentPipelines[$selectedPipeline]
+if ($null -NE $Global:BicepStarterPipelinesSelections) {
+  $selectedMethod = $deploymentMethods[$Global:BicepStarterPipelinesSelections.method]
+  $selectedScope = $deploymentScopes[$Global:BicepStarterPipelinesSelections.scope]
+  $selectedScript = $deploymentScripts[$Global:BicepStarterPipelinesSelections.script]
+  $selectedPipeline = $deploymentPipelines[$Global:BicepStarterPipelinesSelections.pipeline]
+}
+
 $targetPipelineFolder = [System.IO.DirectoryInfo]::new("$stagingDir/$($selectedPipeline.target)")
 $targetPipelineFolder.Create()
 

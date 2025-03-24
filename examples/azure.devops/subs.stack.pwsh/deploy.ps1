@@ -1,0 +1,102 @@
+
+
+$deploymentName = "Demo-Deployment-01"
+$deploymentLocation = 'Westeurope'
+
+# Log into azure, if not done so already.
+# Connect-AzAccount
+
+<#
+
+    Target Subscription is selected via context:
+
+    Either:
+    - Connect-AzAccount -Subscription <GUID>
+    - Set-AzContext -Subscription <GUID>
+    - New-AzSubscriptionDeploymentStack -AzContext <context>
+
+#>
+
+$DeploymentConfig = @{
+    <#
+        [REQUIRED]
+
+        - Name:                     The deployment stack name.
+        - ResourceGroupName:        Target resource group name.
+        - TepmplateFile:            Location of Bicep-Template.
+        - TemplateParameterFile:    Location of Bicepparam-File.
+
+
+        [ALTERNATIVES]
+        -TemplateUri:               Bicep-Template URL instead of local file path.
+        -TemplateParameterUri:      Bicep-Param URL instead of local file path-
+        -TemplateParameterObject:   Hashtable of Bicepparams instead of local .bicepparam-File
+    #>
+    Name                  = $deploymentName
+    Location              = $deploymentLocation
+    TemplateFile          = "./main.bicep"
+    TemplateParameterFile = "./params/main.dev.bicepparam"
+
+
+    <#
+        [REQUIRED]
+
+        Deny Settings on the deployment stack for any operation:
+        - None:                 Resources can be modified and deleted
+        - DenyDelete:           Resources can be modified but NOT deleted
+        - DenyWriteAndDelete:   Resources can NOT be modified or deleted
+    #>
+    DenySettingsMode      = 'None'
+
+    <#
+        [REQUIRED]
+
+        NOTE:
+        - Deletions will fail, if they are not allowed by the denySettings
+
+        Action Performed on resources removed from bicep-file:
+        - DetachAll:         Resources and Resource Groups remain in azure, but detached from the deploymentstack.
+        - DeleteAll:         Resources and Resource Groups are deleted in azure
+        - DeleteResources:   Only Resources are deleted from azure. 
+    #>
+    ActionOnUnmanage      = 'DeleteAll'
+
+
+    <#
+        [OPTIONAL]
+
+        -DenySettingsExcludedAction
+            Exclude up to 200 role-base management opertaions from the DenySettingsMode.
+
+        -DenySettingsExcludedPrincipal
+            Exlude certain principals from the DenySettingsMode.
+
+        -DenySettingsApplyToChildScopes
+            Apply deny settings to child scopes.
+
+        -SkipTemplateParameterPrompt
+            For Non-User-Interactive Scripts!
+            Changes behaviour to fail on missing parameter, instead of asking for user-input.
+            Will fail a pipeline fast instead of blocking and asking for user-input.
+
+        -BypassStackOutOfSyncError
+            If there was a sync error with the stack. Only use when instructed by bicep cli.
+    #>
+}
+    
+
+
+Write-Host -ForegroundColor Magenta "`n`n------------------------------------------------------"
+Write-Host -ForegroundColor Magenta "Deploying '$deploymentName'"
+
+$deployment = New-AzSubscriptionDeploymentStack @DeploymentConfig -Verbose 
+
+$deployment.outputs
+
+
+
+<#
+    Deletion Script:
+
+    $deployment | New-AzSubscriptionDeploymentStack -Force -ActionOnUnmanage $DeploymentConfig.ActionOnUnmanage
+#>
