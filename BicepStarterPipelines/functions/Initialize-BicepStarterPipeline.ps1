@@ -30,7 +30,27 @@ function Initialize-BicepStarterPipeline {
             }
         )]
         [System.IO.DirectoryInfo]
-        $Target = '.'
+        $Target = '.',
+
+        [Parameter()]
+        [ValidateSet('Normal Deployment', 'Deployment Stack')]
+        [System.String]
+        $Method = $null,
+
+        [Parameter()]
+        [ValidateSet('Resource Group', 'Subscription')]
+        [System.String]
+        $Scope = $null,
+
+        [Parameter()]
+        [ValidateSet('PowerShell', 'Azure CLI')]
+        [System.String]
+        $Script = $null,
+
+        [Parameter()]
+        [ValidateSet('Github', 'Azure DevOps')]
+        [System.String]
+        $Pipeline = $null
     )
 
     <#
@@ -113,10 +133,19 @@ function Initialize-BicepStarterPipeline {
 
     try {
         $null = Copy-Helper -sourceDir $rootDir -targetDir $tempDir
-        
-        . $initPs1.FullName -stagingDir $tempDir
 
-        if ($IsWindows -AND -NOT $Global:BicepStarterPipelinesNonInteractive) {
+        $initParams = @{
+            stagingDir = $tempDir
+            Target     = $Target
+            Method     = $Method
+            Scope      = $Scope
+            Script     = $Script
+            Pipeline   = $Pipeline
+        }
+
+        . $initPs1.FullName @initParams
+
+        if ($IsWindows) {
             <#
                 This is the final copy operation from staging to the user directory
                 Shows the windows dialog in case of duplicate files.

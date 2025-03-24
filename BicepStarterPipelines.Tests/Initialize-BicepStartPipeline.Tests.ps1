@@ -30,7 +30,6 @@ Describe 'Initialize-BicepStartPipeline' {
 
     AfterAll {
         $Global:BicepStarterPipelinesNonInteractive = $null
-        $Global:BicepStarterPipelinesSelections = $null
         Remove-Item -Path "$PSScriptRoot/pester" -Force -Confirm:$false -Recurse -ErrorAction SilentlyContinue
     }
     
@@ -40,22 +39,22 @@ Describe 'Initialize-BicepStartPipeline' {
         bicep-init $destination
     
         Test-Path -Path $destination | Should -Be $true
-        # TODO - Additional testing of correct files
     }
 
     Context 'Non-Interactive Tests | <Method> | <Scope> | <Script> | <Pipeline>' -ForEach $cartesianProduct {
 
         BeforeAll {
-            $Global:BicepStarterPipelinesNonInteractive = $true
-            $Global:BicepStarterPipelinesSelections = @{
+
+            $destination = "$PSScriptRoot/pester/automated/$(Get-Random)"
+            $splat = @{
+                Target   = $destination
                 Method   = $method
                 Scope    = $scope
                 Script   = $script
                 Pipeline = $pipeline
             }
 
-            $destination = "$PSScriptRoot/pester/automated/$(Get-Random)"
-            bicep-init $destination
+            bicep-init @splat
         }
 
         It 'Should create destination if not exists' {
