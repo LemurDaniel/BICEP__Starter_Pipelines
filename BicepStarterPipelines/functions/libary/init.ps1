@@ -132,3 +132,22 @@ foreach ($tmpl in $pipelineTemplates) {
 
 # Delete all templates in the staging directory and only keep selected.
 [System.IO.DirectoryInfo]::new($templateFiles).Delete($true)
+
+if ($Pipeline -EQ 'Azure DevOps') {
+  Write-Host -ForegroundColor Magenta "`n"
+  Write-Host -ForegroundColor Magenta "Please, Adjust the Service Connection in .devops/deploy.infrastructure.yaml"
+}
+
+if ($Pipeline -EQ 'Github') {
+  Write-Host -ForegroundColor Magenta "`n"
+  Write-Host -ForegroundColor Magenta "Provide a secret like AZURE_CICDSPN:"
+  Write-Host -ForegroundColor Magenta @"
+  {
+      "clientId": "00000000-0000-0000-0000-000000000000",
+      "objectId": "00000000-0000-0000-0000-000000000000",
+      "clientSecret": "00000000-0000-0000-0000-000000000000",
+      "subscriptionId": "00000000-0000-0000-0000-000000000000",
+      "tenantId": "00000000-0000-0000-0000-000000000000"
+  }
+"@
+}

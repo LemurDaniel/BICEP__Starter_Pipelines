@@ -5,10 +5,10 @@ name: Bicep Deployment
 #
 
 # NOTE:
-# This needs to be adjusted to correct pool name or agents used.
+# This may need to be adjusted to your used pool
 pool:
-  name: custom
-# vmImage: 'ubuntu-latest'
+  name: "Azure Pipelines"
+  vmImage: "ubuntu-latest"
 
 trigger:
   branches:
