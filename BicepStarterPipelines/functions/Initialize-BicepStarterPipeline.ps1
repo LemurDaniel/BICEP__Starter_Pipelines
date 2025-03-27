@@ -14,23 +14,20 @@ function Initialize-BicepStarterPipeline {
     
     #>
     [Alias('bicep-init')]
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $true
+    )]
     param (
         [Parameter(
             Position = 1,
             Mandatory = $false
         )]
-        [ArgumentCompleter(
-            {
-                param($cmd, $param, $wordToComplete, $commandAst, $fakeBoundParameters)
-
-                return Get-ChildItem -Directory
-                | Where-Object -Property Name -Like "*$wordToComplete*"
-                | Select-Object -ExpandProperty Name
-            }
-        )]
         [System.IO.DirectoryInfo]
         $Target = '.',
+
+        [Parameter()]
+        [switch]
+        $PipelineOnly,
 
         [Parameter()]
         [ValidateSet('Normal Deployment', 'Deployment Stack')]
@@ -135,17 +132,18 @@ function Initialize-BicepStarterPipeline {
         $null = Copy-Helper -sourceDir $rootDir -targetDir $tempDir
 
         $initParams = @{
-            stagingDir = $tempDir
-            Target     = $Target
-            Method     = $Method
-            Scope      = $Scope
-            Script     = $Script
-            Pipeline   = $Pipeline
+            stagingDir   = $tempDir
+            Target       = $Target
+            Method       = $Method
+            Scope        = $Scope
+            Script       = $Script
+            Pipeline     = $Pipeline
+            PipelineOnly = $PipelineOnly
         }
 
         . $initPs1.FullName @initParams
 
-        if ($IsWindows) {
+        if (-NOT $IsWindows) {
             <#
                 This is the final copy operation from staging to the user directory
                 Shows the windows dialog in case of duplicate files.
@@ -155,8 +153,23 @@ function Initialize-BicepStarterPipeline {
             $destination.CopyHere("$tempDir/*")
         }
         else {
-            Copy-Item -Path "$tempDir/*" -Recurse -Destination $targetDir -ErrorAction Continue
-            Get-ChildItem -Path $tempDir -Hidden | Copy-Item -Recurse -Destination $targetDir -ErrorAction SilentlyContinue
+            try {
+                Copy-Item -Path "$tempDir/*" -Recurse -Destination $targetDir
+                Get-ChildItem -Path $tempDir -Hidden | Copy-Item -Recurse -Destination $targetDir -ErrorAction SilentlyContinue
+            }
+            catch {
+
+                Write-Host -ForegroundColor RED "`n`nFiles already exist in the target directory."
+                $overwrite = Read-UtilsUserOption -Prompt "Overwrite?" -Options "No", "Yes"
+
+                if ("Yes" -EQ $overwrite) {
+                    Copy-Item -Path "$tempDir/*" -Recurse -Force -Destination $targetDir
+                    Get-ChildItem -Path $tempDir -Hidden | Copy-Item -Recurse -Force -Destination $targetDir -ErrorAction SilentlyContinue
+                }
+                else {
+                    throw $_
+                }
+            }
         }
     }
     finally {

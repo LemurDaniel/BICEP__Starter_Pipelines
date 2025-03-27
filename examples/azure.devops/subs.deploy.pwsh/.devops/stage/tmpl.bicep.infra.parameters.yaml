@@ -47,6 +47,9 @@ parameters:
   - name: runBicepTests
     type: boolean
     default: false
+  - name: azurePowerShellVersion
+    type: string
+    default: LatestVersion
 
 stages:
   - stage: ${{ parameters.stage }}
@@ -79,31 +82,28 @@ stages:
                   displayName: Show build agent directory tree
                 #////////////////////////////////////////////////////////////
                 #////// Bicep Tests
-                - task: AzureCLI@2
-                  condition: eq(${{ parameters.runBicepTests }}, true)
-                  displayName: Bicep Test ${{ parameters.stage }}
+                - task: AzurePowerShell@5
+                  displayName: WhatIf ${{ parameters.stage }}
                   inputs:
                     azureSubscription: ${{ parameters.serviceConnection }}
-                    addSpnToEnvironment: true
-                    useGlobalConfig: true
-                    scriptType: pscore
-                    scriptLocation: inlineScript
-                    inlineScript: |
+                    azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
+                    ScriptType: inlineScript
+                    pwsh: true
+                    inline: |
                       $testFiles = Get-ChildItem -Path "$(Build.SourcesDirectory)" -Filter *test.bicep -Recurse -Depth 4
                       foreach($file in $testFiles) {
                         bicep test $file.FullName
                       }
                 #////////////////////////////////////////////////////////////
                 #////// WhatIf
-                - task: AzureCLI@2
+                - task: AzurePowerShell@5
                   displayName: WhatIf ${{ parameters.stage }}
                   inputs:
                     azureSubscription: ${{ parameters.serviceConnection }}
-                    addSpnToEnvironment: true
-                    useGlobalConfig: true
-                    scriptType: pscore
-                    scriptLocation: inlineScript
-                    inlineScript: |
+                    azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
+                    ScriptType: inlineScript
+                    pwsh: true
+                    inline: |
                         if(-NOT [System.String]::IsNullOrEmpty('${{ parameters.subscriptionId }}')) {
                            Write-Host 'Subscription: ${{ parameters.subscriptionId }}'
                            Set-AzContext -Subscription ${{ parameters.subscriptionId }}
@@ -175,15 +175,14 @@ stages:
             deploy:
               steps:
                 - checkout: self
-                - task: AzureCLI@2
-                  displayName: Deploy to ${{ parameters.stage }}
+                - task: AzurePowerShell@5
+                  displayName: WhatIf ${{ parameters.stage }}
                   inputs:
                     azureSubscription: ${{ parameters.serviceConnection }}
-                    addSpnToEnvironment: true
-                    useGlobalConfig: true
-                    scriptType: pscore
-                    scriptLocation: inlineScript
-                    inlineScript: |
+                    azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
+                    ScriptType: inlineScript
+                    pwsh: true
+                    inline: |
                         if(-NOT [System.String]::IsNullOrEmpty('${{ parameters.subscriptionId }}')) {
                            Write-Host 'Subscription: ${{ parameters.subscriptionId }}'
                            Set-AzContext -Subscription ${{ parameters.subscriptionId }}

@@ -34,7 +34,7 @@ jobs:
       # You can add an approval gate via the environment deployment protection rule for approvers
       # environment: preProd
       scope: subscription
-      location: 'westeurope'
+      location: 'germanywestcentral'
 
       name: 'sample-preProd'
       template_file: ./main.bicep
