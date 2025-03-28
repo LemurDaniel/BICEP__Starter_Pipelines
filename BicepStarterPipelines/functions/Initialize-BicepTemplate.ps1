@@ -110,7 +110,7 @@ function Initialize-BicepTemplate {
             $Target.Create()
         }
         
-        if (-NOT $IsWindows) {
+        if ($IsWindows) {
             $destination = New-Object -ComObject "Shell.Application"
             $destination = $destination.NameSpace($Target.FullName)
             $destination.CopyHere("$tempDir/*")
