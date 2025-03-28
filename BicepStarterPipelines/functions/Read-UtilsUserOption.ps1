@@ -121,31 +121,110 @@ function Read-UtilsUserOption {
         $NoNewLine,
 
 
+        <#
+            Custom colors for the prompt and options.
 
-        # Define custom colors with ANSI-Escape-Sequences.
+            Provide a hashtable with the following keys.
+            Each key is optional and $null will be replaced with the default value.
+                - Prompt
+                    - ForeGround
+                    - Background
+                - Option
+                    - ForeGround
+                    - Background
+                - Selected
+                    - ForeGround
+                    - Background
+
+            Following Colors are supported:
+                - HEX: #FFFFFF
+                - RGB: 255, 255, 255
+                - ColorName: Colors in $PSStyle.Foreground or $PSStyle.Background
+
+            Example:
+                @{
+                    Prompt   = @{
+                        ForeGround = "White" # White in HEX
+                        BackGround = $null
+                    }
+                    Option   = @{
+                        ForeGround = "BrightBlack" # Light Gray in HEX
+                        BackGround = $null
+                    }
+                    Selected = @{
+                        ForeGround = "BrightWhite"
+                        BackGround = "Magenta"
+                    }
+                }
+        #>
         [Parameter()]
-        [System.Object]
-        $CustomColors = @{
-            _Prompt_   = $null
-            _Option_   = $null
-            _Selected_ = $null
-        }
+        [System.Collections.Hashtable]   
+        $CustomColors = @{}
     )
 
     BEGIN {
+        function Convert-Color {
+            param(
+                [System.Object] $Color,
+                [System.String] $Type
+            )
 
+            if ($null -EQ $Color) {
+                return $null
+            }
+
+            if ($Color -IS [System.String] -AND $Color.startswith('#')) {
+                $Color = [System.Convert]::FromHexString($Color.substring(1))
+            }
+
+            if (-NOT ($Color -IS [System.String])) {
+                $COLORS_24BIT = @{
+                    FOREGROUND = "`e[38;2;{0};{1};{2}m"
+                    BACKGROUND = "`e[48;2;{0};{1};{2}m"
+                }
+        
+                return $COLORS_24BIT."$Type" -f $Color[0], $Color[1], $Color[2]
+            }
+
+
+            if ($null -EQ $PSStyle."$Type"."$Color") {
+                throw [System.InvalidOperationException]::new("The provided color '$Color' is not a valid color.")
+            }
+            else {
+                return $PSStyle."$Type"."$Color"
+            }      
+        }
+
+        $transformedColors = @{
+            Prompt   = @{
+                ForeGround = "White" # White in HEX
+                Background = $null
+            }
+            Option   = @{
+                ForeGround = "BrightBlack" # Light Gray in HEX
+                Background = $null
+            }
+            Selected = @{
+                ForeGround = "BrightWhite"
+                Background = "Magenta"
+            }
+        }
+
+        foreach ($key in $transformedColors.Keys) {
+            $fg = $CustomColors[$key].ForeGround ?? $transformedColors[$key].ForeGround
+            $transformedColors[$key].ForeGround = Convert-Color -Color $fg -Type 'Foreground'
+
+            $bg = $CustomColors[$key].BackGround ?? $transformedColors[$key].Background
+            $transformedColors[$key].BackGround = Convert-Color -Color $bg -Type 'Background'
+        }
+        
         <#
-            Setting up nice colors with ANSI-Escape sequences.
+            Setting up the colors for the prompt and options.
         #>
-        $ANSI = Get-UtilsEscapeCode -AsHashtable
-        $_ANSIPrompt_ = $ANSI.COLOR_CODES['BRIGHT_WHITE'].FOREGROUND
-        $_ANSIOption_ = $ANSI.COLOR_CODES['BRIGHT_BLACK'].FOREGROUND 
-        $_ANSISelected_ = $ANSI.COLOR_CODES['WHITE'].FOREGROUND + $ANSI.COLOR_CODES['MAGENTA'].BACKGROUND
-        $_ANSIReset_ = $ANSI.COLOR_CODES['RESET']
-
-        $_ANSIOption_ = $CustomColors._Option_ ?? $_ANSIOption_
-        $_ANSISelected_ = $CustomColors._Selected_ ?? $_ANSISelected_
-        $_ANSIPrompt_ = $CustomColors._Prompt_ ?? $_ANSIPrompt_
+        $_Color_Reset_ = "`e[0m"
+        $_Color_Option_ = '' + $transformedColors.Option.ForeGround + $transformedColors.Option.Background
+        $_Color_Selected_ = '' + $transformedColors.Selected.ForeGround + $transformedColors.Selected.Background
+        $_Color_Prompt_ = '' + $transformedColors.Prompt.ForeGround + $transformedColors.Prompt.Background
 
 
         <#
@@ -199,19 +278,18 @@ function Read-UtilsUserOption {
             }
 
             if ($null -EQ $Options.display -OR $null -EQ $Options.display) {
-                throw [System.InvalidOperationException]::new(@"
-                `n
-                The provided option is not a valid object. 
-                Please provide a hashtable with the properties 'display' and 'value'.
-                Example: 
-                @{ 
-                    display = 'Option1'
-                    value = @{
-                        file = 'test.txt'
-                        path = 'C:\temp'
+                throw [System.InvalidOperationException]::new("@
+                    The provided option is not a valid object. 
+                    Please provide a hashtable with the properties 'display' and 'value'.
+                    Example: 
+                    @{ 
+                        display = 'Option1'
+                        value = @{
+                            file = 'test.txt'
+                            path = 'C:\temp'
+                        }
                     }
-                }
-"@)
+@")
             }
         }
             
@@ -246,23 +324,23 @@ function Read-UtilsUserOption {
             [System.Console]::Write(" " * $uIwidth)
 
             [System.Console]::SetCursorPosition($cursorX, $cursorY)
-            [System.Console]::Write($_ANSIPrompt_)
+            [System.Console]::Write($_Color_Prompt_)
             [System.Console]::write($userPrompt)
-            [System.Console]::Write($_ANSIReset_)
+            [System.Console]::Write($_Color_Reset_)
 
 
             for ($index = 0; $index -LT $processedOptions.Count; $index++) {
 
                 [System.Console]::Write($marginSpace)
                 if ($index -EQ $selectedIndex) {
-                    [System.Console]::Write($_ANSISelected_)
+                    [System.Console]::Write($_Color_Selected_)
                     [System.Console]::Write($processedOptions[$index].display)
-                    [System.Console]::Write($_ANSIReset_)
+                    [System.Console]::Write($_Color_Reset_)
                 }
                 else {
-                    [System.Console]::Write($_ANSIOption_)
+                    [System.Console]::Write($_Color_Option_)
                     [System.Console]::Write($processedOptions[$index].display)
-                    [System.Console]::Write($_ANSIReset_)
+                    [System.Console]::Write($_Color_Reset_)
                 }
 
             }
