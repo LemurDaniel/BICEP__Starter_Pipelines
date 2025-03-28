@@ -1,0 +1,158 @@
+name: Bicep Deployment
+
+#
+# This is a template for deploying a Bicep file
+#
+
+# NOTE:
+# This may need to be adjusted to your used pool
+pool:
+  name: "Azure Pipelines"
+  vmImage: "ubuntu-latest"
+
+trigger:
+  branches:
+    include:
+      - master
+  paths:
+    include:
+      - main.bicep
+      - main.*.bicepparam
+
+variables:
+  - name: DEPLOYMENT_FILE
+    value: ./main.bicep
+  - name: DEPLOYMENT_NAME
+    value: demo
+  - name: DEPLOYMENT_SCOPE
+    value: subscription # subscription | resourceGroup
+
+parameters:
+  - name: WhatIfOnly
+    type: boolean
+    default: true
+
+  # deployment stack configurations
+  - name: denySettingsMode
+    type: string
+    default: denyDelete
+    values:
+      - none
+      - denyDelete
+      - denyWriteAndDelete
+
+  - name: actionOnUnmanage
+    type: string
+    default: detachAll
+    values:
+      - deleteAll
+      - detachAll
+      - deleteResources
+
+
+# NOTE:
+# ServiceConnection must be known at pipeline compile time.
+#
+#
+# The Following Parameters can be set in the variables group instead:
+# This requried using the 'stage/tmpl.bicep.deploy.variables.yaml' instead!
+#   - SCOPE: resourceGroup | subscription
+#   - DEPLOYMENT_NAME:
+#   - TEMPLATE_FILE:
+#   - PARAMETERS_FILE:
+#   - LOCATION:
+#   - RESOURCE_GROUP:
+#
+stages:
+  - template: stage/tmpl.bicep.infra.parameters.yaml
+    parameters:
+      stage: dev
+      condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/feature')
+      serviceConnection: project-connection-dev
+      # variableGroup: bicep-deploy-dev
+
+      # NOTE: 
+      # - This will always fail due to being an expermimental feature (As of Date: 2025.03.21)
+      # - Bicep tests are still an experimental feature and not yet production ready.
+      # runBicepTests: true
+
+      # Show a tree structure of the folder
+      # showTree: true
+
+      whatIfOnly: ${{ parameters.whatIfOnly }}
+      denySettingsMode: ${{ parameters.denySettingsMode }}
+      actionOnUnmanage: ${{ parameters.actionOnUnmanage }}
+
+      # env parameters
+      scope: ${{ variables.DEPLOYMENT_SCOPE }}
+      deployment: ${{ variables.DEPLOYMENT_NAME }} 
+      templateFile: ${{ variables.DEPLOYMENT_FILE }}
+      parametersFile: ./params/main.dev.bicepparam
+
+      # --- on subscription scope
+      location: germanywestcentral
+
+      # --- on resource group scope
+      # resourceGroup: rg-demo-dev-001
+
+  - template: stage/tmpl.bicep.infra.parameters.yaml
+    parameters:
+      stage: test
+      condition: eq(variables['Build.SourceBranch'], 'refs/heads/dev')
+      serviceConnection: project-connection-test
+      # variableGroup: bicep-deploy-test
+
+      # NOTE: 
+      # - This will always fail due to being an expermimental feature (As of Date: 2025.03.21)
+      # - Bicep tests are still an experimental feature and not yet production ready.
+      # runBicepTests: true
+
+      # Show a tree structure of the folder
+      # showTree: true
+
+      whatIfOnly: ${{ parameters.whatIfOnly }}
+      denySettingsMode: ${{ parameters.denySettingsMode }}
+      actionOnUnmanage: ${{ parameters.actionOnUnmanage }}
+
+      # env parameters
+      scope: ${{ variables.DEPLOYMENT_SCOPE }}
+      deployment: ${{ variables.DEPLOYMENT_NAME }} 
+      templateFile: ${{ variables.DEPLOYMENT_FILE }}
+      parametersFile: ./params/main.test.bicepparam
+
+      # --- on subscription scope
+      location: germanywestcentral
+
+      # --- on resource group scope
+      # resourceGroup: rg-demo-test-001
+
+  - template: stage/tmpl.bicep.infra.parameters.yaml
+    parameters:
+      stage: prod
+      condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
+      serviceConnection: project-connection-prod
+      # variableGroup: bicep-deploy-prod
+
+      # NOTE: 
+      # - This will always fail due to being an expermimental feature (As of Date: 2025.03.21)
+      # - Bicep tests are still an experimental feature and not yet production ready.
+      # runBicepTests: true
+
+      # Show a tree structure of the folder
+      # showTree: true
+
+      whatIfOnly: ${{ parameters.whatIfOnly }}
+      denySettingsMode: ${{ parameters.denySettingsMode }}
+      actionOnUnmanage: ${{ parameters.actionOnUnmanage }}
+
+      # env parameters
+      scope: ${{ variables.DEPLOYMENT_SCOPE }}
+      deployment: ${{ variables.DEPLOYMENT_NAME }} 
+      templateFile: ${{ variables.DEPLOYMENT_FILE }}
+      parametersFile: ./params/main.prod.bicepparam
+
+      # --- on subscription scope
+      location: germanywestcentral
+
+      # --- on resource group scope
+      # resourceGroup: rg-demo-prod-001

@@ -1,0 +1,57 @@
+    
+name: Deploy Infrastructure Dev / Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      what_if_only:
+        type: boolean
+        default: true
+
+      deny_settings_mode:
+        type: string
+        default: denyDelete
+        options:
+          - none
+          - denyDelete
+          - denyWriteAndDelete
+      action_on_unmanage:
+        type: string
+        default: detachAll
+        options:
+          - deleteAll
+          - detachAll
+          - deleteResources
+  
+  push:
+    branches:
+      - dev
+    paths:
+      - 'main.bicep'
+      - './params/main.dev.bicepparam'
+
+  pull_request:
+    branches:
+      - dev
+    paths:
+      - 'main.bicep'
+      - './params/main.dev.bicepparam'
+   
+jobs:
+  deploy:
+    name: Deploy Infrastructure Dev
+    uses: ./.github/workflows/tmpl.deploy.infrastructure.yaml
+    secrets:
+      AZURE_DEPLOYMENT_SPN: ${{ secrets.AZURE_CICDSPN }}
+    with:
+      scope: resource_group
+      resource_group: 'sample-test'
+
+      name: 'sample-dev'
+      template_file: ./main.bicep
+      parameter_file: ./params/main.dev.bicepparam
+
+      action_on_unmanage: ${{ inputs.action_on_unmanage }}
+      deny_settings_mode: ${{ inputs.deny_settings_mode }}
+
+      what_if_only: ${{ github.EVENT_NAME  == 'pull_request' || inputs.what_if_only == true }}

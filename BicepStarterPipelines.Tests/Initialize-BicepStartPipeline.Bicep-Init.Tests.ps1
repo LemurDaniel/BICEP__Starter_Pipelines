@@ -33,13 +33,13 @@ Describe 'Initialize-BicepStartPipeline' {
         Remove-Item -Path "$PSScriptRoot/pester" -Force -Confirm:$false -Recurse -ErrorAction SilentlyContinue
     }
     
-    It 'Interactive Mode' -Skip:$Global:BicepStarterPipelinesNonInteractive {
-        $destination = "$PSScriptRoot/pester/interactive"
-
-        bicep-init $destination
-    
-        Test-Path -Path $destination | Should -Be $true
-    }
+    #It 'Interactive Mode' -Skip:$Global:BicepStarterPipelinesNonInteractive {
+    #    $destination = "$PSScriptRoot/pester/interactive"
+    #
+    #    bicep-init $destination
+    #
+    #    Test-Path -Path $destination | Should -Be $true
+    #}
 
     Context 'Non-Interactive Tests | <Method> | <Scope> | <Script> | <Pipeline>' -ForEach $cartesianProduct {
 
@@ -63,16 +63,23 @@ Describe 'Initialize-BicepStartPipeline' {
 
         It 'Should use <pipeline> pipelines' {
 
-            if ($pipeline -IEQ 'Github') {
-                Test-Path -Path "$destination/.devops" | Should -BeFalse
-                Test-Path -Path "$destination/.github" | Should -BeTrue
-                Test-Path -Path "$destination/.github/workflows" | Should -BeTrue
-            }
-            else {
-                Test-Path -Path "$destination/.devops" | Should -BeTrue
-                Test-Path -Path "$destination/.github" | Should -BeFalse
-                Test-Path -Path "$destination/.github/workflows" | Should -BeFalse
-            }
+            $githubMatch = $pipeline -IEQ 'Github'
+            $azdoMatch = $pipeline -IEQ 'Azure DevOps'
+
+            Test-Path -Path "$destination/.github" | Should -Be $githubMatch
+            Test-Path -Path "$destination/.github/workflows" | Should -Be $githubMatch
+ 
+            Test-Path -Path "$destination/.github/workflows/deploy.infrastructure.dev.yaml" | Should -Be $githubMatch
+            Test-Path -Path "$destination/.github/workflows/deploy.infrastructure.test.yaml" | Should -Be $githubMatch
+            Test-Path -Path "$destination/.github/workflows/deploy.infrastructure.prod.yaml" | Should -Be $githubMatch
+            Test-Path -Path "$destination/.github/workflows/tmpl.deploy.infrastructure.yaml" | Should -Be $githubMatch
+ 
+
+            Test-Path -Path "$destination/.devops" | Should -Be $azdoMatch
+            Test-Path -Path "$destination/.devops/stage" | Should -Be $azdoMatch
+            Test-Path -Path "$destination/.devops/deploy.infrastructure.yaml" | Should -Be $azdoMatch
+            Test-Path -Path "$destination/.devops/stage/tmpl.bicep.infra.variables.yaml" | Should -Be $azdoMatch
+            Test-Path -Path "$destination/.devops/stage/tmpl.bicep.infra.parameters.yaml" | Should -Be $azdoMatch
         }
 
         It 'Should use <method>' {

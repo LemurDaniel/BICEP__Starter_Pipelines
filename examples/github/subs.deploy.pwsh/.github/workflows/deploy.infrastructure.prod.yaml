@@ -18,7 +18,6 @@ on:
   pull_request:
     branches:
       - master
-      - dev
     paths:
       - 'main.bicep'
       - './params/main.prod.bicepparam'
@@ -34,10 +33,10 @@ jobs:
       # You can add an approval gate via the environment deployment protection rule for approvers
       # environment: prod
       scope: subscription
-      location: 'germanywestcentral'
-
+      location: germanywestcentral
+      
       name: 'sample-prod'
       template_file: ./main.bicep
       parameter_file: ./params/main.prod.bicepparam
+      
       what_if_only: ${{ github.EVENT_NAME  == 'pull_request' || inputs.what_if_only == true }}
-      what_if_artifact_name: what_if_result

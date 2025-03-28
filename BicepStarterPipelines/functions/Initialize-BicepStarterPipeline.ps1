@@ -48,7 +48,6 @@ function Initialize-BicepStarterPipeline {
         Initialize-BicepTemplate -Template 'deployment' -Target $Target -InitParameter $PSBoundParameters
     } 
     elseif ($PSCmdlet.MyInvocation.InvocationName -IEQ 'bicep-registry') {
-        throw [System.NotImplementedException]::new("`bicep-registry` is not implemented yet.")
         Initialize-BicepTemplate -Template 'registry' -Target $Target -InitParameter $PSBoundParameters
     }
     else {

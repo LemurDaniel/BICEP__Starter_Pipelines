@@ -67,11 +67,11 @@ $selectedScript = $deploymentScripts[$Script]
 
 $deploymentPipelines = [ordered]@{
   'Azure DevOps' = @{
-    source = 'devops_pipelines'
+    source = "devops_pipelines/$selectedMethod"
     target = '.devops'
   }
   'Github'       = @{
-    source = 'github_workflows'
+    source = "github_workflows/$selectedMethod"
     target = '.github/workflows'
   }
 }
@@ -147,14 +147,21 @@ if ($PipelineOnly.IsPresent) {
 }
 
 
-# Provide instructions for Azure DevOps and Github pipelines
-if ($Pipeline -EQ 'Azure DevOps') {
+if ($selectedScope -IEQ 'subscription') {
   Write-Host -ForegroundColor Magenta "`n"
+  Write-Host -ForegroundColor Magenta "Please, Adjust the deployment location. Default is 'germanywestcentral'"
+}
+elseif ($selectedScope -IEQ 'resource_group') {
+  Write-Host -ForegroundColor Magenta "`n"
+  Write-Host -ForegroundColor Magenta "Please, Adjust the resourcegroup. Default is 'rg-sample-<environment>'"
+}
+
+# Provide instructions for Azure DevOps and Github pipelines
+if ($Pipeline -IEQ 'Azure DevOps') {
   Write-Host -ForegroundColor Magenta "Please, Adjust the Service Connection in .devops/deploy.infrastructure.yaml"
 }
 
-if ($Pipeline -EQ 'Github') {
-  Write-Host -ForegroundColor Magenta "`n"
+if ($Pipeline -IEQ 'Github') {
   Write-Host -ForegroundColor Magenta "Provide a secret like AZURE_CICDSPN:"
   Write-Host -ForegroundColor Magenta @"
   {

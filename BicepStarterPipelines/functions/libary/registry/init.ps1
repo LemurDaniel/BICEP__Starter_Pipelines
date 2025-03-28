@@ -32,12 +32,10 @@ $selectedMethod = $deploymentMethods[$Method]
 $deploymentScopes = [ordered]@{
   'Resource Group' = 'resource_group'
   'Subscription'   = 'subscription'
-  # 'Management Group' = 'management'
-  # 'Tenant Level'     = 'tenant'
 }
 
 if ([System.String]::IsNullOrEmpty($Scope)) {
-  Write-Host -ForegroundColor Magenta "`nSelect deployment scope: "
+  Write-Host -ForegroundColor Magenta "`nSelect deployment scope:`nIf you want to deploy into a custom resource group, select 'Resource Group'"
   $Scope = Read-UtilsUserOption -Options $deploymentScopes.Keys
 } 
 
@@ -67,11 +65,11 @@ $selectedScript = $deploymentScripts[$Script]
 
 $deploymentPipelines = [ordered]@{
   'Azure DevOps' = @{
-    source = 'devops_pipelines'
+    source = "devops_pipelines/$selectedMethod"
     target = '.devops'
   }
   'Github'       = @{
-    source = 'github_workflows'
+    source = "github_workflows/$selectedMethod"
     target = '.github/workflows'
   }
 }

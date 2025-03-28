@@ -83,7 +83,7 @@ stages:
                 #////////////////////////////////////////////////////////////
                 #////// Bicep Tests
                 - task: AzurePowerShell@5
-                  displayName: WhatIf ${{ parameters.stage }}
+                  displayName: Bicep Tests ${{ parameters.stage }}
                   inputs:
                     azureSubscription: ${{ parameters.serviceConnection }}
                     azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}

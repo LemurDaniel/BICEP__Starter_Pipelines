@@ -122,7 +122,8 @@ function Initialize-BicepTemplate {
             Get-ChildItem -Path $tempDir -Hidden | Copy-Item -Recurse -Destination $Target -ErrorAction SilentlyContinue
         }
         catch {
-            Write-Host -ForegroundColor RED "`n`nFiles already exist in the target directory."
+            Write-Host -ForegroundColor RED "`n`nTarget: $Target"
+            Write-Host -ForegroundColor RED "`Files already exist in the target directory."
             $overwrite = Read-UtilsUserOption -Prompt "Overwrite?"
 
             if ($overwrite) {

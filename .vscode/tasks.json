@@ -9,7 +9,7 @@
             "command": "Invoke-Pester",
             "args": [
                 "-Path",
-                ".",
+                "${file}",
                 "-Output",
                 "Detailed"
             ],
@@ -32,6 +32,28 @@
                         "-Command"
                     ]
                 }
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "[Generate] Examples Script",
+            "type": "shell",
+            "command": "pwsh",
+            "args": [
+                "-NoProfile",
+                "-File",
+                "'${workspaceFolder}/.vscode/generate.examples.ps1'",
+                "-WorkingDirectory",
+                "'${workspaceFolder}'"
+            ],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false,
+                "close": false
             },
             "problemMatcher": []
         }

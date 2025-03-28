@@ -1,0 +1,39 @@
+    
+name: Deploy Infrastructure Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      what_if_only:
+        type: boolean
+        default: true
+
+  push:
+    branches:
+      - dev
+    paths:
+      - './infrastructure/registry.bicep'
+      - './infrastructure/params/main.test.bicepparam'
+
+  pull_request:
+    branches:
+      - dev
+    paths:
+      - './infrastructure/registry.bicep'
+      - './infrastructure/params/main.test.bicepparam'
+   
+jobs:
+  deploy_test:
+    name: Deploy Infrastructure Test
+    uses: ./.github/workflows/tmpl.deploy.infrastructure.yaml
+    secrets:
+      AZURE_DEPLOYMENT_SPN: ${{ secrets.AZURE_CICDSPN }}
+    with:
+      scope: subscription
+      location: germanywestcentral
+      
+      name: 'sample-test'
+      template_file: ./infrastructure/registry.bicep
+      parameter_file: ./infrastructure/params/main.test.bicepparam
+      
+      what_if_only: ${{ github.EVENT_NAME  == 'pull_request' || inputs.what_if_only == true }}
