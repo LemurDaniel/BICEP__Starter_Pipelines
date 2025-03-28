@@ -7,7 +7,7 @@ function Initialize-BicepTemplate {
     Generates files based on a selected template from a library of templates into a directory. 
     
     #>
-    [Alias('bicep-starter')]
+    [Alias('bicep-init')]
     [CmdletBinding()]
     param (
         [Parameter()]

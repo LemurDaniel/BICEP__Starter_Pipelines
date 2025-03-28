@@ -32,7 +32,7 @@ resource resGroup 'Microsoft.Resources/resourceGroups@2024-11-01' = {
   name: 'rg-bicep-demo-001'
 }
 
-module demoModule 'modules/demo.bicep' = {
+module demoModule 'core/demo.bicep' = {
   scope: resGroup
   name: '${subDeploymentName}.module.demo'
   params: {

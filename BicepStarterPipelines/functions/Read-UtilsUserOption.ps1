@@ -199,7 +199,19 @@ function Read-UtilsUserOption {
             }
 
             if ($null -EQ $Options.display -OR $null -EQ $Options.display) {
-                throw [System.InvalidOperationException]::new("The provided Option is not a valid object.")
+                throw [System.InvalidOperationException]::new(@"
+                `n
+                The provided option is not a valid object. 
+                Please provide a hashtable with the properties 'display' and 'value'.
+                Example: 
+                @{ 
+                    display = 'Option1'
+                    value = @{
+                        file = 'test.txt'
+                        path = 'C:\temp'
+                    }
+                }
+"@)
             }
         }
             
@@ -212,7 +224,7 @@ function Read-UtilsUserOption {
 
     END {
 
-        if(-NOT $PSCmdlet.MyInvocation.ExpectingInput) {
+        if (-NOT $PSCmdlet.MyInvocation.ExpectingInput) {
             return
         }
         
@@ -291,18 +303,20 @@ function Read-UtilsUserOption {
             elseif (
                 $e.Key -EQ [System.ConsoleKey]::Enter
             ) {
+
+                # Write a new Line to set the cursor to the next line.
+                if (-NOT $NoNewLine.IsPresent) {
+                    [System.Console]::Write([System.Environment]::NewLine)
+                }
+
                 return $processedOptions[$selectedIndex].value
             }
 
         } while ($e.Key -NE [System.ConsoleKey]::Enter)
 
-        # Write a new Line to set the cursor to the next line.
-        if (-NOT $NoNewLine.IsPresent) {
-            Write-Host "" 
-        }
     }
 
-    CLEAN {
+    CLEAN {                
         # Make sure to always leave in any case function with a visible cursor again.
         [System.Console]::CursorVisible = $true
     }

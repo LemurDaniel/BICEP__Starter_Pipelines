@@ -10,7 +10,7 @@ function Initialize-BicepStarterPipeline {
     None.
     
     #>
-    [Alias('bicep-starter', 'bicep-registry')]
+    [Alias('bicep-init', 'bicep-deployment', 'bicep-registry')]
     param (
         [Parameter(
             Position = 1,
@@ -22,6 +22,11 @@ function Initialize-BicepStarterPipeline {
         [Parameter()]
         [switch]
         $PipelineOnly,
+
+        [Parameter()]
+        [ValidateSet('deployment')] # registry # In Development
+        [System.String]
+        $Template = 'deployment',
 
         [Parameter()]
         [ValidateSet('Normal Deployment', 'Deployment Stack')]
@@ -44,17 +49,28 @@ function Initialize-BicepStarterPipeline {
         $Pipeline = $null
     )
 
-    if ($PSCmdlet.MyInvocation.InvocationName -IEQ 'bicep-starter') {
-        Initialize-BicepTemplate -Template 'deployment' -Target $Target -InitParameter $PSBoundParameters
+    if ($PSCmdlet.MyInvocation.InvocationName -IEQ 'bicep-deployment') {
+        $Template = 'deployment'
     } 
     elseif ($PSCmdlet.MyInvocation.InvocationName -IEQ 'bicep-registry') {
-        Initialize-BicepTemplate -Template 'registry' -Target $Target -InitParameter $PSBoundParameters
+        $Template = 'registry'
     }
-    else {
-        throw [System.Exception]::new(@"
-        Please use either alias:
-        - bicep-starter     for deployment templates
-        - bicep-registry    for registry templates
-"@)
+
+    if ([System.String]::IsNullOrEmpty($Template)) {
+        Write-Host -ForegroundColor Magenta "Select a template?"
+        $Template = @(
+            @{
+                Display = 'Bicep Deployment'
+                Value   = 'deployment'
+            }
+            # In Development
+            # @{
+            #     Display = 'Bicep Registry'
+            #     Value   = 'registry'
+            # }
+        ) | Read-UtilsUserOption
     }
+
+    $null = $PSBoundParameters.Remove('Template')
+    Initialize-BicepTemplate -Template $Template -Target $Target -InitParameter $PSBoundParameters
 }
