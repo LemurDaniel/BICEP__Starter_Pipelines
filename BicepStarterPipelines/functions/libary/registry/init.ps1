@@ -91,20 +91,6 @@ $targetPipelineFolder.Create()
     #### Write to file
 #>
 
-$templateFiles = Get-Item -Path "$stagingDir/_selections"
-
-$bicepMainTemplate = Get-Item -Path "$templateFiles/bicep/*.$selectedScope"
-$deployScriptTemplate = Get-Item -Path "$templateFiles/deploy/*.$selectedScope.$selectedMethod"
-
-$bicepMainFilePath = "$stagingDir/$($bicepMainTemplate.Name)".Replace(".$selectedScope", "")
-$deployScriptFilePath = "$stagingDir/$($deployScriptTemplate.Name)".Replace(".$selectedScope.$selectedMethod", "")
-
-$null = $deployScriptTemplate.CopyTo($deployScriptFilePath)
-$null = $bicepMainTemplate.CopyTo($bicepMainFilePath)
-
-
-# Pipeline files
-
 $pipelineTemplateFolder = Resolve-Path -Path "$templateFiles/$($selectedPipeline.source)"
 $pipelineTemplates = Get-ChildItem -Path $pipelineTemplateFolder -Recurse -Depth 3
 

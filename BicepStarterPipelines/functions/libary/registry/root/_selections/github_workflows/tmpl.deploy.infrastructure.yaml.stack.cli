@@ -1,0 +1,253 @@
+name: (Template) Bicep Deployment Stack - Resource Group - PWSH
+
+#
+# This is a template for deploying a Bicep file to a resource group using Azure CLI.
+#
+# This workflow uses deployment stacks: https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/deployment-stacks?tabs=azure-powershell
+#
+# Below is an example of how to use this template in a workflow.
+#
+#  name: Deploy Infrastructure
+#  uses: ./.github/workflows/sample.github.pwsh.group.stack.yaml
+#  secrets:
+#    AZURE_DEPLOYMENT_SPN: ${{ secrets.AZURE_CICDSPN }}
+#  with:
+#    name: 'sample-${{ inputs.module }}'
+#    resource_group: 'sample-${{ inputs.module }}'
+#    template_file: ${{ inputs.module }}/example/module.bicep
+#    parameter_file: ${{ inputs.module }}/example/module.bicepparam
+#
+
+on:
+  workflow_call:
+    secrets:
+      AZURE_DEPLOYMENT_SPN:
+        description: "Service Principal for Deployment"
+        required: false
+      subscription_id:
+        description: Set on deployment scope subscription
+        required: false
+    inputs:
+      cli_version:
+        type: string
+        description: The Azure CLI version to use
+        required: false
+        default: "latest"
+
+      name:
+        type: string
+        description: The name of the deployment
+        required: true
+
+      template_file:
+        type: string
+        description: Path to the Bicep-File to deploy
+        required: true
+      parameter_file:
+        type: string
+        description: path to the bicep parameter file
+        required: true
+      deny_settings_mode:
+        type: string
+        description: The deny settings mode
+        required: false
+        default: none # none, denyWriteAndDelete, denyDelete
+      action_on_unmanage:
+        type: string
+        description: Allow deletion of all resources
+        required: false
+        default: deleteAll # deleteAll, deleteResources, detachAll
+
+      scope:
+        type: string
+        description: Deployment Scope. subscription | resourceGroup
+        required: true
+      resource_group:
+        type: string
+        description: Set on deployment scope resourceGroup
+        required: false
+      location:
+        type: string
+        description: Set on deployment scope subscription
+        required: false
+
+
+      environment:
+        type: string
+        description: The github environment to use
+        required: false
+      run_bicep_tests:
+        type: boolean
+        description: Run Bicep tests before deployment
+        required: false
+        default: false
+
+
+      what_if_only:
+        type: boolean
+        description: Perform what if deployment
+        required: false
+        default: false
+      what_if_exclude_change:
+        type: string
+        description: Exclude change types from What-If results
+        required: false
+        default: 'NoChange' # Ignore | NoChange | Deploy | Create | Modify | Delete
+      what_if_artifact_name:
+        type: string
+        description: Name of what_if artifact
+        required: false
+        default: ''
+      what_if_retention_days:
+        type: number
+        description: Number of days to retain What-If results
+        required: false
+        default: 7
+      ###
+      runs-on:
+        type: string
+        description: The type of the runner
+        required: false
+        default: "ubuntu-latest"
+
+jobs:
+  what_if:
+    name: WhatIf ${{ inputs.template_file }}
+    runs-on: ${{ inputs.runs-on }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_DEPLOYMENT_SPN }}
+          enable-AzPSSession: true
+
+      - name: Run Bicep Tests
+        uses: azure/cli@v2
+        if: ${{ inputs.run_bicep_tests == true }}
+        with:
+          azcliversion: ${{ inputs.cli_version }}
+          inlineScript: |
+            az bicep install
+            test_files=$(find . -type f -name "*test.bicep" -maxdepth 4)
+            for file in $test_files; do
+              /root/.azure/bin/bicep test "$file"
+            done
+
+      - name: What If ${{ inputs.template_file }}
+        uses: azure/cli@v2
+        with:
+          azcliversion: ${{ inputs.cli_version }}
+          inlineScript: |
+
+            if [[ -n "${{ secrets.subscription_id }}" ]]; then
+              az account set --subscription "${{ secrets.subscription_id }}"
+            fi
+
+            DeploymentArgs=(
+              --name "${{ inputs.name }}"
+              --template-file "${{ inputs.template_file }}"
+              --parameters "${{ inputs.parameter_file }}"
+              --no-prompt
+              --what-if
+              --what-if-result-format FullResourcePayloads
+            )
+
+            if [[ -n "${{ inputs.what_if_exclude_change }}" ]]; then
+              DeploymentArgs+=(--what-if-exclude-change-type "${{ inputs.what_if_exclude_change }}")
+            fi
+
+            if [[ "${{ inputs.scope }}" == "subscription" ]]; then
+              if [[ -z "${{ inputs.location }}" ]]; then
+                echo "Error: Subscription Deployment needs a location!" >&2
+                exit 1
+              fi
+
+              DeploymentArgs+=(--location "${{ inputs.location }}")
+              az deployment sub create "${DeploymentArgs[@]}" > ./bicep_whatif.txt
+
+            elif [[ "${{ inputs.scope }}" == "resourceGroup" ]]; then
+              if [[ -z "${{ inputs.resource_group }}" ]]; then
+                echo "Error: Resource Group Deployment needs a resource group!" >&2
+                exit 1
+              fi
+
+              DeploymentArgs+=(--resource-group "${{ inputs.resource_group }}")
+              az deployment group create "${DeploymentArgs[@]}" > ./bicep_whatif.txt
+
+            else
+              echo "Error: Invalid Scope ${{ inputs.scope }}!" >&2
+              exit 1
+            fi
+
+      - name: Upload What-If Results
+        uses: actions/upload-artifact@v4
+        if: ${{ inputs.what_if_artifact_name != '' }}
+        with:
+          name: ${{ inputs.what_if_artifact_name }}
+          path: ./bicep_whatif.txt
+          retention-days: ${{ inputs.what_if_retention_days }}
+
+
+
+  deploy_bicep:
+    needs:
+    - what_if
+    if: ${{ inputs.what_if_only == false }}
+    name: Deploy ${{ inputs.template_file }}
+    environment: ${{ inputs.environment }}
+    runs-on: ${{ inputs.runs-on }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_DEPLOYMENT_SPN }}
+          enable-AzPSSession: true
+
+      - name: Deploy ${{ inputs.template_file }}
+        uses: azure/cli@v2
+        with:
+          azcliversion: ${{ inputs.cli_version }}
+          inlineScript: |
+
+            if [[ -n "${{ secrets.subscription_id }}" ]]; then
+              az account set --subscription "${{ secrets.subscription_id }}"
+            fi
+
+            DeploymentArgs=(
+              --name "${{ inputs.name }}"
+              --template-file "${{ inputs.template_file }}"
+              --parameters "${{ inputs.parameter_file }}"
+              --deny-settings-mode "${{ inputs.deny_settings_mode }}"
+              --action-on-unmanage "${{ inputs.action_on_unmanage }}"
+            )
+
+            if [[ "${{ inputs.scope }}" == "subscription" ]]; then
+              if [[ -z "${{ inputs.location }}" ]]; then
+                echo "Error: Subscription Deployment needs a location!" >&2
+                exit 1
+              fi
+
+              DeploymentArgs+=(--location "${{ inputs.location }}")
+              az deployment sub create "${DeploymentArgs[@]}" --confirm-with-what-if --force-change --verbose
+
+            elif [[ "${{ inputs.scope }}" == "resourceGroup" ]]; then
+              if [[ -z "${{ inputs.resource_group }}" ]]; then
+                echo "Error: Resource Group Deployment needs a resource group!" >&2
+                exit 1
+              fi
+
+              DeploymentArgs+=(--resource-group "${{ inputs.resource_group }}")
+              az deployment group create "${DeploymentArgs[@]}" --confirm-with-what-if --force-change --verbose
+
+            else
+              echo "Error: Invalid Scope ${{ inputs.scope }}!" >&2
+              exit 1
+            fi

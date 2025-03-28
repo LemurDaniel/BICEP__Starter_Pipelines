@@ -1,4 +1,4 @@
-function Read-UtilsUserOption  {
+function Read-UtilsUserOption {
     <#
     .SYNOPSIS
     Opens an interactive single line menue for user confirmation.
@@ -80,16 +80,16 @@ function Read-UtilsUserOption  {
             Mandatory = $false,
             ValueFromPipeline = $true
         )]
-        [System.Object[]]
+        [System.Object]
         $Options = @(
-            @{
-                display = "Yes"
-                value   = $true
-                default = $true
-            },
             @{
                 display = "No"
                 value   = $false
+                default = $true
+            },
+            @{
+                display = "Yes"
+                value   = $true
             }
         ),
 
@@ -112,7 +112,7 @@ function Read-UtilsUserOption  {
             ParameterSetName = "DefaultValue"
         )]
         [System.String]
-        $DefaultValue = "Yes",
+        $DefaultValue,
 
         # Prevents a new line after finishing the method.
         [Parameter()]
@@ -152,52 +152,59 @@ function Read-UtilsUserOption  {
             Setting up user prompt and displayed options.
         #>
         $userPrompt = (" " * $Indendation) + $Prompt.TrimEnd()
-        $processedOptions = @()
-        $selectedIndex = 0 
+        $selectedIndex = $DefaultIndex
         $marginSpace = "  "
 
-
-        if ($PSBoundParameters.ContainsKey('DefaultIndex')) {
-            $selectedIndex = $DefaultIndex
-        }
-        elseif ($PSBoundParameters.ContainsKey('DefaultValue')) {
-            $selectedIndex = $Options.IndexOf($DefaultValue)
+        if ($PSBoundParameters.ContainsKey('DefaultValue')) {
+            $selectedIndex = ($Options.display ?? $Options).IndexOf($DefaultValue)
 
             if ($selectedIndex -LT 0) {
                 throw [System.InvalidOperationException]::new("The Default Value '$DefaultValue' is not part of the Options.")
             }
         }
+
+        $processedOptions = @()
     }
 
 
 
     PROCESS {
+        <#
+            If the user provided the obect as a parameter,
+            we pipe it to a new instance of the function.
+        #>
+        if (-NOT $PSCmdlet.MyInvocation.ExpectingInput) {
+            $null = $PSBoundParameters.Remove('Options')
+            return $Options | Read-UtilsUserOption @PSBoundParameters
+        }
 
         <#
             Convert all provided entries to a list of object:
             - Strings and ValueTypes: String or Value is displayed on screen as is.
             - Powershell Objects:     A property from the object is display on screen, to identify the object.
         #>
-        foreach ($entry in $Options) {
-            if (
-                $entry -IS [System.String] -OR 
-                $entry -IS [System.ValueType]
-            ) {
-                $processedOptions += @{
-                    display = $entry
-                    value   = $entry 
-                }
+        if (
+            $Options -IS [System.String] -OR 
+            $Options -IS [System.ValueType]
+        ) {
+            $processedOptions += @{
+                display = $Options
+                value   = $Options 
             }
-            else {
-                $processedOptions += @{
-                    display = $entry.display
-                    value   = $entry.value
-                }
+        }
+        else {
+            $processedOptions += @{
+                display = $Options.display
+                value   = $Options.value
             }
+
+            if ($null -EQ $Options.display -OR $null -EQ $Options.display) {
+                throw [System.InvalidOperationException]::new("The provided Option is not a valid object.")
+            }
+        }
             
-            if ($entry.default -EQ $true) {
-                $selectedIndex = $processedOptions.Count - 1
-            }
+        if ($Options.default -EQ $true) {
+            $selectedIndex = $processedOptions.Count - 1
         }
     }
 
@@ -205,81 +212,98 @@ function Read-UtilsUserOption  {
 
     END {
 
+        if(-NOT $PSCmdlet.MyInvocation.ExpectingInput) {
+            return
+        }
+        
+        [System.Console]::TreatControlCAsInput = $true
         $cursorX = [System.Console]::GetCursorPosition().Item1
-        try {
-            do {
+        
+        do {
 
-                [System.Console]::CursorVisible = $false
-                $uIwidth = $host.UI.RawUI.WindowSize.Width 
-                $cursorY = [System.Console]::GetCursorPosition().Item2
+            [System.Console]::CursorVisible = $false
+            $uIwidth = $Host.UI.RawUI.BufferSize.Width 
+            $cursorY = [System.Console]::GetCursorPosition().Item2
 
-                <#
-                    Overwrites the previous drawn line with whitespaces.
+            <#
+                Overwrites the previous drawn line with whitespaces.
 
-                    Then resets the cursor and draws the Prompt.
-                #>
-                [System.Console]::SetCursorPosition($cursorX, $cursorY)
-                [System.Console]::Write(" " * $uIwidth)
+                Then resets the cursor and draws the Prompt.
+            #>
+            [System.Console]::SetCursorPosition($cursorX, $cursorY)
+            [System.Console]::Write(" " * $uIwidth)
 
-                [System.Console]::SetCursorPosition($cursorX, $cursorY)
-                [System.Console]::Write($_ANSIPrompt_)
-                [System.Console]::write($userPrompt)
-                [System.Console]::Write($_ANSIReset_)
+            [System.Console]::SetCursorPosition($cursorX, $cursorY)
+            [System.Console]::Write($_ANSIPrompt_)
+            [System.Console]::write($userPrompt)
+            [System.Console]::Write($_ANSIReset_)
 
 
-                for ($index = 0; $index -LT $processedOptions.Count; $index++) {
+            for ($index = 0; $index -LT $processedOptions.Count; $index++) {
 
-                    [System.Console]::Write($marginSpace)
-                    if ($index -EQ $selectedIndex) {
-                        [System.Console]::Write($_ANSISelected_)
-                        [System.Console]::Write($processedOptions[$index].display)
-                        [System.Console]::Write($_ANSIReset_)
-                    }
-                    else {
-                        [System.Console]::Write($_ANSIOption_)
-                        [System.Console]::Write($processedOptions[$index].display)
-                        [System.Console]::Write($_ANSIReset_)
-                    }
-
+                [System.Console]::Write($marginSpace)
+                if ($index -EQ $selectedIndex) {
+                    [System.Console]::Write($_ANSISelected_)
+                    [System.Console]::Write($processedOptions[$index].display)
+                    [System.Console]::Write($_ANSIReset_)
                 }
+                else {
+                    [System.Console]::Write($_ANSIOption_)
+                    [System.Console]::Write($processedOptions[$index].display)
+                    [System.Console]::Write($_ANSIReset_)
+                }
+
+            }
  
 
 
-                <#
-                    Handle Key Inputs from User.
+            <#
+            
+                ////////////////////////////////////////
+                /// Handle Key Inputs from User.
 
-                    - Move selectedIndex to left or right, based on userinput
-                #>
-                $keyEvent = [System.Console]::ReadKey($true)
-                
-                if (
-                    $keyEvent.Key -EQ [System.ConsoleKey]::D -OR
-                    $keyEvent.Key -EQ [System.ConsoleKey]::RightArrow
-                ) {
-                    $selectedIndex = ($selectedIndex + 1) % $processedOptions.Count
-                }
-                elseif (
-                    $keyEvent.Key -EQ [System.ConsoleKey]::A -OR
-                    $keyEvent.Key -EQ [System.ConsoleKey]::LeftArrow
-                ) {
-                    $selectedIndex = ($selectedIndex + $processedOptions.Count - 1) % $processedOptions.Count
-                }
-                elseif (
-                    $keyEvent.Key -EQ [System.ConsoleKey]::Enter
-                ) {
-                    return $processedOptions[$selectedIndex].value
-                }
+            #>
+            
+            $e = [System.Console]::ReadKey($true)
 
-            } while ($keyEvent.Key -NE [System.ConsoleKey]::Escape)
-        }
-        finally {
-            # Make sure to always leave in any case function with a visible cursor again.
-            [System.Console]::CursorVisible = $true
-        
-            # Write a new Line to set the cursor to the next line.
-            if (-NOT $NoNewLine.IsPresent) {
-                Write-Host "" 
+            <#
+                Cancel the operation if the user presses ESC or CTRL+C.
+            #>
+            if (
+                $e.Key -EQ [System.ConsoleKey]::Escape -OR
+                ($e.Key -EQ [System.ConsoleKey]::C -AND $e.Modifiers -EQ "Control")
+            ) {
+                throw [System.OperationCanceledException]::new("User canceled the operation.")
             }
+                
+            elseif (
+                $e.Key -EQ [System.ConsoleKey]::D -OR
+                $e.Key -EQ [System.ConsoleKey]::RightArrow
+            ) {
+                $selectedIndex = ($selectedIndex + 1) % $processedOptions.Count
+            }
+            elseif (
+                $e.Key -EQ [System.ConsoleKey]::A -OR
+                $e.Key -EQ [System.ConsoleKey]::LeftArrow
+            ) {
+                $selectedIndex = ($selectedIndex + $processedOptions.Count - 1) % $processedOptions.Count
+            }
+            elseif (
+                $e.Key -EQ [System.ConsoleKey]::Enter
+            ) {
+                return $processedOptions[$selectedIndex].value
+            }
+
+        } while ($e.Key -NE [System.ConsoleKey]::Enter)
+
+        # Write a new Line to set the cursor to the next line.
+        if (-NOT $NoNewLine.IsPresent) {
+            Write-Host "" 
         }
+    }
+
+    CLEAN {
+        # Make sure to always leave in any case function with a visible cursor again.
+        [System.Console]::CursorVisible = $true
     }
 }
