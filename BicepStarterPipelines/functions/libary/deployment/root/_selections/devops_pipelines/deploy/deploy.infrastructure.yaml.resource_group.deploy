@@ -73,7 +73,7 @@ stages:
       # location: germanywestcentral
 
       # --- on resource group scope
-      resourceGroup: rg-demo-dev-001
+      resourceGroup: rg-sample-dev
 
   - template: stage/tmpl.bicep.infra.parameters.yaml
     parameters:
@@ -102,7 +102,7 @@ stages:
       # location: germanywestcentral
 
       # --- on resource group scope
-      resourceGroup: rg-demo-test-001
+      resourceGroup: rg-sample-test
 
   - template: stage/tmpl.bicep.infra.parameters.yaml
     parameters:
@@ -131,4 +131,4 @@ stages:
       # location: germanywestcentral
 
       # --- on resource group scope
-      resourceGroup: rg-demo-prod-001
+      resourceGroup: rg-sample-prod
