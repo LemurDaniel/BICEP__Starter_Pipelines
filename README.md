@@ -35,9 +35,9 @@ No guarantee that it will work on other than Windows, though I tested it on my U
     ```PowerShell
     PS> Install-Module -Name BicepStarterPipelines -Scope CurrentUser
     ```
-2. Use the `bicep-init` from terminal:
+2. Use the `bicep-starter` from terminal:
     ```PowerShell
-    PS> bicep-init
+    PS> bicep-starter
     ```
 
 ---
@@ -49,13 +49,13 @@ No guarantee that it will work on other than Windows, though I tested it on my U
 1. Download an open repository in VSCode
 2. Press `F5` to start a Launch Task.
 ```PowerShell
-PS> bicep-init ./destinationFolder
+PS> bicep-starter ./destinationFolder
 ```
 --- 
 #### PowerShell launch script
 
 1. Download an open repository in any terminal
-2. Call the ./bicep-init script
+2. Call the ./bicep-starter script
 ```PowerShell
-PS> ./bicep-init ./destinationFolder
+PS> ./bicep-starter ./destinationFolder
 ```

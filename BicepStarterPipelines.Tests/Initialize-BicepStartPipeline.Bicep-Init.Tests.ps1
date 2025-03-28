@@ -36,7 +36,7 @@ Describe 'Initialize-BicepStartPipeline' {
     #It 'Interactive Mode' -Skip:$Global:BicepStarterPipelinesNonInteractive {
     #    $destination = "$PSScriptRoot/pester/interactive"
     #
-    #    bicep-init $destination
+    #    bicep-starter $destination
     #
     #    Test-Path -Path $destination | Should -Be $true
     #}
@@ -54,7 +54,7 @@ Describe 'Initialize-BicepStartPipeline' {
                 Pipeline = $pipeline
             }
 
-            bicep-init @splat
+            bicep-starter @splat
         }
 
         It 'Should create destination if not exists' {

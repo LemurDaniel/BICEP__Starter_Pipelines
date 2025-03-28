@@ -10,7 +10,7 @@ function Initialize-BicepStarterPipeline {
     None.
     
     #>
-    [Alias('bicep-init', 'bicep-registry')]
+    [Alias('bicep-starter', 'bicep-registry')]
     param (
         [Parameter(
             Position = 1,
@@ -44,7 +44,7 @@ function Initialize-BicepStarterPipeline {
         $Pipeline = $null
     )
 
-    if ($PSCmdlet.MyInvocation.InvocationName -IEQ 'bicep-init') {
+    if ($PSCmdlet.MyInvocation.InvocationName -IEQ 'bicep-starter') {
         Initialize-BicepTemplate -Template 'deployment' -Target $Target -InitParameter $PSBoundParameters
     } 
     elseif ($PSCmdlet.MyInvocation.InvocationName -IEQ 'bicep-registry') {
@@ -53,7 +53,7 @@ function Initialize-BicepStarterPipeline {
     else {
         throw [System.Exception]::new(@"
         Please use either alias:
-        - bicep-init        for deployment templates
+        - bicep-starter     for deployment templates
         - bicep-registry    for registry templates
 "@)
     }
