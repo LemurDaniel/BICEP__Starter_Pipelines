@@ -47,7 +47,7 @@ Describe 'Initialize-BicepStartPipeline' {
 
             $destination = "$PSScriptRoot/pester/automated/$(Get-Random)"
             $splat = @{
-                Type     = 'Deployment'
+                Template = 'deployment'
                 Target   = $destination
                 Method   = $method
                 Scope    = $scope
