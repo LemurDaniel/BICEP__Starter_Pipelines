@@ -23,14 +23,14 @@ function Read-UtilsUserOption {
 
     Provides the basic prompt with a custom message.
 
-    PS> Read-UtilsUserOption "Confirm: "
+    PS> Read-UtilsUserOption "Confirm:  "
 
  
     .EXAMPLE
 
     PS> Present a simple prompt with two selections and an identation:
 
-    Read-UtilsUserOption -Prompt "Confirm: `n" -Options "A", "B", "C" -i 2
+    Read-UtilsUserOption -Prompt "Confirm:`n" -Options "A", "B", "C" -i 2
 
 
     .EXAMPLE
@@ -124,8 +124,8 @@ function Read-UtilsUserOption {
             ParameterSetName = "DefaultIndex"
         )]
         [System.Int32]
-        [Alias('Default')]
-        $DefaultIndex = 0,
+        [Alias('Default', 'DefautlIndex')]
+        $Index = 0,
 
         # The Default selected value.
         # Either defaultValue or defaultIndex can be used.
@@ -255,6 +255,8 @@ function Read-UtilsUserOption {
         <#
             Setting up the colors for the prompt and options.
         #>
+        $_LineBreak_ = [System.Environment]::NewLine
+
         $_Color_Reset_ = $PSStyle.Reset
         $_Color_Option_ = '' + $transformedColors.Option.ForeGround + $transformedColors.Option.BackGround
         $_Color_Selected_ = '' + $transformedColors.Selected.ForeGround + $transformedColors.Selected.BackGround
@@ -263,19 +265,32 @@ function Read-UtilsUserOption {
 
         <#
             Setting up user prompt and displayed options.
+            - PromptLineBreaks: The number of line after the prompt, so only the prompt is colored.
+                                If you want multiple colored lines, just use Write-Host with the color you want.
+
+            - PromptSeperation: The space between the prompt and the input text.
+            - IndendationSpace: The space before the prompt.
+
+            - $marginSpace: Space between each option.
+            - $indendationSpace: Space before the prompt or options, when the options are on the next line.
+            - $promptSeperation: Space between the prompt and the first option, when the prompt is on the same line.
         #>
-        $userPrompt = (" " * $Indendation) + $Prompt
-        $selectedIndex = $DefaultIndex
-        $marginSpace = " " * $Margin
+        $promptLineBreaksStart = $_LineBreak_ * ($Prompt.TrimEnd().Length - $Prompt.TrimEnd().Replace("`n", '').Length)
+        $promptLineBreaksEnd = $_LineBreak_ * ($Prompt.TrimStart().Length - $Prompt.TrimStart().Replace("`n", '').Length)
+        $promptSeperation = ' ' * $($Prompt.Length - $Prompt.TrimEnd(' ').Length)
+        $indendationSpace = ' ' * $Indendation 
+        $marginSpace = ' ' * $Margin
+
+        $Prompt = $Prompt.Trim().Replace("`r`n", '').Replace("`r", '')
+
 
         if ($PSBoundParameters.ContainsKey('DefaultValue')) {
-            $selectedIndex = ($Options.display ?? $Options).IndexOf($DefaultValue)
+            $Index = ($Options.display ?? $Options).IndexOf($DefaultValue)
 
-            if ($selectedIndex -LT 0) {
+            if ($Index -LT 0) {
                 throw [System.InvalidOperationException]::new("The Default Value '$DefaultValue' is not part of the Options.")
             }
         }
-
 
         $wrappedOptions = @()
     }
@@ -371,7 +386,7 @@ function Read-UtilsUserOption {
         $wrappedOptions += $optionWrapper
 
         if ($Options.default -EQ $true) {
-            $selectedIndex = $wrappedOptions.Count - 1
+            $Index = $wrappedOptions.Count - 1
         }
 
     }
@@ -384,13 +399,24 @@ function Read-UtilsUserOption {
             return
         }
         
+        # Indentation shouldn't be affected by the color for the prompt.
+        [System.Console]::Write($promptLineBreaksStart)
+        [System.Console]::Write($indendationSpace)
         [System.Console]::Write($_Color_Prompt_)
-        [System.Console]::Write($userPrompt)
+        [System.Console]::Write($Prompt)
         [System.Console]::Write($_Color_Reset_)
 
-        # If the prompt contains a linebreak, apply the indentation again to the next line.
-        if ($userPrompt.Contains("`n")) {
-            [System.Console]::Write((" " * $Indendation))
+        # If the prompt contains a linebreak, 
+        #   then apply the indentation again to the next line.
+        #   otherwise the margin space is used to separate the option from the prompt.
+        if ($promptLineBreaksEnd.Length -GT 0) {
+            [System.Console]::Write($promptLineBreaksEnd)
+            [System.Console]::Write($indendationSpace)
+        }
+        else {
+            # Whitespaces at the end of the prompt are extrated and written separately,
+            #  so that the are not affected by custom colors affecting the prompt background.
+            [System.Console]::Write($promptSeperation)
         }
 
         # Save existing value and change it to true.
@@ -399,9 +425,10 @@ function Read-UtilsUserOption {
         [System.Console]::CursorVisible = $false
 
         # Save curors position where the options will be displayed.
-        $cursorX = [System.Console]::GetCursorPosition().Item1
-        $cursorY = [System.Console]::GetCursorPosition().Item2
-
+        $cursorPosition = [System.Numerics.Vector2]::new(
+            [System.Console]::GetCursorPosition().Item1,
+            [System.Console]::GetCursorPosition().Item2
+        )
 
         do {
 
@@ -410,26 +437,26 @@ function Read-UtilsUserOption {
 
                 Then draws all options in a single line.
             #>
-            [System.Console]::SetCursorPosition($cursorX, $cursorY)
+            [System.Console]::SetCursorPosition($cursorPosition.X, $cursorPosition.Y)
 
-            for ($index = 0; $index -LT $wrappedOptions.Count; $index++) {
+            for ($CurrentIndex = 0; $CurrentIndex -LT $wrappedOptions.Count; $CurrentIndex++) {
 
                 
                 # Don't write the margin space:
                 # - before the first option
                 # - after the last option
-                if ($index -GT 0 -AND $index -LT $wrappedOptions.Count) {
+                if ($CurrentIndex -GT 0 -AND $CurrentIndex -LT $wrappedOptions.Count) {
                     [System.Console]::Write($marginSpace)
                 }
 
-                if ($index -EQ $selectedIndex) {
+                if ($CurrentIndex -EQ $Index) {
                     [System.Console]::Write($_Color_Selected_)
-                    [System.Console]::Write($wrappedOptions[$index].display)
+                    [System.Console]::Write($wrappedOptions[$CurrentIndex].display)
                     [System.Console]::Write($_Color_Reset_)
                 }
                 else {
                     [System.Console]::Write($_Color_Option_)
-                    [System.Console]::Write($wrappedOptions[$index].display)
+                    [System.Console]::Write($wrappedOptions[$CurrentIndex].display)
                     [System.Console]::Write($_Color_Reset_)
                 }
 
@@ -461,13 +488,13 @@ function Read-UtilsUserOption {
                 $e.Key -EQ [System.ConsoleKey]::D -OR
                 $e.Key -EQ [System.ConsoleKey]::RightArrow
             ) {
-                $selectedIndex = ($selectedIndex + 1) % $wrappedOptions.Count
+                $Index = ($Index + 1) % $wrappedOptions.Count
             }
             elseif (
                 $e.Key -EQ [System.ConsoleKey]::A -OR
                 $e.Key -EQ [System.ConsoleKey]::LeftArrow
             ) {
-                $selectedIndex = ($selectedIndex + $wrappedOptions.Count - 1) % $wrappedOptions.Count
+                $Index = ($Index + $wrappedOptions.Count - 1) % $wrappedOptions.Count
             }
 
 
@@ -481,7 +508,7 @@ function Read-UtilsUserOption {
                 $enteredIndex = [System.Math]::Max(0, $enteredIndex)
 
                 if ($wrappedOptions.Count -GE $enteredIndex) {
-                    $selectedIndex = $enteredIndex
+                    $Index = $enteredIndex
                 }
             }
 
@@ -497,7 +524,7 @@ function Read-UtilsUserOption {
                     [System.Console]::Write([System.Environment]::NewLine)
                 }
 
-                return $wrappedOptions[$selectedIndex].value
+                return $wrappedOptions[$Index].value
             }
 
         } while ($e.Key -NE [System.ConsoleKey]::Enter)
