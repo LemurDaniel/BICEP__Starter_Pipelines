@@ -197,11 +197,11 @@ function Read-UtilsUserOption {
 
         $transformedColors = @{
             Prompt   = @{
-                ForeGround = "White" # White in HEX
+                ForeGround = "White"
                 Background = $null
             }
             Option   = @{
-                ForeGround = "BrightBlack" # Light Gray in HEX
+                ForeGround = "BrightBlack"
                 Background = $null
             }
             Selected = @{
@@ -221,7 +221,7 @@ function Read-UtilsUserOption {
         <#
             Setting up the colors for the prompt and options.
         #>
-        $_Color_Reset_ = "`e[0m"
+        $_Color_Reset_ = $PSStyle.Reset
         $_Color_Option_ = '' + $transformedColors.Option.ForeGround + $transformedColors.Option.Background
         $_Color_Selected_ = '' + $transformedColors.Selected.ForeGround + $transformedColors.Selected.Background
         $_Color_Prompt_ = '' + $transformedColors.Prompt.ForeGround + $transformedColors.Prompt.Background
@@ -378,6 +378,24 @@ function Read-UtilsUserOption {
             ) {
                 $selectedIndex = ($selectedIndex + $processedOptions.Count - 1) % $processedOptions.Count
             }
+
+            <#
+                When a number is entered, select the corresponding optiona at the index.
+            #>
+            if (
+                [System.Char]::IsDigit($e.KeyChar)
+            ) {
+                $enteredIndex = [System.Byte]::Parse($e.KeyChar) - 1
+                $enteredIndex = [System.Math]::Max(0, $enteredIndex)
+
+                if ($processedOptions.Count -GE $enteredIndex) {
+                    $selectedIndex = $enteredIndex
+                }
+            }
+
+            <#
+                Return the selected value if the user presses ENTER.
+            #>
             elseif (
                 $e.Key -EQ [System.ConsoleKey]::Enter
             ) {
