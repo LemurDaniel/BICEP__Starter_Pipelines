@@ -45,16 +45,6 @@ function Read-UtilsUserOption {
         [System.String]
         $Prompt,
 
-        # Indentation for the prompt to display.
-        [Parameter(
-            Position = 2,
-            Mandatory = $false
-        )]
-        [System.int32]
-        [Alias('i')]
-        $Indendation = 0,
-                
-
 
         <#
           The Options to display for selection
@@ -93,6 +83,21 @@ function Read-UtilsUserOption {
             }
         ),
 
+
+        # Indentation for the prompt to display.
+        [Parameter(
+            Position = 2,
+            Mandatory = $false
+        )]
+        [System.Byte]
+        [Alias('i')]
+        $Indendation = 0,
+
+        # Margin space between options.
+        [Parameter()]
+        [System.Byte]
+        [Alias('m')]
+        $Margin = 3,
 
 
         # The Default selected index, starting from left to right.
@@ -233,7 +238,7 @@ function Read-UtilsUserOption {
         #>
         $userPrompt = (" " * $Indendation) + $Prompt.TrimEnd(' ') # Trim only whitespace, $null what also trim control like linebreaks.
         $selectedIndex = $DefaultIndex
-        $marginSpace = "  "
+        $marginSpace = " " * $Margin
 
         if ($PSBoundParameters.ContainsKey('DefaultValue')) {
             $selectedIndex = ($Options.display ?? $Options).IndexOf($DefaultValue)
@@ -243,7 +248,7 @@ function Read-UtilsUserOption {
             }
         }
 
-        $processedOptions = @()
+        $wrappedOptions = @()
     }
 
 
@@ -270,9 +275,9 @@ function Read-UtilsUserOption {
             value   = $Options
         }
 
-        $processedOptions += $optionWrapper
+        $wrappedOptions += $optionWrapper
         if ($Options.default -EQ $true) {
-            $selectedIndex = $processedOptions.Count - 1
+            $selectedIndex = $wrappedOptions.Count - 1
         }
 
         if (
@@ -341,17 +346,24 @@ function Read-UtilsUserOption {
             [System.Console]::SetCursorPosition($cursorX, $cursorY)
 
 
-            for ($index = 0; $index -LT $processedOptions.Count; $index++) {
+            for ($index = 0; $index -LT $wrappedOptions.Count; $index++) {
 
-                [System.Console]::Write($marginSpace)
+                
+                # Don't write the margin space:
+                # - before the first option
+                # - after the last option
+                if ($index -GT 0 -AND $index -LT $wrappedOptions.Count) {
+                    [System.Console]::Write($marginSpace)
+                }
+
                 if ($index -EQ $selectedIndex) {
                     [System.Console]::Write($_Color_Selected_)
-                    [System.Console]::Write($processedOptions[$index].display)
+                    [System.Console]::Write($wrappedOptions[$index].display)
                     [System.Console]::Write($_Color_Reset_)
                 }
                 else {
                     [System.Console]::Write($_Color_Option_)
-                    [System.Console]::Write($processedOptions[$index].display)
+                    [System.Console]::Write($wrappedOptions[$index].display)
                     [System.Console]::Write($_Color_Reset_)
                 }
 
@@ -382,13 +394,13 @@ function Read-UtilsUserOption {
                 $e.Key -EQ [System.ConsoleKey]::D -OR
                 $e.Key -EQ [System.ConsoleKey]::RightArrow
             ) {
-                $selectedIndex = ($selectedIndex + 1) % $processedOptions.Count
+                $selectedIndex = ($selectedIndex + 1) % $wrappedOptions.Count
             }
             elseif (
                 $e.Key -EQ [System.ConsoleKey]::A -OR
                 $e.Key -EQ [System.ConsoleKey]::LeftArrow
             ) {
-                $selectedIndex = ($selectedIndex + $processedOptions.Count - 1) % $processedOptions.Count
+                $selectedIndex = ($selectedIndex + $wrappedOptions.Count - 1) % $wrappedOptions.Count
             }
 
 
@@ -401,7 +413,7 @@ function Read-UtilsUserOption {
                 $enteredIndex = [System.Byte]::Parse($e.KeyChar) - 1
                 $enteredIndex = [System.Math]::Max(0, $enteredIndex)
 
-                if ($processedOptions.Count -GE $enteredIndex) {
+                if ($wrappedOptions.Count -GE $enteredIndex) {
                     $selectedIndex = $enteredIndex
                 }
             }
@@ -418,7 +430,7 @@ function Read-UtilsUserOption {
                     [System.Console]::Write([System.Environment]::NewLine)
                 }
 
-                return $processedOptions[$selectedIndex].value
+                return $wrappedOptions[$selectedIndex].value
             }
 
         } while ($e.Key -NE [System.ConsoleKey]::Enter)
