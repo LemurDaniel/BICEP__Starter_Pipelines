@@ -128,18 +128,18 @@ function Read-UtilsUserOption {
             Each key is optional and $null will be replaced with the default value.
                 - Prompt
                     - ForeGround
-                    - Background
+                    - BackGround
                 - Option
                     - ForeGround
-                    - Background
+                    - BackGround
                 - Selected
                     - ForeGround
-                    - Background
+                    - BackGround
 
             Following Colors are supported:
                 - HEX: #FFFFFF
                 - RGB: 255, 255, 255
-                - ColorName: Colors in $PSStyle.Foreground or $PSStyle.Background
+                - ColorName: Colors in $PSStyle.ForeGround or $PSStyle.BackGround
 
             Example:
                 @{
@@ -195,42 +195,43 @@ function Read-UtilsUserOption {
             }      
         }
 
+        # These are default colors, which can be overridden by custom colors.
         $transformedColors = @{
             Prompt   = @{
                 ForeGround = "White"
-                Background = $null
+                BackGround = $null
             }
             Option   = @{
                 ForeGround = "BrightBlack"
-                Background = $null
+                BackGround = $null
             }
             Selected = @{
                 ForeGround = "BrightWhite"
-                Background = "Magenta"
+                BackGround = "Magenta"
             }
         }
 
         foreach ($key in $transformedColors.Keys) {
             $fg = $CustomColors[$key].ForeGround ?? $transformedColors[$key].ForeGround
-            $transformedColors[$key].ForeGround = Convert-Color -Color $fg -Type 'Foreground'
+            $transformedColors[$key].ForeGround = Convert-Color -Color $fg -Type 'ForeGround'
 
-            $bg = $CustomColors[$key].BackGround ?? $transformedColors[$key].Background
-            $transformedColors[$key].BackGround = Convert-Color -Color $bg -Type 'Background'
+            $bg = $CustomColors[$key].BackGround ?? $transformedColors[$key].BackGround
+            $transformedColors[$key].BackGround = Convert-Color -Color $bg -Type 'BackGround'
         }
         
         <#
             Setting up the colors for the prompt and options.
         #>
         $_Color_Reset_ = $PSStyle.Reset
-        $_Color_Option_ = '' + $transformedColors.Option.ForeGround + $transformedColors.Option.Background
-        $_Color_Selected_ = '' + $transformedColors.Selected.ForeGround + $transformedColors.Selected.Background
-        $_Color_Prompt_ = '' + $transformedColors.Prompt.ForeGround + $transformedColors.Prompt.Background
+        $_Color_Option_ = '' + $transformedColors.Option.ForeGround + $transformedColors.Option.BackGround
+        $_Color_Selected_ = '' + $transformedColors.Selected.ForeGround + $transformedColors.Selected.BackGround
+        $_Color_Prompt_ = '' + $transformedColors.Prompt.ForeGround + $transformedColors.Prompt.BackGround
 
 
         <#
             Setting up user prompt and displayed options.
         #>
-        $userPrompt = (" " * $Indendation) + $Prompt.TrimEnd()
+        $userPrompt = (" " * $Indendation) + $Prompt.TrimEnd(' ') # Trim only whitespace, $null what also trim control like linebreaks.
         $selectedIndex = $DefaultIndex
         $marginSpace = "  "
 
@@ -257,45 +258,58 @@ function Read-UtilsUserOption {
             return $Options | Read-UtilsUserOption @PSBoundParameters
         }
 
+
         <#
             Convert all provided entries to a list of object:
             - Strings and ValueTypes: String or Value is displayed on screen as is.
             - Powershell Objects:     A property from the object is display on screen, to identify the object.
         #>
+
+        $optionWrapper = @{
+            display = $null
+            value   = $Options
+        }
+
+        $processedOptions += $optionWrapper
+        if ($Options.default -EQ $true) {
+            $selectedIndex = $processedOptions.Count - 1
+        }
+
         if (
             $Options -IS [System.String] -OR 
             $Options -IS [System.ValueType]
         ) {
-            $processedOptions += @{
-                display = $Options
-                value   = $Options 
-            }
+            $optionWrapper.display = $Options
         }
         else {
-            $processedOptions += @{
-                display = $Options.display
-                value   = $Options.value
-            }
+            $optionWrapper.display = $Options.display
+        }
 
-            if ($null -EQ $Options.display -OR $null -EQ $Options.display) {
-                throw [System.InvalidOperationException]::new("@
-                    The provided option is not a valid object. 
-                    Please provide a hashtable with the properties 'display' and 'value'.
-                    Example: 
-                    @{ 
-                        display = 'Option1'
-                        value = @{
-                            file = 'test.txt'
-                            path = 'C:\temp'
-                        }
+        if (
+            [System.String]::IsNullOrEmpty($optionWrapper.value) -OR
+            [System.String]::IsNullOrEmpty($optionWrapper.display)
+        ) {
+            throw [System.InvalidOperationException]::new("@
+                The provided option is not a valid object. 
+                Please provide a hashtable with the properties 'display' and 'value'.
+                Example: 
+                @{ 
+                    display = 'Option1'
+                    value = @{
+                        file = 'test.txt'
+                        path = 'C:\temp'
                     }
+                }
 @")
-            }
+        }
+
+        if (
+            $optionWrapper.display.Contains("`n")
+        ) {
+            $optionWrapper.display = $optionWrapper.display.Replace("`n", "")
+            Write-Warning "Linebreaks are only allowed in the Prompt. Any linebreak in the option will be removed."
         }
             
-        if ($Options.default -EQ $true) {
-            $selectedIndex = $processedOptions.Count - 1
-        }
     }
 
 
@@ -306,27 +320,25 @@ function Read-UtilsUserOption {
             return
         }
         
+        [System.Console]::Write($_Color_Prompt_)
+        [System.Console]::Write($userPrompt)
+        [System.Console]::Write($_Color_Reset_)
+
+        [System.Console]::CursorVisible = $false
         [System.Console]::TreatControlCAsInput = $true
+
         $cursorX = [System.Console]::GetCursorPosition().Item1
-        
+        $cursorY = [System.Console]::GetCursorPosition().Item2
+
+
         do {
 
-            [System.Console]::CursorVisible = $false
-            $uIwidth = $Host.UI.RawUI.BufferSize.Width 
-            $cursorY = [System.Console]::GetCursorPosition().Item2
-
             <#
-                Overwrites the previous drawn line with whitespaces.
+                Sets the cursor position to the start of the line.
 
-                Then resets the cursor and draws the Prompt.
+                Then draws all options in a single line.
             #>
             [System.Console]::SetCursorPosition($cursorX, $cursorY)
-            [System.Console]::Write(" " * $uIwidth)
-
-            [System.Console]::SetCursorPosition($cursorX, $cursorY)
-            [System.Console]::Write($_Color_Prompt_)
-            [System.Console]::write($userPrompt)
-            [System.Console]::Write($_Color_Reset_)
 
 
             for ($index = 0; $index -LT $processedOptions.Count; $index++) {
@@ -378,6 +390,7 @@ function Read-UtilsUserOption {
             ) {
                 $selectedIndex = ($selectedIndex + $processedOptions.Count - 1) % $processedOptions.Count
             }
+
 
             <#
                 When a number is entered, select the corresponding optiona at the index.
