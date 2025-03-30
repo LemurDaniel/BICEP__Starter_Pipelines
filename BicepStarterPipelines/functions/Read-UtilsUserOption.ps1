@@ -30,14 +30,14 @@ function Read-UtilsUserOption {
 
     PS> Present a simple prompt with two selections and an identation:
 
-    Read-UtilsUserOption -P "Confirm: `n" -O "A", "B", "C" -i 2
+    Read-UtilsUserOption -Prompt "Confirm: `n" -Options "A", "B", "C" -i 2
 
 
     .EXAMPLE
 
     Present options via pipeline input.
 
-    PS>  "Option A", "Option B", "Option C" | Read-UtilsUserOption "Choose:  " -i 2
+    PS>  "Option A", "Option B", "Option C" | Read-UtilsUserOption -Prompt "Choose:  " -i 2
 
 
     .EXAMPLE
@@ -74,18 +74,13 @@ function Read-UtilsUserOption {
           Input as Strings:
           @("Yes", "No")
 
-          Input as Objects:
-            $(
-                @{
-                    display = "Yes"
-                    value   = $true
-                    default = $true
-                },
-                @{
-                    display = "No"
-                    value   = $false
-                }
-            ),
+          For input as object use -Display and -Return to define the properties to display and return.
+          -Return is optional and will return the whole object if not provided.
+          -Display is set to 'display' by default and will use the property 'display' from the object.
+          @{
+              display = "Name"
+              return  = "FullName"
+          },
         #>
         [Parameter(
             Position = 1,
@@ -93,17 +88,7 @@ function Read-UtilsUserOption {
             ValueFromPipeline = $true
         )]
         [System.Object]
-        $Options = @(
-            @{
-                display = "No"
-                return  = $false
-                default = $true
-            },
-            @{
-                display = "Yes"
-                return  = $true
-            }
-        ),
+        $Options,
 
 
         # Indentation for the prompt to display.
@@ -129,7 +114,7 @@ function Read-UtilsUserOption {
         # When an object is provided, this property is used to return the object.
         [Parameter()]
         [System.String]
-        $Return = 'return',
+        $Return,
 
 
         # The Default selected index, starting from left to right.
@@ -248,7 +233,19 @@ function Read-UtilsUserOption {
             }
         }
 
+        $difference = $CustomColors.Keys | Where-Object { $_ -NOTIN $transformedColors.Keys }
+        if ($difference.Count -GT 0) {
+            throw [System.InvalidOperationException]::new("`nOn CustomColors, the following keys are not valid: $difference.`nPlease use the following keys: $($transformedColors.Keys)")
+        }
+
         foreach ($key in $transformedColors.Keys) {
+            if (
+                $CustomColors[$key].Keys.Count -GT 0 -AND
+                $CustomColors[$key].Keys -NOTIN 'ForeGround', 'BackGround'
+            ) {
+                throw [System.InvalidOperationException]::new("`nOn Custom Color for '$Key', the following keys are not valid: $($CustomColors[$key].Keys)`nPlease use the following keys: 'ForeGround', 'BackGround'")
+            }
+
             $fg = $CustomColors[$key].ForeGround ?? $transformedColors[$key].ForeGround
             $transformedColors[$key].ForeGround = Convert-Color -Color $fg -Type 'ForeGround'
 
@@ -280,17 +277,38 @@ function Read-UtilsUserOption {
             }
         }
 
+
         $wrappedOptions = @()
     }
 
 
 
     PROCESS {
+
         <#
             If the user provided the obect as a parameter,
             we pipe it to a new instance of the function.
         #>
         if (-NOT $PSCmdlet.MyInvocation.ExpectingInput) {
+            <#
+                When no option were provided at all, we define the default options.
+            #>
+            if ($Options.Count -EQ 0) {
+                $null = $PSBoundParameters['Return'] = 'return'
+                $null = $PSBoundParameters['Display'] = 'display'
+                $Options = @(
+                    @{
+                        display = "No"
+                        return  = $false
+                        default = $true
+                    },
+                    @{
+                        display = "Yes"
+                        return  = $true
+                    }
+                ) 
+            }
+
             $null = $PSBoundParameters.Remove('Options')
             return $Options | Read-UtilsUserOption @PSBoundParameters
         }
@@ -323,33 +341,24 @@ function Read-UtilsUserOption {
             we add it and check if the hashtable is valid.
         #>
         else {
+            if (
+                -NOT [System.String]::IsNullOrEmpty($Return) -AND
+                [System.String]::IsNullOrEmpty($Options."$Return")    
+            ) {
+                throw [System.InvalidOperationException]::new("`nThe provided object does not contain a property with the name '$Return'.`n$Options")
+            }
+
+            if (
+                -NOT [System.String]::IsNullOrEmpty($Display) -AND
+                [System.String]::IsNullOrEmpty($Options."$Display")    
+            ) {
+                throw [System.InvalidOperationException]::new("`nThe provided object does not contain a property with the name '$Display'.`n$Options")
+            }
+
             $optionWrapper = @{
                 display = $Options."$display"
                 value   = $Options."$return" ?? $Options
             }
-
-            if (
-                [System.String]::IsNullOrEmpty($optionWrapper.display)
-            ) {
-                throw [System.InvalidOperationException]::new("@
-                The provided option is not a valid object. 
-                Please provide a hashtable with the property '$display'.
-                Example: 
-                @{ 
-                    # You can change this by providing the parameter -Display 'objectKey'.
-                    $display = 'Option1'
-
-                    # You can change this by providing the parameter -Return 'objectKey'.
-                    # - `$null will return the whole object.
-                    # - [key] will return the value of the specified key. 
-                    $return = @{
-                        file = 'test.txt'
-                        path = 'C:\temp'
-                    }
-                }
-@")
-            }
-
         }
 
 
