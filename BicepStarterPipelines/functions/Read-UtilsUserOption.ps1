@@ -14,17 +14,39 @@ function Read-UtilsUserOption {
     
     .EXAMPLE
 
-    Present a simple prompt with two selections:
+    Provides two options asking for yes or no. Will return $true on yes and $false on no.
 
-    Read-UtilsUserOption "Confirm: "
+    PS> Read-UtilsUserOption
+
+
+    .EXAMPLE
+
+    Provides the basic prompt with a custom message.
+
+    PS> Read-UtilsUserOption "Confirm: "
 
  
     .EXAMPLE
 
-    Present a simple prompt with two selections and an identation:
+    PS> Present a simple prompt with two selections and an identation:
 
-    Read-UtilsUserOption "Confirm: " @("A", "B", "C") -i 2
+    Read-UtilsUserOption -P "Confirm: `n" -O "A", "B", "C" -i 2
 
+
+    .EXAMPLE
+
+    Present options via pipeline input.
+
+    PS>  "Option A", "Option B", "Option C" | Read-UtilsUserOption "Choose:  " -i 2
+
+
+    .EXAMPLE
+
+    Selects between two files, displaying the name and returning the full path.
+
+    PS> Get-ChildItem -File 
+        | Select-Object -First 2 
+        | Read-UtilsUserOption -Display name -Return FullName
 
     .LINK
     
@@ -74,12 +96,12 @@ function Read-UtilsUserOption {
         $Options = @(
             @{
                 display = "No"
-                value   = $false
+                return  = $false
                 default = $true
             },
             @{
                 display = "Yes"
-                value   = $true
+                return  = $true
             }
         ),
 
@@ -97,7 +119,17 @@ function Read-UtilsUserOption {
         [Parameter()]
         [System.Byte]
         [Alias('m')]
-        $Margin = 3,
+        $Margin = 2,
+
+        # When an object is provided, this property is used to display the object.
+        [Parameter()]
+        [System.String]
+        $Display = 'display',
+
+        # When an object is provided, this property is used to return the object.
+        [Parameter()]
+        [System.String]
+        $Return = 'return',
 
 
         # The Default selected index, starting from left to right.
@@ -236,7 +268,7 @@ function Read-UtilsUserOption {
         <#
             Setting up user prompt and displayed options.
         #>
-        $userPrompt = (" " * $Indendation) + $Prompt.TrimEnd(' ') # Trim only whitespace, $null what also trim control like linebreaks.
+        $userPrompt = (" " * $Indendation) + $Prompt
         $selectedIndex = $DefaultIndex
         $marginSpace = " " * $Margin
 
@@ -270,43 +302,56 @@ function Read-UtilsUserOption {
             - Powershell Objects:     A property from the object is display on screen, to identify the object.
         #>
 
-        $optionWrapper = @{
-            display = $null
-            value   = $Options
-        }
+        $optionWrapper = $null
 
-        $wrappedOptions += $optionWrapper
-        if ($Options.default -EQ $true) {
-            $selectedIndex = $wrappedOptions.Count - 1
-        }
-
+        <#
+            If the user provided a string or value type,
+            we wrap it in a hashtable with the properties 'display' and 'value'.
+        #>
         if (
             $Options -IS [System.String] -OR 
             $Options -IS [System.ValueType]
         ) {
-            $optionWrapper.display = $Options
-        }
-        else {
-            $optionWrapper.display = $Options.display
+            $optionWrapper = @{
+                display = $Options
+                value   = $Options
+            }
         }
 
-        if (
-            [System.String]::IsNullOrEmpty($optionWrapper.value) -OR
-            [System.String]::IsNullOrEmpty($optionWrapper.display)
-        ) {
-            throw [System.InvalidOperationException]::new("@
+        <#
+            If the user provided a hashtable or object,
+            we add it and check if the hashtable is valid.
+        #>
+        else {
+            $optionWrapper = @{
+                display = $Options."$display"
+                value   = $Options."$return" ?? $Options
+            }
+
+            if (
+                [System.String]::IsNullOrEmpty($optionWrapper.display)
+            ) {
+                throw [System.InvalidOperationException]::new("@
                 The provided option is not a valid object. 
-                Please provide a hashtable with the properties 'display' and 'value'.
+                Please provide a hashtable with the property '$display'.
                 Example: 
                 @{ 
-                    display = 'Option1'
-                    value = @{
+                    # You can change this by providing the parameter -Display 'objectKey'.
+                    $display = 'Option1'
+
+                    # You can change this by providing the parameter -Return 'objectKey'.
+                    # - `$null will return the whole object.
+                    # - [key] will return the value of the specified key. 
+                    $return = @{
                         file = 'test.txt'
                         path = 'C:\temp'
                     }
                 }
 @")
+            }
+
         }
+
 
         if (
             $optionWrapper.display.Contains("`n")
@@ -314,7 +359,13 @@ function Read-UtilsUserOption {
             $optionWrapper.display = $optionWrapper.display.Replace("`n", "")
             Write-Warning "Linebreaks are only allowed in the Prompt. Any linebreak in the option will be removed."
         }
-            
+     
+        $wrappedOptions += $optionWrapper
+
+        if ($Options.default -EQ $true) {
+            $selectedIndex = $wrappedOptions.Count - 1
+        }
+
     }
 
 
@@ -328,6 +379,11 @@ function Read-UtilsUserOption {
         [System.Console]::Write($_Color_Prompt_)
         [System.Console]::Write($userPrompt)
         [System.Console]::Write($_Color_Reset_)
+
+        # If the prompt contains a linebreak, apply the indentation again to the next line.
+        if ($userPrompt.Contains("`n")) {
+            [System.Console]::Write((" " * $Indendation))
+        }
 
         [System.Console]::CursorVisible = $false
         [System.Console]::TreatControlCAsInput = $true
@@ -344,7 +400,6 @@ function Read-UtilsUserOption {
                 Then draws all options in a single line.
             #>
             [System.Console]::SetCursorPosition($cursorX, $cursorY)
-
 
             for ($index = 0; $index -LT $wrappedOptions.Count; $index++) {
 
