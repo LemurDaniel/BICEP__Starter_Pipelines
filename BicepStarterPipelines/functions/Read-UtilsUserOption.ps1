@@ -239,11 +239,10 @@ function Read-UtilsUserOption {
         }
 
         foreach ($key in $transformedColors.Keys) {
-            if (
-                $CustomColors[$key].Keys.Count -GT 0 -AND
-                $CustomColors[$key].Keys -NOTIN 'ForeGround', 'BackGround'
-            ) {
-                throw [System.InvalidOperationException]::new("`nOn Custom Color for '$Key', the following keys are not valid: $($CustomColors[$key].Keys)`nPlease use the following keys: 'ForeGround', 'BackGround'")
+
+            $difference = $CustomColors[$key].Keys | Where-Object { $_ -NOTIN 'ForeGround', 'BackGround' }
+            if ($difference.Count -GT 0) {
+                throw [System.InvalidOperationException]::new("`nOn Custom Color for '$Key', the following keys are not valid: $difference`nPlease use the following keys: 'ForeGround', 'BackGround'")
             }
 
             $fg = $CustomColors[$key].ForeGround ?? $transformedColors[$key].ForeGround
