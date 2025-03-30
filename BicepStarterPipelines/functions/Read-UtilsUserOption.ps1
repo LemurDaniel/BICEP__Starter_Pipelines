@@ -393,9 +393,12 @@ function Read-UtilsUserOption {
             [System.Console]::Write((" " * $Indendation))
         }
 
-        [System.Console]::CursorVisible = $false
+        # Save existing value and change it to true.
+        $TreatControlCAsInput = [System.Console]::TreatControlCAsInput
         [System.Console]::TreatControlCAsInput = $true
+        [System.Console]::CursorVisible = $false
 
+        # Save curors position where the options will be displayed.
         $cursorX = [System.Console]::GetCursorPosition().Item1
         $cursorY = [System.Console]::GetCursorPosition().Item2
 
@@ -450,6 +453,7 @@ function Read-UtilsUserOption {
                 $e.Key -EQ [System.ConsoleKey]::Escape -OR
                 ($e.Key -EQ [System.ConsoleKey]::C -AND $e.Modifiers -EQ "Control")
             ) {
+                [System.Console]::TreatControlCAsInput = $TreatControlCAsInput
                 throw [System.OperationCanceledException]::new("User canceled the operation.")
             }
                 
@@ -502,6 +506,7 @@ function Read-UtilsUserOption {
 
     CLEAN {                
         # Make sure to always leave in any case function with a visible cursor again.
-        [System.Console]::CursorVisible = $true
+        [System.Console]::CursorVisible = $true 
+        [System.Console]::TreatControlCAsInput = $TreatControlCAsInput
     }
 }
