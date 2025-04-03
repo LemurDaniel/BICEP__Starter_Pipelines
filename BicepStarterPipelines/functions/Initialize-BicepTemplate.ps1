@@ -24,7 +24,8 @@ function Initialize-BicepTemplate {
         $InitParameter
     )
 
-    <#
+    BEGIN {
+        <#
 
         Helper script for copying files.
 
@@ -32,39 +33,39 @@ function Initialize-BicepTemplate {
         By only creating subdirectories when they do not exist and then copying all files.
 
     #>
-    function Copy-Helper {
+        function Copy-Helper {
 
-        param(
-            [System.IO.DirectoryInfo] $sourceDir,
-            [System.IO.DirectoryInfo] $targetDir
-        )
+            param(
+                [System.IO.DirectoryInfo] $sourceDir,
+                [System.IO.DirectoryInfo] $targetDir
+            )
         
-        $sourceDirs = Get-ChildItem -Recurse -Directory -Path $sourceDir
-        foreach ($dir in $sourceDirs) {
-            $relativePath = Resolve-Path -Relative -Path $dir.FullName -RelativeBasePath $sourceDir
-            $templateDir = [System.IO.DirectoryInfo]::new("$targetDir/$relativePath")
+            $sourceDirs = Get-ChildItem -Recurse -Directory -Path $sourceDir
+            foreach ($dir in $sourceDirs) {
+                $relativePath = Resolve-Path -Relative -Path $dir.FullName -RelativeBasePath $sourceDir
+                $templateDir = [System.IO.DirectoryInfo]::new("$targetDir/$relativePath")
     
-            if (-NOT $templateDir.Exists) {
-                $null = $templateDir.Create()
+                if (-NOT $templateDir.Exists) {
+                    $null = $templateDir.Create()
+                }
             }
+
+            $sourceFiles = Get-ChildItem -Recurse -File -Path $sourceDir
+            foreach ($file in $sourceFiles) {
+                $relativePath = Resolve-Path -Relative -Path $file.FullName -RelativeBasePath $sourceDir
+                $templateFile = [System.IO.FileInfo]::new("$targetDir/$relativePath")
+    
+                if ($templateFile.Exists) {
+                    throw [System.InvalidOperationException]::new("$relativePath already exists!")
+                }
+                else {
+                    $null = $file.CopyTo($templateFile.FullName)
+                }
+            }
+
         }
 
-        $sourceFiles = Get-ChildItem -Recurse -File -Path $sourceDir
-        foreach ($file in $sourceFiles) {
-            $relativePath = Resolve-Path -Relative -Path $file.FullName -RelativeBasePath $sourceDir
-            $templateFile = [System.IO.FileInfo]::new("$targetDir/$relativePath")
-    
-            if ($templateFile.Exists) {
-                throw [System.InvalidOperationException]::new("$relativePath already exists!")
-            }
-            else {
-                $null = $file.CopyTo($templateFile)
-            }
-        }
-
-    }
-
-    <#
+        <#
 
         Initialize all relevant variables:
         - targetDir where to copy files
@@ -73,24 +74,26 @@ function Initialize-BicepTemplate {
         - initPs1 for the template initialization script
 
     #>
-    $common = Get-Item -Path "$PSScriptRoot/libary/common"
-    $initPs1 = Get-Item -Path "$PSScriptRoot/libary/$Template/init.ps1"
-    $rootDir = Get-Item -Path "$PSScriptRoot/libary/$Template/root"
+        $common = Get-Item -Path "$PSScriptRoot/libary/common"
+        $initPs1 = Get-Item -Path "$PSScriptRoot/libary/$Template/init.ps1"
+        $rootDir = Get-Item -Path "$PSScriptRoot/libary/$Template/root"
 
-    if (-NOT [System.IO.Path]::IsPathFullyQualified($Target)) {
-        $rootedPath = [System.IO.Path]::Join((Get-Location).Path, $Target)
-        $Target = [System.IO.DirectoryInfo]::new($rootedPath)
+        if (-NOT [System.IO.Path]::IsPathFullyQualified($Target)) {
+            $rootedPath = [System.IO.Path]::Join((Get-Location).Path, $Target)
+            $Target = [System.IO.DirectoryInfo]::new($rootedPath)
+        }
+
     }
 
+    END {
 
-    try {
         <#    
         
             All files are copied to the staging directory,
             where they are modified and then copied to the target directory.
 
         #>
-
+        
         $tempDir = "{0}/bicep-staging/{1}" -f [System.IO.Path]::GetTempPath(), [System.Guid]::NewGuid()
         $tempDir = New-Item -ItemType Directory -Path $tempDir
 
@@ -135,14 +138,28 @@ function Initialize-BicepTemplate {
             }
         }
     }
-    finally {
 
-        Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+    CLEAN {
 
         # This cleans up staging directory from directories older than 10 minutes.
         # In case of a crash, when the staging directory was not deleted.
         Get-ChildItem -Path $tempDir.Parent -Directory
         | Where-Object -Property CreationTime -LT (Get-Date).AddMinutes(-10)
         | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+
+        
+        [System.GC]::Collect()
+        [System.GC]::WaitForPendingFinalizers()
+        
+        # To make sure that the staging directory is definitly deleted.
+        for ($tries = 1; $tries -LE 5; $tries++) {
+            try {
+                Remove-Item -Path $tempDir -Recurse -Force -ErrorAction Stop -ProgressAction SilentlyContinue
+            }
+            catch {
+                Start-Sleep -Milliseconds 50
+            }
+        }
+
     }
 }

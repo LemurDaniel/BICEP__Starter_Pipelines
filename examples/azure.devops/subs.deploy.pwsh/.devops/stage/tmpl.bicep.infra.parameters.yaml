@@ -74,12 +74,12 @@ stages:
                 - script: |
                     sudo apt-get update
                     sudo apt-get install -y tree
-                  displayName: "Install directory tree command"
+                  displayName: Install tree
                   condition: ${{ parameters.showTree }}
                 - script: |
                     tree $(Build.SourcesDirectory)
                   condition: ${{ parameters.showTree }}
-                  displayName: Show build agent directory tree
+                  displayName: Show directory
                 #////////////////////////////////////////////////////////////
                 #////// Bicep Tests
                 - task: AzurePowerShell@5
