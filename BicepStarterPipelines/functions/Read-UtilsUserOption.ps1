@@ -334,45 +334,29 @@ function Read-UtilsUserOption {
             - Powershell Objects:     A property from the object is display on screen, to identify the object.
         #>
 
-        $optionWrapper = $null
-
-        <#
-            If the user provided a string or value type,
-            we wrap it in a hashtable with the properties 'display' and 'value'.
-        #>
         if (
-            $Options -IS [System.String] -OR 
-            $Options -IS [System.ValueType]
+            -NOT ($Options -IS [System.String]) -AND 
+            -NOT ($Options -IS [System.ValueType])
         ) {
-            $optionWrapper = @{
-                display = $Options
-                value   = $Options
-            }
-        }
-
-        <#
-            If the user provided a hashtable or object,
-            we add it and check if the hashtable is valid.
-        #>
-        else {
             if (
                 -NOT [System.String]::IsNullOrEmpty($Return) -AND
                 [System.String]::IsNullOrEmpty($Options."$Return")    
             ) {
-                throw [System.InvalidOperationException]::new("`nThe provided object does not contain a property with the name '$Return'.`n$Options")
+                throw [System.InvalidOperationException]::new("`nThe provided object does not contain a property with the name '$Return'.`nUse the -Return parameter to specify a custom property name.`n")
             }
 
             if (
                 -NOT [System.String]::IsNullOrEmpty($Display) -AND
                 [System.String]::IsNullOrEmpty($Options."$Display")    
             ) {
-                throw [System.InvalidOperationException]::new("`nThe provided object does not contain a property with the name '$Display'.`n$Options")
+                throw [System.InvalidOperationException]::new("`nThe provided object does not contain a property with the name '$Display'.`nUse the -Display parameter to specify a custom property name.`n")
             }
+        }
 
-            $optionWrapper = @{
-                display = $Options."$display"
-                value   = $Options."$return" ?? $Options
-            }
+
+        $optionWrapper = @{
+            display = $Options."$display" ?? $Options
+            value   = $Options."$return" ?? $Options
         }
 
 
