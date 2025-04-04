@@ -499,7 +499,7 @@ function Read-UtilsUserOption {
 
 
             <#
-                When a number is entered, select the corresponding optiona at the index.
+                When a number is entered, select the corresponding option at the index.
             #>
             if (
                 [System.Char]::IsDigit($e.KeyChar)
@@ -507,7 +507,7 @@ function Read-UtilsUserOption {
                 $enteredIndex = [System.Byte]::Parse($e.KeyChar) - 1
                 $enteredIndex = [System.Math]::Max(0, $enteredIndex)
 
-                if ($wrappedOptions.Count -GE $enteredIndex) {
+                if ($wrappedOptions.Count -GT $enteredIndex) {
                     $Index = $enteredIndex
                 }
             }
