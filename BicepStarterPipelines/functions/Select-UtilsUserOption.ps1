@@ -1,4 +1,4 @@
-function Read-UtilsUserOption {
+function Select-UtilsUserOption {
     <#
     .SYNOPSIS
     Opens an interactive single line menue for user confirmation.
@@ -16,28 +16,28 @@ function Read-UtilsUserOption {
 
     Provides two options asking for yes or no. Will return $true on yes and $false on no.
 
-    PS> Read-UtilsUserOption
+    PS> Select-UtilsUserOption
 
 
     .EXAMPLE
 
     Provides the basic prompt with a custom message.
 
-    PS> Read-UtilsUserOption "Confirm:  "
+    PS> Select-UtilsUserOption "Confirm:  "
 
  
     .EXAMPLE
 
     PS> Present a simple prompt with two selections and an identation:
 
-    Read-UtilsUserOption -Prompt "Confirm:`n" -Options "A", "B", "C" -i 2
+    Select-UtilsUserOption -Prompt "Confirm:`n" -Options "A", "B", "C" -i 2
 
 
     .EXAMPLE
 
     Present options via pipeline input.
 
-    PS>  "Option A", "Option B", "Option C" | Read-UtilsUserOption -Prompt "Choose:  " -i 2
+    PS>  "Option A", "Option B", "Option C" | Select-UtilsUserOption -Prompt "Choose:  " -i 2
 
 
     .EXAMPLE
@@ -46,7 +46,7 @@ function Read-UtilsUserOption {
 
     PS> Get-ChildItem -File 
         | Select-Object -First 2 
-        | Read-UtilsUserOption -Display name -Return FullName
+        | Select-UtilsUserOption -Display name -Return FullName
 
     .LINK
     
@@ -324,7 +324,7 @@ function Read-UtilsUserOption {
             }
 
             $null = $PSBoundParameters.Remove('Options')
-            return $Options | Read-UtilsUserOption @PSBoundParameters
+            return $Options | Select-UtilsUserOption @PSBoundParameters
         }
 
 

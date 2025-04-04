@@ -68,7 +68,7 @@ function Initialize-BicepStarterPipeline {
             #     Display = 'Bicep Registry'
             #     Value   = 'registry'
             # }
-        ) | Read-UtilsUserOption
+        ) | Select-UtilsUserOption
     }
 
     $null = $PSBoundParameters.Remove('Template')

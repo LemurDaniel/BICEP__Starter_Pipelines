@@ -19,7 +19,7 @@ $deploymentMethods = [ordered]@{
 
 if ([System.String]::IsNullOrEmpty($Method)) {
   Write-Host -ForegroundColor Magenta "`nSelect deployment method: "
-  $Method = Read-UtilsUserOption -Options $deploymentMethods.Keys
+  $Method = Select-UtilsUserOption -Options $deploymentMethods.Keys
 } 
 
 $selectedMethod = $deploymentMethods[$Method]
@@ -38,7 +38,7 @@ $deploymentScopes = [ordered]@{
 
 if ([System.String]::IsNullOrEmpty($Scope)) {
   Write-Host -ForegroundColor Magenta "`nSelect deployment scope: "
-  $Scope = Read-UtilsUserOption -Options $deploymentScopes.Keys
+  $Scope = Select-UtilsUserOption -Options $deploymentScopes.Keys
 } 
 
 $selectedScope = $deploymentScopes[$Scope]
@@ -55,7 +55,7 @@ $deploymentScripts = [ordered]@{
 
 if ([System.String]::IsNullOrEmpty($Script)) {
   Write-Host -ForegroundColor Magenta "`nSelect deployment Script: "
-  $Script = Read-UtilsUserOption -Options $deploymentScripts.Keys
+  $Script = Select-UtilsUserOption -Options $deploymentScripts.Keys
 }
 
 $selectedScript = $deploymentScripts[$Script]
@@ -78,7 +78,7 @@ $deploymentPipelines = [ordered]@{
 
 if ([System.String]::IsNullOrEmpty($Pipeline)) {
   Write-Host -ForegroundColor Magenta "`nSelect Pipeline Template: "
-  $Pipeline = Read-UtilsUserOption -Options $deploymentPipelines.Keys
+  $Pipeline = Select-UtilsUserOption -Options $deploymentPipelines.Keys
 }
 
 $selectedPipeline = $deploymentPipelines[$Pipeline]

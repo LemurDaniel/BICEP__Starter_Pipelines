@@ -127,7 +127,7 @@ function Initialize-BicepTemplate {
         catch {
             Write-Host -ForegroundColor RED "`n`nTarget: $Target"
             Write-Host -ForegroundColor RED "`Files already exist in the target directory."
-            $overwrite = Read-UtilsUserOption -Prompt "Overwrite?"
+            $overwrite = Select-UtilsUserOption -Prompt "Overwrite?"
 
             if ($overwrite) {
                 Copy-Item -Path "$tempDir/*" -Recurse -Force -Destination $Target
