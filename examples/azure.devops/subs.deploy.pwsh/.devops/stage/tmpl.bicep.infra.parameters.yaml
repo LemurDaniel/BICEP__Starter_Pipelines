@@ -18,7 +18,7 @@ parameters:
   - name: parametersFile
     type: string
   - name: WhatIfOnly
-    type: boolean
+    type: string
     default: true
   - name: WhatIfExcludeChange
     type: string

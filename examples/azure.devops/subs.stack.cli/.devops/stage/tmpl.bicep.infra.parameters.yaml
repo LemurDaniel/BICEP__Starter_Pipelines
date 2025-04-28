@@ -26,7 +26,7 @@ parameters:
     default: DetachAll
     
   - name: WhatIfOnly
-    type: boolean
+    type: string
     default: true
   - name: WhatIfExcludeChange
     type: string

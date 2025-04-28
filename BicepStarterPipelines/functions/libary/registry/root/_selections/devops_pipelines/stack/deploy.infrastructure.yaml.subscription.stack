@@ -29,7 +29,7 @@ variables:
 
 parameters:
   - name: WhatIfOnly
-    type: boolean
+    type: string
     default: true
 
   # deployment stack configurations

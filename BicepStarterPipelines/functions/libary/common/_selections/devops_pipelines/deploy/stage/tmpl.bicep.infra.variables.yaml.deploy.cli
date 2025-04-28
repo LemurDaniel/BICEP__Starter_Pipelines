@@ -12,7 +12,7 @@ parameters:
 
   # General deployment parameter
   - name: WhatIfOnly
-    type: boolean
+    type: string
     default: true
   - name: WhatIfExcludeChange
     type: string
