@@ -61,6 +61,7 @@ stages:
                 #////////////////////////////////////////////////////////////
                 #////// Bicep Tests
                 - task: AzurePowerShell@5
+                  condition: eq(${{ parameters.runBicepTests }}, true)
                   displayName: Bicep Test ${{ parameters.stage }}
                   inputs:
                     azureSubscription: ${{ parameters.serviceConnection }}
