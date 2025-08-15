@@ -1,0 +1,115 @@
+name: (Template) PWSH - Verify Bicep Modul
+
+#
+# This workflow is a template for publishing a module.bicep to an Azure Container Registry.
+# Optionally lock the image to make it immutable.
+#
+
+on:
+  workflow_call:
+    inputs:
+      folder:
+        type: string
+        description: This is prefix to the module path and left out from the automatic image name
+        required: false
+        default: .
+      module:
+        type: string
+        description: Path to the Bicep-File to publish
+        required: true
+      environment:
+        type: string
+        description: The github environment with the credentials
+        required: false
+
+      ###
+      azps_version:
+        type: string
+        description: The version of the Azure PowerShell to use
+        required: false
+        default: '12.1.0'
+      run_bicep_test:
+        type: boolean
+        description: Enable bicep test framework
+        required: false
+        default: false
+      runs-on: 
+        type: string
+        description: The type of the runner
+        required: false
+        default: 'ubuntu-latest'
+
+jobs:
+  publish_module:
+    name: Verify ${{ inputs.module }}
+    environment: ${{ inputs.environment }}
+    runs-on: ${{ inputs.runs-on }}
+    env:
+      MODULE_PATH: ''
+
+    steps:
+        - name: Checkout code
+          uses: actions/checkout@v2
+
+        - name: Set env
+          id: read_version
+          shell: pwsh
+          run: |
+            # Replace duplicate // and the / at then end
+            $ModulePath = "${{ inputs.folder }}/${{ inputs.module }}" -replace "/+", "/" -replace "/+$", ""
+            $ModuleName = "${{ inputs.prefix }}${{ inputs.module }}" -replace "/+", "/" -replace "/+$", ""
+
+            $VersionJson = Join-Path $ModulePath 'version.json'
+            $Version = (Get-Content $VersionJson | ConvertFrom-Json).version
+            $AcrImage = "$ModuleName`:$Version"
+
+            "MODULE_VERSION=$Version" >> $env:GITHUB_ENV
+            "MODULE_NAME=$ModuleName" >> $env:GITHUB_ENV
+            "MODULE_PATH=$ModulePath" >> $env:GITHUB_ENV
+            "ACR_IMAGE=$AcrImage" >> $env:GITHUB_ENV
+
+        - name: Azure Login
+          uses: azure/login@v1
+          with:
+            creds: ${{ secrets.AZURE_CICDSPN }}
+            enable-AzPSSession: true 
+
+        # ////////////////////////////////////////////////////////////////////////////////////////
+        # Runs bicep tests and Test deployment
+        #
+
+        - name: Test Frame Work for ${{ inputs.module }}
+          if: ${{ inputs.run_bicep_test }}
+          uses: azure/powershell@v2
+          with:
+            azPSVersion: ${{ inputs.azps_version }}
+            inlineScript: |
+              az bicep install
+
+              $TestFiles = Get-ChildItem -Path "${{ env.MODULE_PATH }}" -Filter "*test.bicep" -Recurse -Depth 3
+              foreach($file in $TestFiles) {
+                bicep test $file.FullName
+              }
+
+        - name: WhatIf Deployment for ${{ inputs.module }}
+          uses: azure/powershell@v2
+          with:
+            azPSVersion: ${{ inputs.azps_version }}
+            inlineScript: |
+              . ./.scripts/deploy.ps1 -WhatIf -ModulePath "${{ env.MODULE_PATH }}"
+
+        - name: Test Deployment for ${{ inputs.module }}
+          uses: azure/powershell@v2
+          with:
+            azPSVersion: ${{ inputs.azps_version }}
+            inlineScript: |
+              . ./.scripts/deploy.ps1 -ModulePath "${{ env.MODULE_PATH }}"
+
+        - name: Cleanup Resources for ${{ inputs.module }}
+          uses: azure/powershell@v2
+          # This might fail when deleting, but we want to continue with the workflow
+          continue-on-error: true
+          with:
+            azPSVersion: ${{ inputs.azps_version }}
+            inlineScript: |
+              . ./.scripts/cleanup.ps1 -ModulePath "${{ env.MODULE_PATH }}"

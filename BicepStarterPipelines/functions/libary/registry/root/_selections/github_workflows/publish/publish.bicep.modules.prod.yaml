@@ -1,0 +1,105 @@
+    
+name: Detect and Publish Module Changes
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - modules/**
+
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'modules/**'
+      - '!modules/**/example/**'
+      - '!modules/**/README.md'
+
+          
+env:
+  FOLDER_PREFIX: "modules/"
+
+jobs:
+  detect_changes:
+    name: Detect changes
+    runs-on: 'ubuntu-latest'
+    outputs:
+      module_changes: ${{ steps.get_diff.outputs.module_changes }}
+      module_folder: ${{ steps.get_diff.outputs.module_folder }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Git Diff
+        id: get_diff
+        shell: pwsh
+        run: |
+            if("${{ github.event_name }}" -EQ "pull_request") {
+                git fetch --all
+                $gitChanges = git --no-pager diff --name-only origin/master...origin/dev
+            }
+
+            if("${{ github.event_name }}" -EQ "push") {
+                git fetch --all
+                git checkout master
+                git pull origin master
+                $gitChanges = git --no-pager show --name-only --first-parent origin/master
+            }
+
+            $gitChanges = $gitChanges -split "`n"
+
+            $changedVersions = $gitChanges 
+            | Where-Object {
+              $_ -match "^$env:FOLDER_PREFIX.*version\.json$"
+            }
+            | ForEach-Object {
+              $_.Replace($env:FOLDER_PREFIX, "").Replace('version.json', "")
+            }
+            
+            $changedVersions = $changedVersions | ConvertTo-Json -Compress -AsArray
+
+            # Outputs setzen
+            "module_changes=$changedVersions" >> $env:GITHUB_OUTPUT
+            "module_folder=$env:FOLDER_PREFIX" >> $env:GITHUB_OUTPUT
+
+            # Debug-Ausgabe
+            Write-Host "Module Folder: $env:FOLDER_PREFIX"
+            Write-Host "Version.json changes: $changedVersions"
+
+  verify_solution:
+    needs: 
+    - detect_changes
+    if: github.event_name == 'pull_request' && fromJson(needs.detect_changes.outputs.module_changes) != ''
+    strategy:
+      matrix:
+        module: ${{ fromJson(needs.detect_changes.outputs.module_changes) }}
+    
+    uses: ./.github/workflows/tmpl.bicep.module.verify.pwsh.yaml
+    name: ${{ matrix.module }}
+    secrets: inherit
+    with:
+      folder: ${{ needs.detect_changes.outputs.module_folder }}
+      module: ${{ matrix.module }}
+
+  publish_solution:
+    needs: 
+    - detect_changes
+    - verify_solution
+    if: ${{ !failure() && !cancelled() && fromJson(needs.detect_changes.outputs.module_changes) != '' }}
+    strategy:
+      matrix:
+        module: ${{ fromJson(needs.detect_changes.outputs.module_changes) }}
+    
+    uses: ./.github/workflows/tmpl.bicep.module.publish.pwsh.yaml
+    name: ${{ matrix.module }}
+    secrets: inherit
+    with:
+      folder: ${{ needs.detect_changes.outputs.module_folder }}
+      module: ${{ matrix.module }}
+      registry: ${{ vars.REGISTRY_NAME }}
+
+      prefix: ${{ github.event_name == 'push' && '' || 'unreleased/' }}     
+      immutable: ${{ github.event_name == 'push' }}

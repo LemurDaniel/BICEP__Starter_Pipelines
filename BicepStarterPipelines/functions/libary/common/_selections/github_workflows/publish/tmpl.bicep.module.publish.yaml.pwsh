@@ -1,0 +1,119 @@
+name: (Template) PWSH - Publish to Bicep Registry
+
+#
+# This workflow is a template for publishing a module.bicep to an Azure Container Registry.
+# Optionally lock the image to make it immutable.
+#
+
+on:
+  workflow_call:
+    inputs:
+      folder:
+        type: string
+        description: This is prefix to the module path and left out from the automatic image name
+        required: false
+        default: .
+      module:
+        type: string
+        description: Path to the Bicep-File to publish
+        required: true
+      registry:
+        type: string
+        description: Name of the Azure Registry to publish into
+        required: true
+      environment:
+        type: string
+        description: The github environment with the credentials
+        required: false
+
+      prefix:
+        type: string
+        description: A prefix before the image name
+        required: false
+        default: ''
+      immutable:
+        type: boolean
+        description: Define if the tagged-version should be read-only
+        required: false
+        default: false
+      
+
+      ###
+      azps_version:
+        type: string
+        description: The version of the Azure CLI to use
+        required: false
+        default: '12.1.0'
+      runs-on: 
+        type: string
+        description: The type of the runner
+        required: false
+        default: 'ubuntu-latest'
+
+jobs:
+  publish_module:
+    name: Publish ${{ inputs.module }}
+    environment: ${{ inputs.environment }}
+    runs-on: ${{ inputs.runs-on }}
+    env:
+      IMAGE_EXISTS: 'false'
+      MODULE_NAME: ''
+      MODULE_VERSION: ''
+      MODULE_PATH: ''
+      ACR_IMAGE: ''
+
+    steps:
+        - name: Checkout code
+          uses: actions/checkout@v2
+
+        - name: Set env
+          id: read_version
+          shell: pwsh
+          run: |
+            # Replace duplicate // and the / at then end
+            $ModulePath = "${{ inputs.folder }}/${{ inputs.module }}" -replace "/+", "/" -replace "/+$", ""
+            $ModuleName = "${{ inputs.prefix }}${{ inputs.module }}" -replace "/+", "/" -replace "/+$", ""
+
+            $VersionJson = Join-Path $ModulePath 'version.json'
+            $Version = (Get-Content $VersionJson | ConvertFrom-Json).version
+            $AcrImage = "$ModuleName`:$Version"
+
+            "MODULE_VERSION=$Version" >> $env:GITHUB_ENV
+            "MODULE_NAME=$ModuleName" >> $env:GITHUB_ENV
+            "MODULE_PATH=$ModulePath" >> $env:GITHUB_ENV
+            "ACR_IMAGE=$AcrImage" >> $env:GITHUB_ENV
+
+        - name: Azure Login
+          uses: azure/login@v1
+          with:
+            creds: ${{ secrets.AZURE_CICDSPN }}
+            enable-AzPSSession: true              
+   
+        # ////////////////////////////////////////////////////////////////////////////////////////
+        # Publish and optionally lock image
+        #
+        - name: Publish Bicep to ACR ${{ inputs.registry }}
+          uses: azure/powershell@v2
+          with:
+            azPSVersion: ${{ inputs.azps_version }}
+            inlineScript: |
+
+              az bicep install
+
+              az bicep publish `
+                --file "${{ env.MODULE_PATH }}/module.bicep" `
+                --target "br:${{ inputs.registry }}.azurecr.io/${{ env.ACR_IMAGE }}"
+
+        - name: Lock Image ${{ env.ACR_IMAGE }}
+          if: inputs.immutable == true
+          uses: azure/powershell@v2
+          with:
+            azPSVersion: ${{ inputs.azps_version }}
+            inlineScript: |
+
+              Update-AzContainerRegistryTag `
+                -RegistryName "${{ inputs.registry }}" `
+                -RepositoryName "${{ env.MODULE_NAME }}" `
+                -Name "${{ env.MODULE_VERSION }}" `
+                -WriteEnabled $false `
+                -DeleteEnabled $false
