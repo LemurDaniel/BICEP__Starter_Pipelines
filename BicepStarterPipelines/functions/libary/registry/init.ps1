@@ -65,11 +65,11 @@ $selectedScript = $deploymentScripts[$Script]
 
 $deploymentPipelines = [ordered]@{
   'Azure DevOps' = @{
-    source = "devops_pipelines/$selectedMethod"
+    source = "devops_pipelines"
     target = '.devops'
   }
   'Github'       = @{
-    source = "github_workflows/$selectedMethod"
+    source = "github_workflows"
     target = '.github/workflows'
   }
 }
@@ -81,7 +81,8 @@ if ([System.String]::IsNullOrEmpty($Pipeline)) {
 
 $selectedPipeline = $deploymentPipelines[$Pipeline]
 
-$targetPipelineFolder = [System.IO.DirectoryInfo]::new("$stagingDir/$($selectedPipeline.target)")
+# This is were all pipelines will be copied to
+$targetPipelineFolder = [System.IO.DirectoryInfo]::new("$StagingDir/$($selectedPipeline.target)")
 $targetPipelineFolder.Create()
 
 <#
@@ -89,8 +90,10 @@ $targetPipelineFolder.Create()
     #### Write to file
 #>
 
+# Pipeline files
+
 $pipelineTemplateFolder = Resolve-Path -Path "$templateFiles/$($selectedPipeline.source)"
-$pipelineTemplates = Get-ChildItem -Path $pipelineTemplateFolder -Recurse -Depth 3
+$pipelineTemplates = Get-ChildItem -Path $pipelineTemplateFolder -Recurse -Depth 5
 
 foreach ($tmpl in $pipelineTemplates) {
   if (
@@ -104,7 +107,8 @@ foreach ($tmpl in $pipelineTemplates) {
 
   $relativePath = $tmpl.FullName.Replace($pipelineTemplateFolder, "") 
   $relativePath = $relativePath -split ".yaml"
-  $relativePath = $relativePath[0] + ".yaml"
+  # Removes all meta identifiers after .yaml, like resource_group, deploy, etc.
+  $relativePath = $relativePath[0] + ".yaml" 
 
   $pipelineFilePath = "$targetPipelineFolder/$relativePath"
   $directory = [System.IO.FileInfo]::new($pipelineFilePath).Directory
@@ -115,12 +119,15 @@ foreach ($tmpl in $pipelineTemplates) {
   $null = $tmpl.CopyTo($pipelineFilePath)
 }
 
+
 # Delete all templates in the staging directory and only keep selected.
+# The selected ones were copied from %templateFiles to $pipelineFilePath at this point
 [System.IO.DirectoryInfo]::new($templateFiles).Delete($true)
 
+# Remove all non-pipeline files if -PipelineOnly is set.
 if ($PipelineOnly.IsPresent) {
-  $items = Get-ChildItem -Path $stagingDir
-  $items += Get-ChildItem -Path $stagingDir -Hidden
+  $items = Get-ChildItem -Path $StagingDir
+  $items += Get-ChildItem -Path $StagingDir -Hidden
   $items
   | Where-Object -Property Name -INE '.github'
   | Where-Object -Property Name -INE '.devops'
@@ -128,14 +135,18 @@ if ($PipelineOnly.IsPresent) {
 }
 
 
+Write-Host -ForegroundColor Magenta "`nPlease, Adjust the following in your templates:"
+
+
 if ($Pipeline -EQ 'Azure DevOps') {
   Write-Host -ForegroundColor Magenta "`n"
-  Write-Host -ForegroundColor Magenta "Please, Adjust the Service Connection in .devops/deploy.infrastructure.yaml"
+  Write-Host -ForegroundColor Magenta "Service Connection in .devops/deploy.infrastructure.yaml"
 }
 
 if ($Pipeline -EQ 'Github') {
   Write-Host -ForegroundColor Magenta "`n"
-  Write-Host -ForegroundColor Magenta "Provide a secret like AZURE_CICDSPN:"
+  Write-Host -ForegroundColor Magenta "Provide a secret named AZURE_CICDSPN:"
+  Write-Host -ForegroundColor Magenta "Set this Secret via GitHub Environments"
   Write-Host -ForegroundColor Magenta @"
   {
       "clientId": "00000000-0000-0000-0000-000000000000",

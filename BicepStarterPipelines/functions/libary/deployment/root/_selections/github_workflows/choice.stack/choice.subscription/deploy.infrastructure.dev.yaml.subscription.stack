@@ -1,60 +1,60 @@
     
-name: Deploy Infrastructure Prod
+name: Deploy Infrastructure Dev / Test
 
 on:
   workflow_dispatch:
     inputs:
       what_if_only:
+        description: Run a what-if analysis without making changes
         type: boolean
         default: true
 
       deny_settings_mode:
-        type: string
+        description: The deny settings mode for the deployment
+        type: choice
         default: denyDelete
         options:
           - none
           - denyDelete
           - denyWriteAndDelete
       action_on_unmanage:
-        type: string
+        description: The action to take on unmanaged resources
+        type: choice
         default: detachAll
         options:
           - deleteAll
           - detachAll
           - deleteResources
-
+  
   push:
     branches:
-      - master
+      - dev
     paths:
       - 'main.bicep'
-      - './params/main.prod.bicepparam'
+      - './params/main.dev.bicepparam'
 
   pull_request:
     branches:
-      - master
+      - dev
     paths:
       - 'main.bicep'
-      - './params/main.prod.bicepparam'
+      - './params/main.dev.bicepparam'
    
 jobs:
-  deploy_prod:
-    name: Deploy Infrastructure PROD
+  deploy_dev:
+    name: Deploy Infrastructure Dev
     uses: ./.github/workflows/tmpl.deploy.infrastructure.yaml
     secrets:
       AZURE_DEPLOYMENT_SPN: ${{ secrets.AZURE_CICDSPN }}
     with:
-      # NOTE:
-      # You can add an approval gate via the environment deployment protection rule for approvers
-      # environment: prod
-      scope: resource_group
-      resource_group: 'sample-prod'
-      
-      name: 'sample-prod'
+      scope: subscription
+      location: germanywestcentral
+
+      name: 'sample-dev'
       template_file: ./main.bicep
-      parameter_file: ./params/main.prod.bicepparam
+      parameter_file: ./params/main.dev.bicepparam
 
       action_on_unmanage: ${{ inputs.action_on_unmanage }}
       deny_settings_mode: ${{ inputs.deny_settings_mode }}
-      
+
       what_if_only: ${{ github.EVENT_NAME  == 'pull_request' || inputs.what_if_only == true }}

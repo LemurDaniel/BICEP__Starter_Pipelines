@@ -102,6 +102,39 @@ function Initialize-BicepTemplate {
 
         . $initPs1 @InitParameter -StagingDir $tempDir
 
+        # Folders with choice.<something> are removed afterwards.
+        # These folders help organize the templates better.
+        $choiceFolders = $null
+        $maxLoops = 1000
+        do {
+            $choiceFolders = Get-ChildItem -Path $tempDir -Recurse -Directory -Filter "choice.*"
+
+            # We can break early when no choice folders are found.
+            if ($choiceFolders.Count -EQ 0) {
+                break
+            }
+
+            # This will move all items in the choice folder to the parent folder
+            # We do only one choice folder per iteration, 
+            # because some choice folders are nested in others and moving will change the paths of some nested choice folders.
+            # Removing one layer at each iteration reduces the complexity of taking this into account
+            $folder = $choiceFolders | Select-Object -First 1
+            $items = Get-ChildItem -Path $folder.FullName
+            foreach ($item in $items) {
+                Move-Item -Path $item.FullName -Destination $folder.Parent.FullName
+            }
+
+            # The empty folder is removed
+            $items = Get-ChildItem -Path $folder.FullName
+            if ($items.Count -EQ 0) {
+                $null = $folder.Delete($true)
+            }
+            else {
+                Write-Warning "Something went wrong when copying items"
+            }
+
+        } while ($maxLoops-- -GT 0)
+
         <#
 
             This is the final copy operation from staging to the user directory

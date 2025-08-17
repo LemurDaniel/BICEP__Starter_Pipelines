@@ -5,18 +5,21 @@ on:
   workflow_dispatch:
     inputs:
       what_if_only:
+        description: Run a what-if analysis without making changes
         type: boolean
         default: true
 
       deny_settings_mode:
-        type: string
+        description: The deny settings mode for the deployment
+        type: choice
         default: denyDelete
         options:
           - none
           - denyDelete
           - denyWriteAndDelete
       action_on_unmanage:
-        type: string
+        description: The action to take on unmanaged resources
+        type: choice
         default: detachAll
         options:
           - deleteAll

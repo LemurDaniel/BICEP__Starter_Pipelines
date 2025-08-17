@@ -1,42 +1,40 @@
     
-name: Deploy Infrastructure Prod
+name: Deploy Infrastructure Dev / Test
 
 on:
   workflow_dispatch:
     inputs:
       what_if_only:
+        description: Run a what-if analysis without making changes
         type: boolean
         default: true
 
   push:
     branches:
-      - master
+      - dev
     paths:
       - 'main.bicep'
-      - './params/main.prod.bicepparam'
+      - './params/main.dev.bicepparam'
 
   pull_request:
     branches:
-      - master
+      - dev
     paths:
       - 'main.bicep'
-      - './params/main.prod.bicepparam'
+      - './params/main.dev.bicepparam'
    
 jobs:
-  deploy_prod:
-    name: Deploy Infrastructure PROD
+  deploy_dev:
+    name: Deploy Infrastructure Dev
     uses: ./.github/workflows/tmpl.deploy.infrastructure.yaml
     secrets:
       AZURE_DEPLOYMENT_SPN: ${{ secrets.AZURE_CICDSPN }}
     with:
-      # NOTE:
-      # You can add an approval gate via the environment deployment protection rule for approvers
-      # environment: prod
-      scope: subscription
-      location: germanywestcentral
-      
-      name: 'sample-prod'
+      scope: resource_group
+      resource_group: 'sample-dev'
+
+      name: 'sample-dev'
       template_file: ./main.bicep
-      parameter_file: ./params/main.prod.bicepparam
-      
+      parameter_file: ./params/main.dev.bicepparam
+
       what_if_only: ${{ github.EVENT_NAME  == 'pull_request' || inputs.what_if_only == true }}

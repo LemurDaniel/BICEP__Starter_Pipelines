@@ -5,6 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       what_if_only:
+        description: Run a what-if analysis without making changes
         type: boolean
         default: true
 
@@ -29,8 +30,8 @@ jobs:
     secrets:
       AZURE_DEPLOYMENT_SPN: ${{ secrets.AZURE_CICDSPN }}
     with:
-      scope: resource_group
-      resource_group: 'sample-dev'
+      scope: subscription
+      location: germanywestcentral
 
       name: 'sample-dev'
       template_file: ./main.bicep

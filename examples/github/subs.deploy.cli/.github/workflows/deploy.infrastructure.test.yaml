@@ -5,6 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       what_if_only:
+        description: Run a what-if analysis without making changes
         type: boolean
         default: true
 

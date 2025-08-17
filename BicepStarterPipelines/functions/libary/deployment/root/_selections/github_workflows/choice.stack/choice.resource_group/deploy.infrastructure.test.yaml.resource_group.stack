@@ -1,57 +1,63 @@
     
-name: Deploy Infrastructure Dev / Test
+name: Deploy Infrastructure PreProd
 
 on:
   workflow_dispatch:
     inputs:
       what_if_only:
+        description: Run a what-if analysis without making changes
         type: boolean
         default: true
 
       deny_settings_mode:
-        type: string
+        description: The deny settings mode for the deployment
+        type: choice
         default: denyDelete
         options:
           - none
           - denyDelete
           - denyWriteAndDelete
       action_on_unmanage:
-        type: string
+        description: The action to take on unmanaged resources
+        type: choice
         default: detachAll
         options:
           - deleteAll
           - detachAll
           - deleteResources
-  
+
   push:
     branches:
       - dev
     paths:
       - 'main.bicep'
-      - './params/main.dev.bicepparam'
+      - './params/main.test.bicep'
 
   pull_request:
     branches:
       - dev
     paths:
       - 'main.bicep'
-      - './params/main.dev.bicepparam'
+      - './params/main.test.bicep'
    
 jobs:
-  deploy:
-    name: Deploy Infrastructure Dev
+  deploy_test:
+    name: Deploy Infrastructure Test
     uses: ./.github/workflows/tmpl.deploy.infrastructure.yaml
     secrets:
       AZURE_DEPLOYMENT_SPN: ${{ secrets.AZURE_CICDSPN }}
     with:
+      # NOTE:
+      # You can add an approval gate via the environment deployment protection rule for approvers
+      # environment: test
       scope: resource_group
       resource_group: 'sample-test'
-
-      name: 'sample-dev'
+      
+      name: 'sample-test'
       template_file: ./main.bicep
-      parameter_file: ./params/main.dev.bicepparam
+      parameter_file: ../params/main.test.bicepparam
 
       action_on_unmanage: ${{ inputs.action_on_unmanage }}
       deny_settings_mode: ${{ inputs.deny_settings_mode }}
-
+      
       what_if_only: ${{ github.EVENT_NAME  == 'pull_request' || inputs.what_if_only == true }}

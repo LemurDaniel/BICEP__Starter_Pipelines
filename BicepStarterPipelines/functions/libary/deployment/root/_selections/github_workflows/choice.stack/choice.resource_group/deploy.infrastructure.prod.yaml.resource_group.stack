@@ -1,22 +1,25 @@
     
-name: Deploy Infrastructure PreProd
+name: Deploy Infrastructure Prod
 
 on:
   workflow_dispatch:
     inputs:
       what_if_only:
+        description: Run a what-if analysis without making changes
         type: boolean
         default: true
 
       deny_settings_mode:
-        type: string
+        description: The deny settings mode for the deployment
+        type: choice
         default: denyDelete
         options:
           - none
           - denyDelete
           - denyWriteAndDelete
       action_on_unmanage:
-        type: string
+        description: The action to take on unmanaged resources
+        type: choice
         default: detachAll
         options:
           - deleteAll
@@ -25,34 +28,34 @@ on:
 
   push:
     branches:
-      - dev
+      - master
     paths:
       - 'main.bicep'
-      - './params/main.test.bicep'
+      - './params/main.prod.bicepparam'
 
   pull_request:
     branches:
-      - dev
+      - master
     paths:
       - 'main.bicep'
-      - './params/main.test.bicep'
+      - './params/main.prod.bicepparam'
    
 jobs:
-  deploy_test:
-    name: Deploy Infrastructure Test
+  deploy_prod:
+    name: Deploy Infrastructure PROD
     uses: ./.github/workflows/tmpl.deploy.infrastructure.yaml
     secrets:
       AZURE_DEPLOYMENT_SPN: ${{ secrets.AZURE_CICDSPN }}
     with:
       # NOTE:
       # You can add an approval gate via the environment deployment protection rule for approvers
-      # environment: test
+      # environment: prod
       scope: resource_group
-      resource_group: 'sample-test'
+      resource_group: 'sample-prod'
       
-      name: 'sample-test'
+      name: 'sample-prod'
       template_file: ./main.bicep
-      parameter_file: ../params/main.test.bicepparam
+      parameter_file: ./params/main.prod.bicepparam
 
       action_on_unmanage: ${{ inputs.action_on_unmanage }}
       deny_settings_mode: ${{ inputs.deny_settings_mode }}
