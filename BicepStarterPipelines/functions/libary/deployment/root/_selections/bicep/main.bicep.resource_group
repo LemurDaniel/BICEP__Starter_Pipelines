@@ -9,7 +9,7 @@ targetScope = 'resourceGroup'
 import {
   demoExportedVariable
   demoTypeDefinition
-} from './exports/demo.bicep'
+} from './customModules/utility/demo.bicep'
 
 /*
 
@@ -26,7 +26,7 @@ param config demoTypeDefinition
   #### Resources and Modules
 
 */
-module demoModule 'core/demo.bicep' = {
+module demoModule 'infraCore/demo.bicep' = {
   name: '${subDeploymentName}.module.demo'
   params: {
     config: config

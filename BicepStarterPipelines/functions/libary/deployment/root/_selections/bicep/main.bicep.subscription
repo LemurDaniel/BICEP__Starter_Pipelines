@@ -9,7 +9,7 @@ targetScope = 'subscription'
 import {
   demoExportedVariable
   demoTypeDefinition
-} from './exports/demo.bicep'
+} from './customModules/utility/demo.bicep'
 
 /*
 
@@ -32,7 +32,7 @@ resource resGroup 'Microsoft.Resources/resourceGroups@2024-11-01' = {
   name: 'rg-bicep-demo-001'
 }
 
-module demoModule 'core/demo.bicep' = {
+module demoModule 'infraCore/demo.bicep' = {
   scope: resGroup
   name: '${subDeploymentName}.module.demo'
   params: {
