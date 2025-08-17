@@ -56,11 +56,9 @@ jobs:
     environment: ${{ inputs.environment }}
     runs-on: ${{ inputs.runs-on }}
     env:
-      IMAGE_EXISTS: 'false'
-      MODULE_NAME: ''
-      MODULE_VERSION: ''
       MODULE_PATH: ''
-      ACR_IMAGE: ''
+      ACR_IMAGE_NAME: ''
+      ACR_IMAGE_TAG: ''
 
     steps:
         - name: Checkout code
@@ -71,17 +69,24 @@ jobs:
           shell: pwsh
           run: |
             # Replace duplicate // and the / at then end
+            # This is the local path to the main.bicep
             $ModulePath = "${{ inputs.folder }}/${{ inputs.module }}" -replace "/+", "/" -replace "/+$", ""
-            $ModuleName = "${{ inputs.prefix }}${{ inputs.module }}" -replace "/+", "/" -replace "/+$", ""
+
+            # This is the full path in the registry
+            $acrImageName = "${{ inputs.prefix }}${{ inputs.module }}" -replace "/+", "/" -replace "/+$", ""
 
             $VersionJson = Join-Path $ModulePath 'version.json'
-            $Version = (Get-Content $VersionJson | ConvertFrom-Json).version
-            $AcrImage = "$ModuleName`:$Version"
+            $VersionJson = Get-Content $VersionJson | ConvertFrom-Json
 
-            "MODULE_VERSION=$Version" >> $env:GITHUB_ENV
-            "MODULE_NAME=$ModuleName" >> $env:GITHUB_ENV
+            $acrVersion = $VersionJson.version
+
+            if(-NOT [System.String]::IsNullOrEmpty($VersionJson.imageName)) {
+              $acrImageName = $VersionJson.imageName
+            }
+
+            "ACR_IMAGE_TAG=$acrVersion" >> $env:GITHUB_ENV
+            "ACR_IMAGE_NAME=$acrImageName" >> $env:GITHUB_ENV
             "MODULE_PATH=$ModulePath" >> $env:GITHUB_ENV
-            "ACR_IMAGE=$AcrImage" >> $env:GITHUB_ENV
 
         - name: Azure Login
           uses: azure/login@v1
@@ -102,9 +107,9 @@ jobs:
 
               az bicep publish `
                 --file "${{ env.MODULE_PATH }}/module.bicep" `
-                --target "br:${{ inputs.registry }}.azurecr.io/${{ env.ACR_IMAGE }}"
+                --target "br:${{ inputs.registry }}.azurecr.io/${{ env.ACR_IMAGE_NAME }}:${{ env.ACR_IMAGE_TAG }}"
 
-        - name: Lock Image ${{ env.ACR_IMAGE }}
+        - name: Lock Image ${{ env.ACR_IMAGE_NAME }}:${{ env.ACR_IMAGE_TAG }}
           if: inputs.immutable == true
           uses: azure/powershell@v2
           with:
@@ -113,7 +118,7 @@ jobs:
 
               Update-AzContainerRegistryTag `
                 -RegistryName "${{ inputs.registry }}" `
-                -RepositoryName "${{ env.MODULE_NAME }}" `
-                -Name "${{ env.MODULE_VERSION }}" `
+                -RepositoryName "${{ env.ACR_IMAGE_NAME }}" `
+                -Name "${{ env.ACR_IMAGE_TAG }}" `
                 -WriteEnabled $false `
                 -DeleteEnabled $false

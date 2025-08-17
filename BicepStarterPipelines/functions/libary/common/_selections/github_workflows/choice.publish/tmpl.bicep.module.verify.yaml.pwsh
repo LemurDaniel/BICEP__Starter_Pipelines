@@ -56,17 +56,10 @@ jobs:
           shell: pwsh
           run: |
             # Replace duplicate // and the / at then end
+            # This is the local path to the main.bicep
             $ModulePath = "${{ inputs.folder }}/${{ inputs.module }}" -replace "/+", "/" -replace "/+$", ""
-            $ModuleName = "${{ inputs.prefix }}${{ inputs.module }}" -replace "/+", "/" -replace "/+$", ""
 
-            $VersionJson = Join-Path $ModulePath 'version.json'
-            $Version = (Get-Content $VersionJson | ConvertFrom-Json).version
-            $AcrImage = "$ModuleName`:$Version"
-
-            "MODULE_VERSION=$Version" >> $env:GITHUB_ENV
-            "MODULE_NAME=$ModuleName" >> $env:GITHUB_ENV
             "MODULE_PATH=$ModulePath" >> $env:GITHUB_ENV
-            "ACR_IMAGE=$AcrImage" >> $env:GITHUB_ENV
 
         - name: Azure Login
           uses: azure/login@v1
