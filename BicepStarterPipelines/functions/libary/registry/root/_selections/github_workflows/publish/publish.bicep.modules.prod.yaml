@@ -53,7 +53,7 @@ jobs:
 
             $changedVersions = $gitChanges 
             | Where-Object {
-              $_ -match "^$env:FOLDER_PREFIX.*version\.json$"
+              $_ -LIKE "*/version.json"
             }
             | ForEach-Object {
               $_.Replace($env:FOLDER_PREFIX, "").Replace('version.json', "")
