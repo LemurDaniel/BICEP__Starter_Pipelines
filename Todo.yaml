@@ -2,6 +2,7 @@
 - fix when checking out multiple Repos:
   - $workingDir = '$(Build.SourcesDirectory)/$(Build.Repository.Name)'
 - add multi repo checkout:
-            - ${{ each subModule in parameters.checkoutSubModules }}:
+          - checkout: self
+          - ${{ each subModule in parameters.checkoutSubModules }}:
               - checkout: ${{ subModule.alias }}
-                path: ${{ subModule.path }}
+                path: s/$(Build.Repository.Name)/${{ subModule.path }}
