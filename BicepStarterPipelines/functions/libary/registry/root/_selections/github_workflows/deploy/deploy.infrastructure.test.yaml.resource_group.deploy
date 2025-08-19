@@ -32,7 +32,7 @@ jobs:
       scope: resource_group
       resource_group: 'sample-test'
       
-      name: 'sample-prod'
+      deployment_name: 'sample-prod'
       template_file: ./infrastructure/registry.bicep
       parameter_file: ./infrastructure/params/main.test.bicepparam
       

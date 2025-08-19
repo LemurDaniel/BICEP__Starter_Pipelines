@@ -12,7 +12,7 @@ name: (Template) Bicep Deployment Stack - Resource Group - PWSH
 #  secrets:
 #    AZURE_DEPLOYMENT_SPN: ${{ secrets.AZURE_CICDSPN }}
 #  with:
-#    name: 'sample-${{ inputs.module }}'
+#    deployment_name: 'sample-${{ inputs.module }}'
 #    resource_group: 'sample-${{ inputs.module }}'
 #    template_file: ${{ inputs.module }}/example/module.bicep
 #    parameter_file: ${{ inputs.module }}/example/module.bicepparam
@@ -34,7 +34,7 @@ on:
         required: false
         default: "12.1.0"
 
-      name:
+      deployment_name:
         type: string
         description: The name of the deployment
         required: true
@@ -147,7 +147,7 @@ jobs:
             }
 
             $Deployment = @{
-              Name                    = "${{ inputs.name }}"
+              Name                    = "${{ inputs.deployment_name }}"
               TemplateFile            = "${{ inputs.template_file }}"
               TemplateParameterFile   = "${{ inputs.parameter_file }}"
               WhatIf                  = $true
@@ -223,7 +223,7 @@ jobs:
             }
 
             $Deployment = @{
-              Name                  = "${{ inputs.name }}"
+              Name                  = "${{ inputs.deployment_name }}"
               TemplateFile          = "${{ inputs.template_file }}"
               TemplateParameterFile = "${{ inputs.parameter_file }}"
               DenySettingsMode      = "${{ inputs.deny_settings_mode }}"

@@ -33,7 +33,7 @@ jobs:
       scope: resource_group
       resource_group: 'sample-dev'
 
-      name: 'sample-dev'
+      deployment_name: 'sample-dev'
       template_file: ./main.bicep
       parameter_file: ./params/main.dev.bicepparam
 

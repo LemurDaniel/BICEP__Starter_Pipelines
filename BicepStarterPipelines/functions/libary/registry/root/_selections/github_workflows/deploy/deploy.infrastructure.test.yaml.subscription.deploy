@@ -33,7 +33,7 @@ jobs:
       scope: subscription
       location: germanywestcentral
       
-      name: 'sample-test'
+      deployment_name: 'sample-test'
       template_file: ./infrastructure/registry.bicep
       parameter_file: ./infrastructure/params/main.test.bicepparam
       

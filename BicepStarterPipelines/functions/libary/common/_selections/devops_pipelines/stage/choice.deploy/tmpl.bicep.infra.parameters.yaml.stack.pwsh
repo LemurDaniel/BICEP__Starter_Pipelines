@@ -11,7 +11,7 @@ parameters:
     default: ''
 
   # General deployment parameter
-  - name: deployment
+  - name: deploymentName
     type: string
   - name: templateFile
     type: string
@@ -119,7 +119,7 @@ stages:
                         }
 
                         $Deployment = @{
-                            Name                    = '${{ parameters.deployment }}'
+                            Name                    = '${{ parameters.deploymentName }}'
                             TemplateFile            = '${{ parameters.templateFile }}'
                             TemplateParameterFile   = '${{ parameters.parametersFile }}'
                             WhatIf                  = $true
@@ -198,7 +198,7 @@ stages:
                         }
 
                         $Deployment = @{
-                            Name                    = '${{ parameters.deployment }}'
+                            Name                    = '${{ parameters.deploymentName }}'
                             TemplateFile            = '${{ parameters.templateFile }}'
                             TemplateParameterFile   = '${{ parameters.parametersFile }}'
                             DenySettingsMode        = '${{ parameters.denySettingsMode }}'

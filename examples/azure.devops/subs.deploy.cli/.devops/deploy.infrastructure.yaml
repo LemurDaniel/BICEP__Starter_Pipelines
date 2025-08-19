@@ -65,7 +65,7 @@ stages:
 
       # env parameters
       scope: ${{ variables.DEPLOYMENT_SCOPE }}
-      deployment: ${{ variables.DEPLOYMENT_NAME }} 
+      deploymentName: ${{ variables.DEPLOYMENT_NAME }} 
       templateFile: ${{ variables.DEPLOYMENT_FILE }}
       parametersFile: ./params/main.dev.bicepparam
 
@@ -94,7 +94,7 @@ stages:
 
       # env parameters
       scope: ${{ variables.DEPLOYMENT_SCOPE }}
-      deployment: ${{ variables.DEPLOYMENT_NAME }} 
+      deploymentName: ${{ variables.DEPLOYMENT_NAME }} 
       templateFile: ${{ variables.DEPLOYMENT_FILE }}
       parametersFile: ./params/main.test.bicepparam
 
@@ -123,7 +123,7 @@ stages:
 
       # env parameters
       scope: ${{ variables.DEPLOYMENT_SCOPE }}
-      deployment: ${{ variables.DEPLOYMENT_NAME }} 
+      deploymentName: ${{ variables.DEPLOYMENT_NAME }} 
       templateFile: ${{ variables.DEPLOYMENT_FILE }}
       parametersFile: ./params/main.prod.bicepparam
 

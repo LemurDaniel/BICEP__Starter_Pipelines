@@ -37,7 +37,7 @@ jobs:
       scope: resource_group
       resource_group: 'sample-prod'
       
-      name: 'sample-prod'
+      deployment_name: 'sample-prod'
       template_file: ./main.bicep
       parameter_file: ./params/main.prod.bicepparam
       

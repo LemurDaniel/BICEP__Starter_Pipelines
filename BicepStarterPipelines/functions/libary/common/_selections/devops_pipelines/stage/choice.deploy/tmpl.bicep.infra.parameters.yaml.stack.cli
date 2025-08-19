@@ -11,7 +11,7 @@ parameters:
     default: ''
 
   # General deployment parameter
-  - name: deployment
+  - name: deploymentName
     type: string
   - name: templateFile
     type: string
@@ -118,7 +118,7 @@ stages:
                       fi
 
                       DeploymentArgs=(
-                        --name "${{ parameters.stage }}.${{ parameters.deployment }}"
+                        --name "${{ parameters.stage }}.${{ parameters.deploymentName }}"
                         --template-file "${{ parameters.templateFile }}"
                         --parameters @"${{ parameters.parametersFile }}"
                         --no-prompt
@@ -202,7 +202,7 @@ stages:
                       fi
 
                       DeploymentArgs=(
-                        --name "${{ parameters.stage }}.${{ parameters.deployment }}"
+                        --name "${{ parameters.stage }}.${{ parameters.deploymentName }}"
                         --template-file "${{ parameters.templateFile }}"
                         --parameters @"${{ parameters.parametersFile }}"
                         --deny-settings-mode "${{ parameters.denySettingsMode }}"

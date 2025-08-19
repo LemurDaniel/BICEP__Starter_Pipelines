@@ -53,7 +53,7 @@ jobs:
       scope: resource_group
       resource_group: 'sample-test'
       
-      name: 'sample-test'
+      deployment_name: 'sample-test'
       template_file: ./main.bicep
       parameter_file: ../params/main.test.bicepparam
 

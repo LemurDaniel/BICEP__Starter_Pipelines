@@ -20,11 +20,11 @@ trigger:
       - ./infrastructure/params/registry.*.bicep
 
 variables:
-  - name: DEPLOYMENT_FILE
+  - name: deploymentName_FILE
     value: ./infrastructure/registry.bicep
-  - name: DEPLOYMENT_NAME
+  - name: deploymentName_NAME
     value: bicep.registry
-  - name: DEPLOYMENT_SCOPE
+  - name: deploymentName_SCOPE
     value: subscription # subscription | resourceGroup
 
 parameters:
@@ -85,7 +85,7 @@ stages:
 
       # env parameters
       scope: ${{ variables.DEPLOYMENT_SCOPE }}
-      deployment: ${{ variables.DEPLOYMENT_NAME }} 
+      deploymentName: ${{ variables.DEPLOYMENT_NAME }} 
       templateFile: ${{ variables.DEPLOYMENT_FILE }}
       parametersFile: ./params/main.test.bicepparam
 
@@ -116,7 +116,7 @@ stages:
 
       # env parameters
       scope: ${{ variables.DEPLOYMENT_SCOPE }}
-      deployment: ${{ variables.DEPLOYMENT_NAME }} 
+      deploymentName: ${{ variables.DEPLOYMENT_NAME }} 
       templateFile: ${{ variables.DEPLOYMENT_FILE }}
       parametersFile: ./infrastructure/params/main.prod.bicepparam
 

@@ -53,12 +53,17 @@ $deploymentScripts = [ordered]@{
   'Azure CLI'  = 'cli'
 }
 
-if ([System.String]::IsNullOrEmpty($Script)) {
-  Write-Host -ForegroundColor Magenta "`nSelect deployment Script: "
-  $Script = Select-UtilsUserOption -Options $deploymentScripts.Keys
-}
+# if ([System.String]::IsNullOrEmpty($Script)) {
+#   Write-Host -ForegroundColor Magenta "`nSelect deployment Script: "
+#   $Script = Select-UtilsUserOption -Options $deploymentScripts.Keys
+# }
 
 $selectedScript = $deploymentScripts[$Script]
+
+if($selectedScript -EQ 'cli') {
+  Write-Warning "The Azure CLI pipeline in this module are not maintained anymore, due to too much overhead."
+  Write-Warning "Please. consider using PowerShell Pipelines instead."
+}
 
 <#
     #############################

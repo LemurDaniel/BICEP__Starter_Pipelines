@@ -12,7 +12,7 @@ name: (Template) Bicep Deployment Stack - Resource Group - PWSH
 #  secrets:
 #    AZURE_DEPLOYMENT_SPN: ${{ secrets.AZURE_CICDSPN }}
 #  with:
-#    name: 'sample-${{ inputs.module }}'
+#    deployment_name: 'sample-${{ inputs.module }}'
 #    resource_group: 'sample-${{ inputs.module }}'
 #    template_file: ${{ inputs.module }}/example/module.bicep
 #    parameter_file: ${{ inputs.module }}/example/module.bicepparam
@@ -34,7 +34,7 @@ on:
         required: false
         default: "latest"
 
-      name:
+      deployment_name:
         type: string
         description: The name of the deployment
         required: true
@@ -148,7 +148,7 @@ jobs:
             fi
 
             DeploymentArgs=(
-              --name "${{ inputs.name }}"
+              --name "${{ inputs.deployment_name }}"
               --template-file "${{ inputs.template_file }}"
               --parameters "${{ inputs.parameter_file }}"
               --no-prompt
@@ -228,7 +228,7 @@ jobs:
             fi
 
             DeploymentArgs=(
-              --name "${{ inputs.name }}"
+              --name "${{ inputs.deployment_name }}"
               --template-file "${{ inputs.template_file }}"
               --parameters "${{ inputs.parameter_file }}"
               --deny-settings-mode "${{ inputs.deny_settings_mode }}"
