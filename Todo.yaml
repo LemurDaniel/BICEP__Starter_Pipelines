@@ -1,1 +1,7 @@
 - change name and deployment in pipelines to deploymentName to make it clearer
+- fix when checking out multiple Repos:
+  - $workingDir = '$(Build.SourcesDirectory)/$(Build.Repository.Name)'
+- add multi repo checkout:
+            - ${{ each subModule in parameters.checkoutSubModules }}:
+              - checkout: ${{ subModule.alias }}
+                path: ${{ subModule.path }}
