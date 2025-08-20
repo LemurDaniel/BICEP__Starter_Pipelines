@@ -9,6 +9,7 @@
 # Add step to remove and add a temporary firewall rule when deploying via Bicep
 # So bicep registries can easily be accessed during deployment
 
+# Should also be implement on publish pipelines for any private container registry
 
                 #////////////////////////////////////////////////////////////
                 #////// Repeatable Job in AzureDevOps and Github
