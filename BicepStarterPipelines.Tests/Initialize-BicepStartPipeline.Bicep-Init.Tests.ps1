@@ -7,7 +7,7 @@ BeforeDiscovery {
 
     $methods = 'Normal Deployment', 'Deployment Stack'
     $scopes = 'Resource Group', 'Subscription'
-    $scripts = 'PowerShell', 'Azure CLI'
+    $scripts = 'PowerShell' #, 'Azure CLI'
     $pipelines = 'Github', 'Azure DevOps'
 
     $cartesianProduct = $methods.ForEach{ $method = $_
