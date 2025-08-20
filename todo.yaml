@@ -1,0 +1,61 @@
+
+  - name: setTemporaryIpRules
+    type: string
+    default: ''
+
+
+    # - <your-registry-name>
+
+# Add step to remove and add a temporary firewall rule when deploying via Bicep
+# So bicep registries can easily be accessed during deployment
+
+
+                #////////////////////////////////////////////////////////////
+                #////// Repeatable Job in AzureDevOps and Github
+                - task: AzurePowerShell@5
+                  condition: ne(${{ parameters.setTemporaryIpRules }}, '')
+                  displayName: Bicep Test ${{ parameters.stage }}
+                  inputs:
+                    azureSubscription: ${{ parameters.serviceConnection }}
+                    azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
+                    ScriptType: inlineScript
+                    pwsh: true
+                    inline: |
+                      
+                      $registries = "${{ parameters.webAppName }}"
+                      | ForEach-Object {
+                        $name = $_ -split '/' | Select-Object -Last 1
+
+                        foreach($context in $contexts) {
+                          Write-Host "Searching for Registry: $name in context: $($context.Subscription.Id)"
+                          $registry = Get-AzContainerRegistry -Name $name -AzContext $context
+                          if($null -NE $registry) {
+                            $registry | Add-Member NoteProperty AzContext $context -Force
+                            return $registry
+                          }
+                        }
+
+                        Write-Error "Container Registry not found: $name"
+                      }
+
+                      foreach($registry in $registries) {
+                        Write-Output "Removing access restriction from Container Registry: $($registry.Name)"
+                        Remove-AzContainerRegistryAccessPolicy -ErrorAction Continue -AzContext $registry.AzContext `
+                          -ResourceGroupName $registry.ResourceGroup `
+                          -RegistryName $registry.Name `
+                          -Name "AllowAzureDevOpsAgent"
+                      }
+
+                      # Check if we should add the access restriction
+                      # If AllowAgentIp is true, we skip adding the access restriction
+                      if(-NOT $allowAgentIp) {
+                        return
+                      }
+
+                      foreach($registry in $registries) {
+                        Write-Output "Adding access restriction to Container Registry: $($registry.Name)"
+                        Add-AzContainerRegistryAccessPolicy -ErrorAction Continue -AzContext $registry.AzContext `
+                          -ResourceGroupName $registry.ResourceGroup `
+                          -RegistryName $registry.Name `
+                          -Name "AllowAzureDevOpsAgent"
+                      }
