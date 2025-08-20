@@ -77,11 +77,16 @@ on:
         description: Perform what if deployment
         required: false
         default: false
+      what_if_result_format
+        type: string
+        description: The result format to be used on whatif operations
+        required: false
+        default: 'FullResourcePayloads' # ResourceIdOnly | FullResourcePayloads
       what_if_exclude_change:
         type: string
         description: Exclude change types from What-If results
         required: false
-        default: 'NoChange' # Ignore | NoChange | Deploy | Create | Modify | Delete
+        default: '' # Ignore | NoChange | Deploy | Create | Modify | Delete
       what_if_artifact_name:
         type: string
         description: Name of what_if artifact

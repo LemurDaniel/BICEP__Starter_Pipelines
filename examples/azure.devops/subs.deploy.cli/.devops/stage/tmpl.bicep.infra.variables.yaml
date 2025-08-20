@@ -4,6 +4,9 @@ parameters:
     default: true
   - name: stage
     type: string
+  - name: displayName
+    type: string
+    default: ''
   - name: serviceConnection
     type: string
   - name: variableGroup
@@ -14,9 +17,12 @@ parameters:
   - name: WhatIfOnly
     type: string
     default: true
+  - name: WhatIfResultFormat
+    type: string
+    default: 'FullResourcePayloads' # ResourceIdOnly | FullResourcePayloads
   - name: WhatIfExcludeChange
     type: string
-    default: 'NoChange' # Ignore | NoChange | Deploy | Create | Modify | Delete
+    default: '' # Ignore | NoChange | Deploy | Create | Modify | Delete
 
   # others
   - name: showTree
@@ -37,13 +43,16 @@ stages:
       #////////////////////////////////////////////////////////////
       #////// WhatIf
       - deployment: what_if_${{ parameters.stage }}
-        displayName: WhatIf ${{ parameters.stage }}
+        displayName: WhatIf Bicep ${{ parameters.stage }}
         environment: ${{ parameters.stage }}
         strategy:
           runOnce:
             deploy:
               steps:
                 - checkout: self
+                - ${{ each subModule in parameters.checkoutSubModules }}:
+                    - checkout: ${{ subModule.alias }}
+                      path: s/$(Build.Repository.Name)/${{ subModule.path }}
                 #////////////////////////////////////////////////////////////
                 #////// Tree Command
                 - script: |
@@ -157,6 +166,9 @@ stages:
             deploy:
               steps:
                 - checkout: self
+                - ${{ each subModule in parameters.checkoutSubModules }}:
+                    - checkout: ${{ subModule.alias }}
+                      path: s/$(Build.Repository.Name)/${{ subModule.path }}
                 - task: AzureCLI@2
                   displayName: Deploy to ${{ parameters.stage }}
                   inputs:

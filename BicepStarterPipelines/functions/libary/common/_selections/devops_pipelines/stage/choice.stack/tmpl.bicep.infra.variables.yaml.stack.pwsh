@@ -4,6 +4,9 @@ parameters:
     default: true
   - name: stage
     type: string
+  - name: displayName
+    type: string
+    default: ''
   - name: serviceConnection
     type: string
   - name: variableGroup
@@ -22,9 +25,12 @@ parameters:
   - name: WhatIfOnly
     type: string
     default: true
+  - name: WhatIfResultFormat
+    type: string
+    default: 'FullResourcePayloads' # ResourceIdOnly | FullResourcePayloads
   - name: WhatIfExcludeChange
     type: string
-    default: 'NoChange' # Ignore | NoChange | Deploy | Create | Modify | Delete
+    default: '' # Ignore | NoChange | Deploy | Create | Modify | Delete
 
   # others
   - name: showTree
@@ -48,13 +54,16 @@ stages:
       #////////////////////////////////////////////////////////////
       #////// WhatIf
       - deployment: what_if_${{ parameters.stage }}
-        displayName: WhatIf ${{ parameters.stage }}
+        displayName: WhatIf Bicep ${{ parameters.stage }}
         environment: ${{ parameters.stage }}
         strategy:
           runOnce:
             deploy:
               steps:
                 - checkout: self
+                - ${{ each subModule in parameters.checkoutSubModules }}:
+                    - checkout: ${{ subModule.alias }}
+                      path: s/$(Build.Repository.Name)/${{ subModule.path }}
                 #////////////////////////////////////////////////////////////
                 #////// Tree Command
                 - script: |
@@ -83,7 +92,7 @@ stages:
                 #////////////////////////////////////////////////////////////
                 #////// WhatIf
                 - task: AzurePowerShell@5
-                  displayName: WhatIf ${{ parameters.stage }}
+                  displayName: WhatIf Bicep ${{ parameters.stage }}
                   inputs:
                     azureSubscription: ${{ parameters.serviceConnection }}
                     azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
@@ -100,7 +109,7 @@ stages:
                           TemplateFile            = '$(TEMPLATE_FILE)'
                           TemplateParameterFile   = '$(PARAMETERS_FILE)'
                           WhatIf                  = $true
-                          WhatIfResultFormat      = 'FullResourcePayloads'
+                          WhatIfResultFormat      = '${{ parameters.WhatIfResultFormat }}'
                       }
 
                       if(-NOT [System.String]::IsNullOrEmpty('${{ parameters.WhatIfExcludeChange }}')) {
@@ -154,15 +163,18 @@ stages:
       - deployment: deployment_${{ parameters.stage }}
         condition: and(succeeded(), eq(${{ parameters.WhatIfOnly }}, false))
         dependsOn: approve_${{ parameters.stage }}
-        displayName: Deploy ${{ parameters.stage }}
+        displayName: Deploy Bicep ${{ parameters.stage }}
         environment: ${{ parameters.stage }}
         strategy:
           runOnce:
             deploy:
               steps:
                 - checkout: self
+                - ${{ each subModule in parameters.checkoutSubModules }}:
+                    - checkout: ${{ subModule.alias }}
+                      path: s/$(Build.Repository.Name)/${{ subModule.path }}
                 - task: AzurePowerShell@5
-                  displayName: WhatIf ${{ parameters.stage }}
+                  displayName: WhatIf Bicep ${{ parameters.stage }}
                   inputs:
                     azureSubscription: ${{ parameters.serviceConnection }}
                     azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}

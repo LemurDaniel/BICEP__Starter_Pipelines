@@ -4,6 +4,9 @@ parameters:
     default: true
   - name: stage
     type: string
+  - name: displayName
+    type: string
+    default: ''
   - name: serviceConnection
     type: string
   - name: variableGroup
@@ -11,20 +14,37 @@ parameters:
     default: ''
 
   # General deployment parameter
-    
-  - name: denySettingsMode
+  - name: deploymentName
     type: string
-    default: denyDelete
-  - name: actionOnUnmanage
+  - name: templateFile
     type: string
-    default: DetachAll
-    
+  - name: parametersFile
+    type: string
   - name: WhatIfOnly
     type: string
     default: true
+  - name: WhatIfResultFormat
+    type: string
+    default: 'FullResourcePayloads' # ResourceIdOnly | FullResourcePayloads
   - name: WhatIfExcludeChange
     type: string
-    default: 'NoChange' # Ignore | NoChange | Deploy | Create | Modify | Delete
+    default: "NoChange" # Ignore | NoChange | Deploy | Create | Modify | Delete
+
+  # deployment scope
+  - name: scope
+    type: string
+    # subscription | resourceGroup
+
+  # deployment specific parameters
+  - name: subscriptionId
+    type: string
+    default: ""
+  - name: location
+    type: string
+    default: ""
+  - name: resourceGroup
+    type: string
+    default: ""
 
   # others
   - name: showTree
@@ -45,13 +65,16 @@ stages:
       #////////////////////////////////////////////////////////////
       #////// WhatIf
       - deployment: what_if_${{ parameters.stage }}
-        displayName: WhatIf ${{ parameters.stage }}
+        displayName: WhatIf Bicep ${{ parameters.stage }}
         environment: ${{ parameters.stage }}
         strategy:
           runOnce:
             deploy:
               steps:
                 - checkout: self
+                - ${{ each subModule in parameters.checkoutSubModules }}:
+                    - checkout: ${{ subModule.alias }}
+                      path: s/$(Build.Repository.Name)/${{ subModule.path }}
                 #////////////////////////////////////////////////////////////
                 #////// Tree Command
                 - script: |
@@ -90,15 +113,15 @@ stages:
                     scriptType: bash
                     scriptLocation: inlineScript
                     inlineScript: |
-                      if [ -n "$(SUBSCRIPTION_ID)" ]; then
-                        echo "Subscription: $(SUBSCRIPTION_ID)"
-                        az account set --subscription "$(SUBSCRIPTION_ID)"
+                      if [ -n "${{ parameters.subscriptionId }}" ]; then
+                        echo "Subscription: ${{ parameters.subscriptionId }}"
+                        az account set --subscription "${{ parameters.subscriptionId }}"
                       fi
 
                       DeploymentArgs=(
-                        --name "${{ parameters.stage }}.$(DEPLOYMENT_NAME)"
-                        --template-file "$(TEMPLATE_FILE)"
-                        --parameters "$(PARAMETERS_FILE)"
+                        --name "${{ parameters.stage }}.${{ parameters.deploymentName }}"
+                        --template-file "${{ parameters.templateFile }}"
+                        --parameters "${{ parameters.parametersFile }}"
                         --no-prompt
                         --what-if
                         --what-if-result-format FullResourcePayloads
@@ -108,26 +131,26 @@ stages:
                         DeploymentArgs+=(--what-if-exclude-change-type "${{ parameters.WhatIfExcludeChange }}")
                       fi
 
-                      if [ "$(SCOPE)" = "subscription" ]; then
-                        if [ -z "$(LOCATION)" ]; then
+                      if [ "${{ parameters.scope }}" == "subscription" ]; then
+                        if [ -z "${{ parameters.location }}" ]; then
                           echo "Error: Subscription Deployment needs a location!" >&2
                           exit 1
                         fi
 
-                        DeploymentArgs+=(--location "$(LOCATION)")
+                        DeploymentArgs+=(--location "${{ parameters.location }}")
                         az deployment sub create "${DeploymentArgs[@]}" > "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt" 
                       
-                      elif [ "$(SCOPE)" = "resourceGroup" ]; then
-                        if [ -z "$(RESOURCE_GROUP)" ]; then
+                      elif [ "${{ parameters.scope }}" == "resourceGroup" ]; then
+                        if [ -z "${{ parameters.resourceGroup }}" ]; then
                           echo "Error: Resource Group Deployment needs a resource group!" >&2
                           exit 1
                         fi
 
-                        DeploymentArgs+=(--resource-group "$(RESOURCE_GROUP)")
+                        DeploymentArgs+=(--resource-group "${{ parameters.resourceGroup }}")
                         az deployment group create "${DeploymentArgs[@]}" > "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
                       
                       else
-                        echo "Error: Invalid Scope $(SCOPE)!" >&2
+                        echo "Error: Invalid Scope ${{ parameters.scope }}!" >&2
                         exit 1
                       fi
 
@@ -165,6 +188,9 @@ stages:
             deploy:
               steps:
                 - checkout: self
+                - ${{ each subModule in parameters.checkoutSubModules }}:
+                    - checkout: ${{ subModule.alias }}
+                      path: s/$(Build.Repository.Name)/${{ subModule.path }}
                 - task: AzureCLI@2
                   displayName: Deploy to ${{ parameters.stage }}
                   inputs:
@@ -174,38 +200,36 @@ stages:
                     scriptType: bash
                     scriptLocation: inlineScript
                     inlineScript: |
-                      if [ -n "$(SUBSCRIPTION_ID)" ]; then
-                        echo "Subscription: $(SUBSCRIPTION_ID)"
-                        az account set --subscription "$(SUBSCRIPTION_ID)"
+                      if [ -n "${{ parameters.subscriptionId }}" ]; then
+                        echo "Subscription: ${{ parameters.subscriptionId }}"
+                        az account set --subscription "${{ parameters.subscriptionId }}"
                       fi
 
                       DeploymentArgs=(
-                        --name "${{ parameters.stage }}.$(DEPLOYMENT_NAME)"
-                        --template-file "$(TEMPLATE_FILE)"
-                        --parameters "$(PARAMETERS_FILE)"
-                        --deny-settings-mode "${{ parameters.denySettingsMode }}"
-                        --action-on-unmanage "${{ parameters.actionOnUnmanage }}"
+                        --name "${{ parameters.stage }}.${{ parameters.deploymentName }}"
+                        --template-file "${{ parameters.templateFile }}"
+                        --parameters "${{ parameters.parametersFile }}"
                       )
 
-                      if [ "$(SCOPE)" = "subscription" ]; then
-                        if [ -z "$(LOCATION)" ]; then
+                      if [ "${{ parameters.scope }}" == "subscription" ]; then
+                        if [ -z "${{ parameters.location }}" ]; then
                           echo "Error: Subscription Deployment needs a location!" >&2
                           exit 1
                         fi
 
-                        DeploymentArgs+=(--location "$(LOCATION)")
-                        az deployment sub create "${DeploymentArgs[@]}" --confirm-with-what-if
-
-                      elif [ "$(SCOPE)" = "resourceGroup" ]; then
-                        if [ -z "$(RESOURCE_GROUP)" ]; then
+                        DeploymentArgs+=(--location "${{ parameters.location }}")
+                        az deployment sub create "${DeploymentArgs[@]}" --verbose
+                      
+                      elif [ "${{ parameters.scope }}" == "resourceGroup" ]; then
+                        if [ -z "${{ parameters.resourceGroup }}" ]; then
                           echo "Error: Resource Group Deployment needs a resource group!" >&2
                           exit 1
                         fi
 
-                        DeploymentArgs+=(--resource-group "$(RESOURCE_GROUP)")
-                        az deployment group create "${DeploymentArgs[@]}" --confirm-with-what-if
-
+                        DeploymentArgs+=(--resource-group "${{ parameters.resourceGroup }}")
+                        az deployment group create "${DeploymentArgs[@]}" --verbose
+                      
                       else
-                        echo "Error: Invalid Scope $(SCOPE)!" >&2
+                        echo "Error: Invalid Scope ${{ parameters.scope }}!" >&2
                         exit 1
                       fi

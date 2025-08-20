@@ -31,6 +31,9 @@ parameters:
   - name: WhatIfOnly
     type: string
     default: true
+  - name: WhatIfResultFormat
+    type: string
+    default: 'FullResourcePayloads' # ResourceIdOnly | FullResourcePayloads
 
   # deployment stack configurations
   - name: denySettingsMode
