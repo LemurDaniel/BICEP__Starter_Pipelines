@@ -97,12 +97,3 @@ jobs:
             azPSVersion: ${{ inputs.azps_version }}
             inlineScript: |
               . ./.scripts/deploy.ps1 -ModulePath "${{ env.MODULE_PATH }}"
-
-        - name: Cleanup Resources for ${{ inputs.module }}
-          uses: azure/powershell@v2
-          # This might fail when deleting, but we want to continue with the workflow
-          continue-on-error: true
-          with:
-            azPSVersion: ${{ inputs.azps_version }}
-            inlineScript: |
-              . ./.scripts/cleanup.ps1 -ModulePath "${{ env.MODULE_PATH }}"

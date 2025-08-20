@@ -20,7 +20,7 @@ on:
   workflow_call:
     secrets:
       AZURE_DEPLOYMENT_SPN:
-        description: "Service Principal for Deployment"
+        description: Prefer using environment. Searches for the same named secret in the github environment you provide.
         required: false
       subscription_id:
         description: Set on deployment scope subscription

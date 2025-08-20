@@ -1,5 +1,6 @@
     
-name: Deploy Infrastructure Test
+name: Test | Deploy Bicep Registry
+
 on:
   workflow_dispatch:
     inputs:
@@ -23,16 +24,29 @@ on:
       - './infrastructure/params/main.test.bicepparam'
    
 jobs:
-  deploy_prod:
-    name: Deploy Infrastructure PROD
+  deploy_test:
+    name: Deploy Infrastructure Test
     uses: ./.github/workflows/tmpl.deploy.infrastructure.yaml
-    secrets:
-      AZURE_DEPLOYMENT_SPN: ${{ secrets.AZURE_CICDSPN }}
+    #
+    # Set a secret named AZURE_CICDSPN either:
+    # - in the environment
+    # - or repository scoped
+    #
+    # The secret should be jsonencoded like this:
+    # {
+    #   "clientId": "00000000-0000-0000-0000-000000000000",
+    #   "objectId": "00000000-0000-0000-0000-000000000000",
+    #   "clientSecret": "00000000-0000-0000-0000-000000000000",
+    #   "subscriptionId": "00000000-0000-0000-0000-000000000000",
+    #   "tenantId": "00000000-0000-0000-0000-000000000000"
+    # }
     with:
+      environment: test
+
       scope: resource_group
       resource_group: 'sample-test'
       
-      deployment_name: 'sample-prod'
+      deployment_name: 'sample-test'
       template_file: ./infrastructure/registry.bicep
       parameter_file: ./infrastructure/params/main.test.bicepparam
       

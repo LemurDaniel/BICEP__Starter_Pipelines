@@ -1,5 +1,5 @@
     
-name: Deploy Infrastructure Test
+name: Test | Deploy Bicep Registry
 
 on:
   workflow_dispatch:
@@ -27,9 +27,22 @@ jobs:
   deploy_test:
     name: Deploy Infrastructure Test
     uses: ./.github/workflows/tmpl.deploy.infrastructure.yaml
-    secrets:
-      AZURE_DEPLOYMENT_SPN: ${{ secrets.AZURE_CICDSPN }}
+    #
+    # Set a secret named AZURE_CICDSPN either:
+    # - in the environment
+    # - or repository scoped
+    #
+    # The secret should be jsonencoded like this:
+    # {
+    #   "clientId": "00000000-0000-0000-0000-000000000000",
+    #   "objectId": "00000000-0000-0000-0000-000000000000",
+    #   "clientSecret": "00000000-0000-0000-0000-000000000000",
+    #   "subscriptionId": "00000000-0000-0000-0000-000000000000",
+    #   "tenantId": "00000000-0000-0000-0000-000000000000"
+    # }
     with:
+      environment: test
+
       scope: subscription
       location: germanywestcentral
       

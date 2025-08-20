@@ -1,5 +1,5 @@
     
-name: Deploy Infrastructure Prod
+name: Prod | Deploy Bicep Registry
 
 on:
   workflow_dispatch:
@@ -42,14 +42,25 @@ on:
    
 jobs:
   deploy_prod:
-    name: Deploy Infrastructure PROD
     uses: ./.github/workflows/tmpl.deploy.infrastructure.yaml
-    secrets:
-      AZURE_DEPLOYMENT_SPN: ${{ secrets.AZURE_CICDSPN }}
+    #
+    # Set a secret named AZURE_CICDSPN either:
+    # - in the environment
+    # - or repository scoped
+    #
+    # The secret should be jsonencoded like this:
+    # {
+    #   "clientId": "00000000-0000-0000-0000-000000000000",
+    #   "objectId": "00000000-0000-0000-0000-000000000000",
+    #   "clientSecret": "00000000-0000-0000-0000-000000000000",
+    #   "subscriptionId": "00000000-0000-0000-0000-000000000000",
+    #   "tenantId": "00000000-0000-0000-0000-000000000000"
+    # }
     with:
       # NOTE:
       # You can add an approval gate via the environment deployment protection rule for approvers
       # environment: prod
+
       scope: subscription
       location: germanywestcentral
       

@@ -97,7 +97,7 @@ jobs:
         # ////////////////////////////////////////////////////////////////////////////////////////
         # Publish and optionally lock image
         #
-        - name: Publish Bicep to ACR ${{ inputs.registry }}
+        - name: Publish Bicep ${{ env.ACR_IMAGE_NAME }}:${{ env.ACR_IMAGE_TAG }}
           uses: azure/powershell@v2
           with:
             azPSVersion: ${{ inputs.azps_version }}
