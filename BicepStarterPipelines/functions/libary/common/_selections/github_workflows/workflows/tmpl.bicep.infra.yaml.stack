@@ -1,0 +1,209 @@
+name: (Template) Bicep Deployment Stack - Resource Group - PWSH
+
+#
+# This is a template for deploying a Bicep file to a resource group using Powershell.
+#
+# This workflow uses deployment stacks: https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/deployment-stacks?tabs=azure-powershell
+#
+# Below is an example of how to use this template in a workflow.
+#
+#  name: Deploy Infrastructure
+#  uses: ./.github/workflows/sample.github.pwsh.group.stack.yaml
+#  secrets:
+#    AZURE_DEPLOYMENT_SPN: ${{ secrets.AZURE_CICDSPN }}
+#  with:
+#    deployment_name: 'sample-${{ inputs.module }}'
+#    resource_group: 'sample-${{ inputs.module }}'
+#    template_file: ${{ inputs.module }}/example/module.bicep
+#    parameter_file: ${{ inputs.module }}/example/module.bicepparam
+#
+
+on:
+  workflow_call:
+    inputs:
+      pwsh_version:
+        type: string
+        description: The Azure PowerShell version to use
+        required: false
+        default: "12.1.0"
+
+      deployment_name:
+        type: string
+        description: The name of the deployment
+        required: true
+
+      template_file:
+        type: string
+        description: Path to the Bicep-File to deploy
+        required: true
+      parameter_file:
+        type: string
+        description: path to the bicep parameter file
+        required: true
+      deny_settings_mode:
+        type: string
+        description: The deny settings mode
+        required: false
+        default: none # none, denyWriteAndDelete, denyDelete
+      action_on_unmanage:
+        type: string
+        description: Allow deletion of all resources
+        required: false
+        default: detachAll # deleteAll, deleteResources, detachAll
+
+
+      scope:
+        type: string
+        description: Deployment Scope. subscription | resourceGroup
+        required: true
+      resource_group:
+        type: string
+        description: Set on deployment scope resourceGroup
+        required: false
+      location:
+        type: string
+        description: Set on deployment scope subscription
+        required: false
+
+
+      environment:
+        type: string
+        description: The github environment to use
+        required: false
+      run_bicep_tests:
+        type: boolean
+        description: Run Bicep tests before deployment
+        required: false
+        default: false
+
+
+      what_if_only:
+        type: boolean
+        description: Perform what if deployment
+        required: false
+        default: false
+      what_if_result_format:
+        type: string
+        description: The result format to be used on whatif operations
+        required: false
+        default: 'FullResourcePayloads' # ResourceIdOnly | FullResourcePayloads
+      what_if_exclude_change:
+        type: string
+        description: Exclude change types from What-If results
+        required: false
+        default: '' # Ignore | NoChange | Deploy | Create | Modify | Delete
+      what_if_artifact_name:
+        type: string
+        description: Name of what_if artifact
+        required: false
+        default: 'what_if_result'
+      what_if_retention_days:
+        type: number
+        description: Number of days to retain What-If results
+        required: false
+        default: 7
+
+      set_temporary_ip_rules:
+        type: string
+        description: Temporary IP Rules to apply on container registries
+        required: false
+        default: ''
+
+      ###
+      runs-on:
+        type: string
+        description: The type of the runner
+        required: false
+        default: "ubuntu-latest"
+
+jobs:
+  what_if:
+    name: WhatIf ${{ inputs.template_file }}
+    runs-on: ${{ inputs.runs-on }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Run Bicep Tests
+        uses: azure/powershell@v2
+        if: ${{ inputs.run_bicep_tests == true }}
+        with:
+          azPSVersion: ${{ inputs.pwsh_version }}
+          inlineScript: |
+            $testFiles = Get-ChildItem -Path "." -Filter *test.bicep -Recurse -Depth 4
+            foreach($file in $testFiles) {
+              bicep test $file.FullName
+            }
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_DEPLOYMENT_SPN }}
+          enable-AzPSSession: true
+
+      - uses: ./.github/actions/tmpl.bicep.infra.deploy.yaml
+        with:
+          display_name: "What If ${{ inputs.template_file }}"
+          pwsh_version: ${{ inputs.pwsh_version }}
+
+          deployment_name: ${{ inputs.deployment_name }}
+          template_file: ${{ inputs.template_file }}
+          parameter_file: ${{ inputs.parameter_file }}
+          deny_settings_mode: ${{ inputs.deny_settings_mode }}
+          action_on_unmanage: ${{ inputs.action_on_unmanage }}
+
+          scope: ${{ inputs.scope }}
+          resource_group: ${{ inputs.resource_group }}
+          location: ${{ inputs.location }}
+
+          what_if: false
+          what_if_result_format: ${{ inputs.what_if_result_format }}
+          what_if_exclude_change: ${{ inputs.what_if_exclude_change }}
+
+          registires: ${{ inputs.set_temporary_ip_rules }}
+
+      - name: Upload What-If Results
+        uses: actions/upload-artifact@v4
+        if: ${{ inputs.what_if_artifact_name != '' }}
+        with:
+          name: ${{ inputs.what_if_artifact_name }}
+          path: ./bicep_whatif.txt
+          retention-days: ${{ inputs.what_if_retention_days }}
+
+
+
+  deploy_bicep:
+    needs:
+    - what_if
+    if: ${{ inputs.what_if_only == false }}
+    name: Deploy ${{ inputs.template_file }}
+    environment: ${{ inputs.environment }}
+    runs-on: ${{ inputs.runs-on }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_DEPLOYMENT_SPN }}
+          enable-AzPSSession: true
+
+      - uses: ./.github/actions/tmpl.bicep.infra.deploy.yaml
+        with:
+          display_name: "Deploy ${{ inputs.template_file }}"
+          pwsh_version: ${{ inputs.pwsh_version }}
+
+          deployment_name: ${{ inputs.deployment_name }}
+          template_file: ${{ inputs.template_file }}
+          parameter_file: ${{ inputs.parameter_file }}
+          deny_settings_mode: ${{ inputs.deny_settings_mode }}
+          action_on_unmanage: ${{ inputs.action_on_unmanage }}
+
+          scope: ${{ inputs.scope }}
+          resource_group: ${{ inputs.resource_group }}
+          location: ${{ inputs.location }}
+
+          registires: ${{ inputs.set_temporary_ip_rules }}

@@ -1,5 +1,5 @@
     
-name: Test | Deploy Infrastructure
+name: Test | Deploy Bicep Registry
 
 on:
   workflow_dispatch:
@@ -13,15 +13,15 @@ on:
     branches:
       - dev
     paths:
-      - 'main.bicep'
-      - './params/main.test.bicep'
+      - './infrastructure/registry.bicep'
+      - './infrastructure/params/main.test.bicepparam'
 
   pull_request:
     branches:
       - dev
     paths:
-      - 'main.bicep'
-      - './params/main.test.bicep'
+      - './infrastructure/registry.bicep'
+      - './infrastructure/params/main.test.bicepparam'
    
 jobs:
   deploy_test:
@@ -42,14 +42,12 @@ jobs:
     # }
     with:
       environment: test
-      # NOTE:
-      # You can add an approval gate via the environment deployment protection rule for approvers
-      # environment: test
+
       scope: subscription
       location: germanywestcentral
       
       deployment_name: 'sample-test'
-      template_file: ./main.bicep
-      parameter_file: ../params/main.test.bicepparam
+      template_file: ./infrastructure/registry.bicep
+      parameter_file: ./infrastructure/params/main.test.bicepparam
       
       what_if_only: ${{ github.EVENT_NAME  == 'pull_request' || inputs.what_if_only == true }}

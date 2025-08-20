@@ -26,7 +26,7 @@ on:
 jobs:
   deploy_dev:
     name: Deploy Infrastructure Dev
-    uses: ./.github/workflows/tmpl.deploy.infrastructure.yaml
+    uses: ./.github/workflows/tmpl.deploy.infra.yaml
     #
     # Set a secret named AZURE_CICDSPN either:
     # - in the environment

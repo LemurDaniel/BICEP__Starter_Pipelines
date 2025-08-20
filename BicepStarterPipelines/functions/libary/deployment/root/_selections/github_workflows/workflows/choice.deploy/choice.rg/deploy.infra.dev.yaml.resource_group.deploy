@@ -1,5 +1,5 @@
     
-name: Test | Deploy Infrastructure
+name: Dev | Deploy Infrastructure
 
 on:
   workflow_dispatch:
@@ -9,23 +9,25 @@ on:
         type: boolean
         default: true
 
-  push:
-    branches:
-      - dev
-    paths:
-      - 'main.bicep'
-      - './params/main.test.bicep'
-
-  pull_request:
-    branches:
-      - dev
-    paths:
-      - 'main.bicep'
-      - './params/main.test.bicep'
+#  Execution only on workflow dispatch
+# 
+#  push:
+#    branches:
+#      - feature/*
+#    paths:
+#      - 'main.bicep'
+#      - './params/main.dev.bicepparam'
+#
+#  pull_request:
+#    branches:
+#      - feature/*
+#    paths:
+#      - 'main.bicep'
+#      - './params/main.dev.bicepparam'
    
 jobs:
-  deploy_test:
-    name: Deploy Infrastructure Test
+  deploy_dev:
+    name: Deploy Infrastructure Dev
     uses: ./.github/workflows/tmpl.deploy.infra.yaml
     #
     # Set a secret named AZURE_CICDSPN either:
@@ -41,15 +43,11 @@ jobs:
     #   "tenantId": "00000000-0000-0000-0000-000000000000"
     # }
     with:
-      environment: test
-      # NOTE:
-      # You can add an approval gate via the environment deployment protection rule for approvers
-      # environment: test
-      scope: subscription
-      location: germanywestcentral
-      
-      deployment_name: 'sample-test'
+      scope: resource_group
+      resource_group: 'sample-dev'
+
+      deployment_name: 'sample-dev'
       template_file: ./main.bicep
-      parameter_file: ../params/main.test.bicepparam
-      
+      parameter_file: ./params/main.dev.bicepparam
+
       what_if_only: ${{ github.EVENT_NAME  == 'pull_request' || inputs.what_if_only == true }}

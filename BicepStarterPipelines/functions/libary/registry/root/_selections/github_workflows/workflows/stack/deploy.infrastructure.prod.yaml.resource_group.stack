@@ -1,5 +1,5 @@
     
-name: Deploy Infrastructure Prod
+name: Prod | Deploy Bicep Registry
 
 on:
   workflow_dispatch:
@@ -9,19 +9,36 @@ on:
         type: boolean
         default: true
 
+      deny_settings_mode:
+        description: The deny settings mode for the deployment
+        type: choice
+        default: denyDelete
+        options:
+          - none
+          - denyDelete
+          - denyWriteAndDelete
+      action_on_unmanage:
+        description: The action to take on unmanaged resources
+        type: choice
+        default: detachAll
+        options:
+          - deleteAll
+          - detachAll
+          - deleteResources
+
   push:
     branches:
       - master
     paths:
-      - 'main.bicep'
-      - './params/main.prod.bicepparam'
+      - './infrastructure/registry.bicep'
+      - './infrastructure/params/main.prod.bicepparam'
 
   pull_request:
     branches:
       - master
     paths:
-      - 'main.bicep'
-      - './params/main.prod.bicepparam'
+      - './infrastructure/registry.bicep'
+      - './infrastructure/params/main.prod.bicepparam'
    
 jobs:
   deploy_prod:
@@ -44,11 +61,14 @@ jobs:
       # You can add an approval gate via the environment deployment protection rule for approvers
       # environment: prod
 
-      scope: subscription
-      location: germanywestcentral
+      scope: resource_group
+      resource_group: 'sample-prod'
       
       deployment_name: 'sample-prod'
-      template_file: ./main.bicep
-      parameter_file: ./params/main.prod.bicepparam
+      template_file: ./infrastructure/registry.bicep
+      parameter_file: ./infrastructure/params/main.prod.bicepparam
+
+      action_on_unmanage: ${{ inputs.action_on_unmanage }}
+      deny_settings_mode: ${{ inputs.deny_settings_mode }}
       
       what_if_only: ${{ github.EVENT_NAME  == 'pull_request' || inputs.what_if_only == true }}

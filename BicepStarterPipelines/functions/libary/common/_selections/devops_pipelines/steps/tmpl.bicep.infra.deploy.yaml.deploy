@@ -1,0 +1,131 @@
+parameters:
+  - name: displayName
+    type: string
+    default: ''
+  - name: serviceConnection
+    type: string
+
+  # General deployment parameter
+  - name: deploymentName
+    type: string
+  - name: templateFile
+    type: string
+  - name: parametersFile
+    type: string
+
+  - name: WhatIf
+    type: string
+    default: false
+  - name: WhatIfResultFormat
+    type: string
+    default: 'FullResourcePayloads' # ResourceIdOnly | FullResourcePayloads
+  - name: WhatIfExcludeChange
+    type: string
+    default: '' # Ignore | NoChange | Deploy | Create | Modify | Delete
+
+  # deployment scope
+  - name: scope
+    type: string
+    # subscription | resourceGroup
+
+  # deployment specific parameters
+  - name: subscriptionId
+    type: string
+    default: ''
+  - name: location
+    type: string
+    default: ''
+  - name: resourceGroup
+    type: string
+    default: ''
+
+  # Name or Id of the Registry
+  # Single mode
+  #  - Registry: acr-bla-dev-001
+  # Multi mode
+  #  - Registry: |
+  #     acr-bla-dev-001
+  #     acr-bla-dev-002
+  - name: registries
+    type: string
+    default: ''
+
+  # others
+  - name: azurePowerShellVersion
+    type: string
+    default: LatestVersion
+
+steps:
+  - template: ./tmpl.bicepRegistry.ipRules.yaml
+    parameters:
+      condition: and(ne('${{ parameters.registries }}', ''), succeeded())
+      restrictionMode: AllowAccess
+      serviceConnection: ${{ parameters.serviceConnection }}
+      azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
+      registry: ${{ parameters.registries }}
+  - task: AzurePowerShell@5
+    displayName: ${{ parameters.displayName }}
+    inputs:
+      azureSubscription: ${{ parameters.serviceConnection }}
+      azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
+      ScriptType: inlineScript
+      pwsh: true
+      inline: |
+        if(-NOT [System.String]::IsNullOrEmpty('${{ parameters.subscriptionId }}')) {
+           Write-Host 'Subscription: ${{ parameters.subscriptionId }}'
+           Set-AzContext -Subscription ${{ parameters.subscriptionId }}
+        }
+
+        $Deployment = @{
+            Name                    = '${{ parameters.deploymentName }}'
+            TemplateFile            = '${{ parameters.templateFile }}'
+            TemplateParameterFile   = '${{ parameters.parametersFile }}'
+        }
+
+        $workingDir = '$(Build.SourcesDirectory)/$(Build.Repository.Name)'
+
+        $Deployment['TemplateFile']          = "$workingDir/$($Deployment['TemplateFile'])"
+        $Deployment['TemplateParameterFile'] = "$workingDir/$($Deployment['TemplateParameterFile'])"
+
+        if(-NOT [System.String]::IsNullOrEmpty('${{ parameters.WhatIfExcludeChange }}')) {
+            $Deployment.Add('WhatIfExcludeChangeType', '${{ parameters.WhatIfExcludeChange }}')
+        }
+
+        if([System.Boolean]::Parse('${{ parameters.WhatIf }}')) {
+            $Deployment.Add('WhatIf', $true)
+            $Deployment.Add('WhatIfResultFormat', '${{ parameters.WhatIfResultFormat }}')
+            Start-Transcript -Path "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
+        }
+
+        if('${{ parameters.scope }}' -EQ 'subscription') {
+          if([System.String]::IsNullOrEmpty('${{ parameters.location }}')) {
+            throw "Subscription Deployment needs a location!"
+          }
+
+          $Deployment.Add('location', '${{ parameters.location }}')
+
+          New-AzSubscriptionDeployment @Deployment -Verbose
+        } 
+        elseif('${{ parameters.scope }}' -EQ 'resourceGroup') {
+          if([System.String]::IsNullOrEmpty('${{ parameters.resourceGroup }}')) {
+            throw "Resource Group Deployment needs a resource group!"
+          }
+
+          $Deployment.Add('ResourceGroupName', '${{ parameters.resourceGroup }}')
+
+          New-AzResourceGroupDeployment @Deployment -Verbose
+          
+        } else {
+          throw "Invalid Scope ${{ parameters.scope }}!"
+        }
+
+        if([System.Boolean]::Parse('${{ parameters.WhatIf }}')) {
+            Stop-Transcript
+        }
+  - template: ./tmpl.bicepRegistry.ipRules.yaml
+    parameters:
+      condition: ne('${{ parameters.registries }}', '')
+      restrictionMode: RemoveAccess
+      serviceConnection: ${{ parameters.serviceConnection }}
+      azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
+      registry: ${{ parameters.registries }}

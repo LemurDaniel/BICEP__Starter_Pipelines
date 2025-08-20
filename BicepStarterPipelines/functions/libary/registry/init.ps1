@@ -70,7 +70,7 @@ $deploymentPipelines = [ordered]@{
   }
   'Github'       = @{
     source = "github_workflows"
-    target = '.github/workflows'
+    target = '.github'
   }
 }
 

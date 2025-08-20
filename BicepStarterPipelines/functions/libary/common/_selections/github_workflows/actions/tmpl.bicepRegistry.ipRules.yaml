@@ -1,0 +1,90 @@
+name: "Manage ACR Access Restrictions"
+description: "Manages ACR access restrictions using PowerShell"
+inputs:
+  pwsh_version:
+    description: 'Azure PowerShell Version'
+    required: false
+    default: 'LatestVersion'
+  condition:
+    description: When the step should be run
+    required: false
+    default: true
+  restriction_mode:
+    description: 'AllowAccess or RemoveAccess'
+    required: true
+    default: 'RemoveAccess'
+
+  # Name or Id of the Registry
+  # Single mode
+  #  - Registry: acr-bla-dev-001
+  # Multi mode
+  #  - Registry: |
+  #     acr-bla-dev-001
+  #     acr-bla-dev-002
+  registry:
+    description: 'ACR Name(s), comma separated'
+    required: true
+    default: ''
+
+runs:
+  using: "composite"
+  steps:
+    - name: ${{ inputs.restriction_mode == 'AllowAccess' && 'Add Access Restrictions' || 'Remove Access Restrictions' }} 
+      uses: azure/powershell@v2
+      if: ${{ inputs.condition && always() }}
+      with:
+        azPSVersion: ${{ inputs.pwsh_version }}
+        inlineScript: |
+
+          $allowAgentIp = '${{ inputs.restriction_mode }}' -EQ 'AllowAccess'
+
+          $contexts = @()
+          $defaultContext = Get-AzContext
+          foreach($subscription in (Get-AzSubscription)) {
+            $contexts += Set-AzContext -SubscriptionId $subscription.Id
+          }
+          Set-AzContext Context $defaultContext
+
+          $registries = "${{ inputs.registry }}" -replace "`r`n", "," -replace "`n", "," -split ','
+          | Where-Object { -NOT [System.String]::IsNullOrEmpty($_) } 
+          | ForEach-Object {
+            $name = $_ -split '/' | Select-Object -Last 1
+
+            foreach($context in $contexts) {
+              Write-Host "Searching for Registry: $name in context: $($context.Subscription.Id)"
+              $registry = Get-AzContainerRegistry -Name $name -AzContext $context
+              if($null -NE $registry) {
+                $registry | Add-Member NoteProperty AzContext $context -Force
+                return $registry
+              }
+            }
+
+            Write-Error "Container Registry not found: $name"
+          }
+
+          foreach($registry in $registries) {
+            Write-Output "Removing access restriction from Container Registry: $($registry.Name)"
+            Remove-AzContainerRegistryAccessPolicy -ErrorAction Continue -AzContext $registry.AzContext `
+              -ResourceGroupName $registry.ResourceGroup `
+              -RegistryName $registry.Name `
+              -Name "AllowAzureDevOpsAgent"
+          }
+
+          # Check if we should add the access restriction
+          # If AllowAgentIp is true, we skip adding the access restriction
+          if(-NOT $allowAgentIp) {
+            return
+          }
+
+          $agentHostPublicIp = Invoke-RestMethod -Uri "https://api.ipify.org"
+          Write-Output "Public IP of agent to add: $agentHostPublicIp"
+          Write-Output ""
+          Write-Output "############################################"
+
+          foreach($registry in $registries) {
+            Write-Output "Adding access restriction to Container Registry: $($registry.Name)"
+            Add-AzContainerRegistryAccessPolicy -ErrorAction Continue -AzContext $registry.AzContext `
+              -ResourceGroupName $registry.ResourceGroup `
+              -RegistryName $registry.Name `
+              -Name "AllowAzureDevOpsAgent"
+          }

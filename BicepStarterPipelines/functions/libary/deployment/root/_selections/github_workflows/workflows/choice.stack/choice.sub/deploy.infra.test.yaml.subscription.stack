@@ -9,6 +9,23 @@ on:
         type: boolean
         default: true
 
+      deny_settings_mode:
+        description: The deny settings mode for the deployment
+        type: choice
+        default: denyDelete
+        options:
+          - none
+          - denyDelete
+          - denyWriteAndDelete
+      action_on_unmanage:
+        description: The action to take on unmanaged resources
+        type: choice
+        default: detachAll
+        options:
+          - deleteAll
+          - detachAll
+          - deleteResources
+
   push:
     branches:
       - dev
@@ -51,5 +68,8 @@ jobs:
       deployment_name: 'sample-test'
       template_file: ./main.bicep
       parameter_file: ../params/main.test.bicepparam
+
+      action_on_unmanage: ${{ inputs.action_on_unmanage }}
+      deny_settings_mode: ${{ inputs.deny_settings_mode }}
       
       what_if_only: ${{ github.EVENT_NAME  == 'pull_request' || inputs.what_if_only == true }}
