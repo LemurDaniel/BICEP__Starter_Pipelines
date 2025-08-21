@@ -52,7 +52,7 @@ on:
 
       scope:
         type: string
-        description: Deployment Scope. subscription | resourceGroup
+        description: Deployment Scope. subscription | resource_group
         required: true
       resource_group:
         type: string
@@ -130,6 +130,14 @@ jobs:
               bicep test $file.FullName
             }
 
+      - name: Add ACR IP Rule
+        uses: ./.github/actions/tmpl.bicepRegistry.ipRules
+        if: ${{ inputs.registries != '' }}
+        with:
+          restriction_mode: AllowAccess
+          registries: ${{ inputs.set_temporary_ip_rules }}
+          pwsh_version: ${{ inputs.pwsh_version }}
+
       - name: What If ${{ inputs.template_file }}
         uses: ./.github/actions/tmpl.bicep.infra.deploy
         with:
@@ -147,8 +155,6 @@ jobs:
           what_if_result_format: ${{ inputs.what_if_result_format }}
           what_if_exclude_change: ${{ inputs.what_if_exclude_change }}
 
-          registries: ${{ inputs.set_temporary_ip_rules }}
-
       - name: Upload What-If Results
         uses: actions/upload-artifact@v4
         if: ${{ inputs.what_if_artifact_name != '' }}
@@ -157,7 +163,13 @@ jobs:
           path: ./bicep_whatif.txt
           retention-days: ${{ inputs.what_if_retention_days }}
 
-
+      - name: Remove ACR IP Rule
+        uses: ./.github/actions/tmpl.bicepRegistry.ipRules
+        if: ${{ always() && inputs.registries != '' }}
+        with:
+          restriction_mode: RemoveAccess
+          registries: ${{ inputs.set_temporary_ip_rules }}
+          pwsh_version: ${{ inputs.pwsh_version }}
 
   deploy_bicep:
     needs:
@@ -177,6 +189,14 @@ jobs:
           creds: ${{ secrets.AZURE_CICDSPN }}
           enable-AzPSSession: true
 
+      - name: Add ACR IP Rule
+        uses: ./.github/actions/tmpl.bicepRegistry.ipRules
+        if: ${{ inputs.registries != '' }}
+        with:
+          restriction_mode: AllowAccess
+          registries: ${{ inputs.set_temporary_ip_rules }}
+          pwsh_version: ${{ inputs.pwsh_version }}
+
       - name: Deploy ${{ inputs.template_file }}
         uses: ./.github/actions/tmpl.bicep.infra.deploy
         with:
@@ -190,4 +210,10 @@ jobs:
           resource_group: ${{ inputs.resource_group }}
           location: ${{ inputs.location }}
 
+      - name: Remove ACR IP Rule
+        uses: ./.github/actions/tmpl.bicepRegistry.ipRules
+        if: ${{ always() && inputs.registries != '' }}
+        with:
+          restriction_mode: RemoveAccess
           registries: ${{ inputs.set_temporary_ip_rules }}
+          pwsh_version: ${{ inputs.pwsh_version }}

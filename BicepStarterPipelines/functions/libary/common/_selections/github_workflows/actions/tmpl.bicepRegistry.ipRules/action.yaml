@@ -5,10 +5,6 @@ inputs:
     description: 'Azure PowerShell Version'
     required: false
     default: 'LatestVersion'
-  condition:
-    description: When the step should be run
-    required: false
-    default: 'true'
   restriction_mode:
     description: 'AllowAccess or RemoveAccess'
     required: true
@@ -31,7 +27,6 @@ runs:
   steps:
     - name: ${{ inputs.restriction_mode == 'AllowAccess' && 'Add ACR IP Rule' || 'Remove ACR IP Rule' }} 
       uses: azure/powershell@v2
-      if: ${{ inputs.condition && always() }}
       with:
         azPSVersion: ${{ inputs.pwsh_version }}
         inlineScript: |

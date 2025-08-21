@@ -23,7 +23,7 @@ inputs:
     required: true
 
   scope:
-    description: Deployment Scope. subscription | resourceGroup
+    description: Deployment Scope. subscription | resource_group
     required: true
   resource_group:
     description: Set on deployment scope resourceGroup
@@ -45,30 +45,10 @@ inputs:
     description: Exclude change types from What-If results
     required: false
     default: '' # Ignore | NoChange | Deploy | Create | Modify | Delete
-
-  # Name or Id of the registries
-  # Single mode
-  #  - registries: acr-bla-dev-001
-  # Multi mode
-  #  - registries: |
-  #     acr-bla-dev-001
-  #     acr-bla-dev-002
-  registries:
-    description: Container Registry Names
-    required: true
-    default: ''
     
 runs:
   using: "composite"
   steps:
-    - name: Add ACR IP Rule
-      uses: ./.github/actions/tmpl.bicepRegistry.ipRules
-      with:
-        condition: ${{ inputs.registries != '' }}
-        restriction_mode: AllowAccess
-        registries: ${{ inputs.registries }}
-        pwsh_version: ${{ inputs.pwsh_version }}
-
     - name: Run Bicep Deployment
       uses: azure/powershell@v2
       with:
@@ -123,11 +103,3 @@ runs:
 
             Write-Host "////////////////////////////////////////////////////////////////////////////////"
             Write-Host "////////////////////////////////////////////////////////////////////////////////"
-
-    - name: Remove ACR IP Rule
-      uses: ./.github/actions/tmpl.bicepRegistry.ipRules
-      with:
-        condition: ${{ always() && inputs.registries != '' }}
-        restriction_mode: RemoveAccess
-        registries: ${{ inputs.registries }}
-        pwsh_version: ${{ inputs.pwsh_version }}
