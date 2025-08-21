@@ -1,7 +1,7 @@
 
-# Add step to remove and add a temporary firewall rule when deploying via Bicep
-# So bicep registries can easily be accessed during deployment
 
-# >>> Should also be implement on publish pipelines for any private container registry!!!
-# >>> Needs to be tested for all pipelines, not yet tested and verified!!!
-
+- Test Github Pipelines and the IP Rule Functionality
+- Adjust Github Triggers and add dev pipeline
+- Add IP Rule Functionality to publish pipelines
+- Convert Publish pipeline to Azure DevOps
+- Finish bicep templates and pipelines for bicep registry template

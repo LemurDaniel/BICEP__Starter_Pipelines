@@ -10,14 +10,20 @@ pool:
   name: "Azure Pipelines"
   vmImage: "ubuntu-latest"
 
+# NOTE:
+# Triggers on Pull Request are configured via branch policies in Azure DevOps
 trigger:
   branches:
     include:
+      - dev
+      - main
       - master
   paths:
     include:
-      - ./infrastructure/registry.bicep
-      - ./infrastructure/params/registry.*.bicep
+      - main.bicep
+      - infraCore/**
+      - modules/**
+      - params/**
 
 variables:
   - name: deploymentName_FILE
