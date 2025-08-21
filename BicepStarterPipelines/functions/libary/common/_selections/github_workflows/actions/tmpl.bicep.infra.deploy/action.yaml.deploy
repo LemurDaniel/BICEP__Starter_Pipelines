@@ -106,7 +106,7 @@ runs:
               $Deployment.Add('location', '${{ inputs.location }}')
               New-AzSubscriptionDeployment @Deployment
             } 
-            elseif('${{ inputs.scope }}' -EQ 'resourceGroup') {
+            elseif('${{ inputs.scope }}' -EQ 'resource_group') {
               if([System.String]::IsNullOrEmpty('${{ inputs.resource_group }}')) {
                 throw "Resource Group Deployment needs a resource group!"
               }
@@ -127,7 +127,7 @@ runs:
     - name: Remove ACR IP Rule
       uses: ./.github/actions/tmpl.bicepRegistry.ipRules
       with:
-        condition: ${{ inputs.registries != '' }}
+        condition: ${{ always() && inputs.registries != '' }}
         restriction_mode: RemoveAccess
         registries: ${{ inputs.registries }}
         pwsh_version: ${{ inputs.pwsh_version }}
