@@ -1,5 +1,5 @@
     
-name: Deploy Infrastructure Prod
+name: Prod | Deploy Infrastructure
 
 on:
   workflow_dispatch:
@@ -8,7 +8,6 @@ on:
         description: Run a what-if analysis without making changes
         type: boolean
         default: true
-        description: "Run a what-if analysis without making changes"
 
   push:
     branches:
@@ -26,7 +25,7 @@ on:
    
 jobs:
   deploy_prod:
-    uses: ./.github/workflows/tmpl.deploy.infra.yaml
+    uses: ./.github/workflows/tmpl.bicep.infra.yaml
     #
     # Set a secret named AZURE_CICDSPN either:
     # - in the environment
@@ -40,6 +39,7 @@ jobs:
     #   "subscriptionId": "00000000-0000-0000-0000-000000000000",
     #   "tenantId": "00000000-0000-0000-0000-000000000000"
     # }
+    secrets: inherit
     with:
       # NOTE:
       # You can add an approval gate via the environment deployment protection rule for approvers

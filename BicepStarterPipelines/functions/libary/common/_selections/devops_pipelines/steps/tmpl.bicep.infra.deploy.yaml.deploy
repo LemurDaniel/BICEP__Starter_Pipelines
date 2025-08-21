@@ -39,11 +39,11 @@ parameters:
     type: string
     default: ''
 
-  # Name or Id of the Registry
+  # Name or Id of the registries
   # Single mode
-  #  - Registry: acr-bla-dev-001
+  #  - registries: acr-bla-dev-001
   # Multi mode
-  #  - Registry: |
+  #  - registries: |
   #     acr-bla-dev-001
   #     acr-bla-dev-002
   - name: registries

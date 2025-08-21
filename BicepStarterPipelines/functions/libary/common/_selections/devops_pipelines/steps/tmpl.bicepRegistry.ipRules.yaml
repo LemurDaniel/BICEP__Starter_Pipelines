@@ -12,11 +12,11 @@ parameters:
       - RemoveAccess
     default: RemoveAccess
 
-  # Name or Id of the Registry
+  # Name or Id of the registries
   # Single mode
-  #  - Registry: acr-bla-dev-001
+  #  - registries: acr-bla-dev-001
   # Multi mode
-  #  - Registry: |
+  #  - registries: |
   #     acr-bla-dev-001
   #     acr-bla-dev-002
   - name: registries
@@ -60,7 +60,7 @@ steps:
           foreach($context in $contexts) {
             Write-Host "Searching for Registry: $name in context: $($context.Subscription.Id)"
 
-            $registry = Get-AzResource -AzContext $context -Name agavdabrgbarebar -ResourceType Microsoft.ContainerRegistry/registries 
+            $registry = Get-AzResource -AzContext $context -Name $name -ResourceType Microsoft.ContainerRegistry/registries 
             if($null -NE $registry) {
               $registry = Get-AzContainerRegistry -Name $name -ResourceGroupName $registry.ResourceGroupName -AzureRMContext $context
               $registry | Add-Member NoteProperty AzContext $context -Force
@@ -70,6 +70,10 @@ steps:
 
           Write-Error "Container Registry not found: $name"
         }
+
+        Write-Output "Public IP of agent to add: $agentHostPublicIp"
+        Write-Output ""
+        Write-Output "############################################"
 
         foreach($registry in $registries) {
           Write-Output "Removing access restriction from Container Registry: $($registry.Name)"
@@ -82,7 +86,7 @@ steps:
 
           $rules = $rules | Where-Object -Property IPAddressOrRange -NE $agentHostPublicIp
 
-          Update-AzContainerRegistry -AzureRMContext $registry.AzContext -Name $registry.Name `
+          $null = Update-AzContainerRegistry -AzureRMContext $registry.AzContext -Name $registry.Name `
             -ResourceGroupName $registry.ResourceGroupName `
             -NetworkRuleBypassOption $registry.NetworkRuleBypassOption `
             -NetworkRuleSetDefaultAction $registry.NetworkRuleSetDefaultAction `
@@ -94,10 +98,6 @@ steps:
         if(-NOT $allowAgentIp) {
           return
         }
-
-        Write-Output "Public IP of agent to add: $agentHostPublicIp"
-        Write-Output ""
-        Write-Output "############################################"
 
         foreach($registry in $registries) {
             Write-Output "Adding access restriction to Container Registry: $($registry.Name)"
@@ -112,7 +112,7 @@ steps:
 
             $rules += New-AzContainerRegistryIPRuleObject -Action 'Allow' -IPAddressOrRange $agentHostPublicIp
 
-            Update-AzContainerRegistry -AzureRMContext $registry.AzContext -Name $registry.Name `
+            $null = Update-AzContainerRegistry -AzureRMContext $registry.AzContext -Name $registry.Name `
               -ResourceGroupName $registry.ResourceGroupName `
               -NetworkRuleBypassOption $registry.NetworkRuleBypassOption `
               -NetworkRuleSetDefaultAction $registry.NetworkRuleSetDefaultAction `

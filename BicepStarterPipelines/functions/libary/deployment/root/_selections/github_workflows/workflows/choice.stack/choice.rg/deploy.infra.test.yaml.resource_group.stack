@@ -43,7 +43,7 @@ on:
 jobs:
   deploy_test:
     name: Deploy Infrastructure Test
-    uses: ./.github/workflows/tmpl.deploy.infra.yaml
+    uses: ./.github/workflows/tmpl.bicep.infra.yaml
     #
     # Set a secret named AZURE_CICDSPN either:
     # - in the environment
@@ -57,6 +57,7 @@ jobs:
     #   "subscriptionId": "00000000-0000-0000-0000-000000000000",
     #   "tenantId": "00000000-0000-0000-0000-000000000000"
     # }
+    secrets: inherit
     with:
       environment: test
       # NOTE:
@@ -67,7 +68,7 @@ jobs:
       
       deployment_name: 'sample-test'
       template_file: ./main.bicep
-      parameter_file: ../params/main.test.bicepparam
+      parameter_file: ./params/main.test.bicepparam
 
       action_on_unmanage: ${{ inputs.action_on_unmanage }}
       deny_settings_mode: ${{ inputs.deny_settings_mode }}

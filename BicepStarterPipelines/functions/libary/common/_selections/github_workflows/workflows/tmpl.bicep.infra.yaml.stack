@@ -123,7 +123,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Run Bicep Tests
         uses: azure/powershell@v2
@@ -139,12 +139,12 @@ jobs:
       - name: Azure Login
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_DEPLOYMENT_SPN }}
+          creds: ${{ secrets.AZURE_CICDSPN }}
           enable-AzPSSession: true
 
-      - uses: ./.github/actions/tmpl.bicep.infra.deploy.yaml
+      - name: What If ${{ inputs.template_file }}
+        uses: ./.github/actions/tmpl.bicep.infra.deploy
         with:
-          display_name: "What If ${{ inputs.template_file }}"
           pwsh_version: ${{ inputs.pwsh_version }}
 
           deployment_name: ${{ inputs.deployment_name }}
@@ -161,7 +161,7 @@ jobs:
           what_if_result_format: ${{ inputs.what_if_result_format }}
           what_if_exclude_change: ${{ inputs.what_if_exclude_change }}
 
-          registires: ${{ inputs.set_temporary_ip_rules }}
+          registries: ${{ inputs.set_temporary_ip_rules }}
 
       - name: Upload What-If Results
         uses: actions/upload-artifact@v4
@@ -183,17 +183,17 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Azure Login
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_DEPLOYMENT_SPN }}
+          creds: ${{ secrets.AZURE_CICDSPN }}
           enable-AzPSSession: true
 
-      - uses: ./.github/actions/tmpl.bicep.infra.deploy.yaml
+      - name: Deploy ${{ inputs.template_file }}
+        uses: ./.github/actions/tmpl.bicep.infra.deploy
         with:
-          display_name: "Deploy ${{ inputs.template_file }}"
           pwsh_version: ${{ inputs.pwsh_version }}
 
           deployment_name: ${{ inputs.deployment_name }}
@@ -206,4 +206,4 @@ jobs:
           resource_group: ${{ inputs.resource_group }}
           location: ${{ inputs.location }}
 
-          registires: ${{ inputs.set_temporary_ip_rules }}
+          registries: ${{ inputs.set_temporary_ip_rules }}

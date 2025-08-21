@@ -28,7 +28,7 @@ on:
 jobs:
   deploy_dev:
     name: Deploy Infrastructure Dev
-    uses: ./.github/workflows/tmpl.deploy.infra.yaml
+    uses: ./.github/workflows/tmpl.bicep.infra.yaml
     #
     # Set a secret named AZURE_CICDSPN either:
     # - in the environment
@@ -42,6 +42,7 @@ jobs:
     #   "subscriptionId": "00000000-0000-0000-0000-000000000000",
     #   "tenantId": "00000000-0000-0000-0000-000000000000"
     # }
+    secrets: inherit
     with:
       scope: resource_group
       resource_group: 'sample-dev'

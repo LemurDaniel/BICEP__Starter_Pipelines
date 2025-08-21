@@ -1,10 +1,10 @@
 name: "Manage ACR Access Restrictions"
 description: "Manages ACR access restrictions using PowerShell"
 inputs:
-  display_name:
-    type: string
-    description: The display name for the action
-    required: true
+  subscription_id:
+    description: 'Azure Subscription Id'
+    required: false
+    default: ''
 
   pwsh_version:
     type: string
@@ -66,43 +66,38 @@ inputs:
     required: false
     default: '' # Ignore | NoChange | Deploy | Create | Modify | Delete
 
-  # Name or Id of the Registry
+  # Name or Id of the registries
   # Single mode
-  #  - Registry: acr-bla-dev-001
+  #  - registries: acr-bla-dev-001
   # Multi mode
-  #  - Registry: |
+  #  - registries: |
   #     acr-bla-dev-001
   #     acr-bla-dev-002
-  registry:
-    description: 'ACR Name(s), comma separated'
+  registries:
+    description: Container Registry Names
     required: true
     default: ''
     
 runs:
   using: "composite"
   steps:
-    - name: Azure Login
-      uses: azure/login@v1
+    - name: Add ACR IP Rule
+      uses: ./.github/actions/tmpl.bicepRegistry.ipRules
       with:
-        creds: ${{ secrets.AZURE_DEPLOYMENT_SPN }}
-        enable-AzPSSession: true
-
-    - uses: ./.github/actions/tmpl.bicepRegistry.ipRules.yaml
-      with:
-        condition: ne('${{ inputs.registry }}', '')
+        condition: ${{ inputs.registries != '' }}
         restriction_mode: AllowAccess
-        registry: ${{ inputs.registry }}
+        registries: ${{ inputs.registries }}
         pwsh_version: ${{ inputs.pwsh_version }}
 
-    - name: ${{ inputs.display_name }} 
+    - name: Run Bicep Deployment
       uses: azure/powershell@v2
       if: inputs.condition
       with:
         azPSVersion: ${{ inputs.pwsh_version }}
         inlineScript: |
 
-            if(-NOT [System.String]::IsNullOrEmpty('${{ secrets.subscription_id }}')) {
-              Set-AzContext -Subscription ${{ secrets.subscription_id }}
+            if(-NOT [System.String]::IsNullOrEmpty('${{ inputs.subscription_id }}')) {
+              Set-AzContext -Subscription ${{ inputs.subscription_id }}
             }
 
             $Deployment = @{
@@ -118,12 +113,15 @@ runs:
             if([System.Boolean]::Parse('${{ inputs.what_if }}')) {
                 $Deployment.Add('WhatIf', $true)
                 $Deployment.Add('WhatIfResultFormat', '${{ inputs.what_if_result_format }}')
-                Start-Transcript -Path "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
+                Start-Transcript -Path "./bicep_whatif.txt"
             } else {
                 $Deployment.Add('DenySettingsMode', '${{ inputs.deny_settings_mode }}')
                 $Deployment.Add('actionOnUnmanage', '${{ inputs.action_on_unmanage }}')
             }
 
+            Write-Host "////////////////////////////////////////////////////////////////////////////////"
+            Write-Host "////////////////////////////////////////////////////////////////////////////////"
+            Write-Host "////// Bicep Deployment"
             if('${{ inputs.scope }}' -EQ 'subscription') {
               if([System.String]::IsNullOrEmpty('${{ inputs.location }}')) {
                 throw "Subscription Deployment needs a location!"
@@ -161,9 +159,13 @@ runs:
                 Stop-Transcript
             }
 
-    - uses: ./.github/actions/tmpl.bicepRegistry.ipRules.yaml
+            Write-Host "////////////////////////////////////////////////////////////////////////////////"
+            Write-Host "////////////////////////////////////////////////////////////////////////////////"
+
+    - name: Remove ACR IP Rule
+      uses: ./.github/actions/tmpl.bicepRegistry.ipRules
       with:
-        condition: ${{ inputs.registry != '' }}
+        condition: ${{ inputs.registries != '' }}
         restriction_mode: RemoveAccess
-        registry: ${{ inputs.registry }}
+        registries: ${{ inputs.registries }}
         pwsh_version: ${{ inputs.pwsh_version }}

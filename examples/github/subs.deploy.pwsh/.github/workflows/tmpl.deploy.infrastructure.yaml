@@ -104,12 +104,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Azure Login
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_DEPLOYMENT_SPN }}
+          creds: ${{ secrets.AZURE_CICDSPN }}
           enable-AzPSSession: true
 
       - name: Run Bicep Tests
@@ -190,12 +190,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Azure Login
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_DEPLOYMENT_SPN }}
+          creds: ${{ secrets.AZURE_CICDSPN }}
           enable-AzPSSession: true
 
       - name: Deploy ${{ inputs.template_file }}

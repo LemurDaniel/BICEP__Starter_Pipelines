@@ -116,7 +116,7 @@ jobs:
             azPSVersion: ${{ inputs.azps_version }}
             inlineScript: |
 
-              Update-AzContainerRegistryTag `
+              $null = Update-AzContainerRegistryTag `
                 -RegistryName "${{ inputs.registry }}" `
                 -RepositoryName "${{ env.ACR_IMAGE_NAME }}" `
                 -Name "${{ env.ACR_IMAGE_TAG }}" `
