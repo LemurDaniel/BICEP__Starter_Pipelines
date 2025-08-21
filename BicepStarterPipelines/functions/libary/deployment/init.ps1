@@ -164,8 +164,9 @@ else {
     $zipArchive = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
     $namingModule = $zipArchive.Entries 
     | Where-Object -Property FullName -LIKE "*utility/naming*" 
+    | Where-Object -Property FullName -NOTLIKE "*schema/defaults*"
+    | Where-Object -Property FullName -NOTLIKE "*schema/module*"
     | Where-Object -Property FullName -NOTLIKE "*example*" `
-    | Where-Object -Property FullName -NOTLIKE "*defaults*"
     | Where-Object -Property Name -NE "version.json"
     | Where-Object -Property Name -NE "readme.md"
     | Sort-Object -Property Length
