@@ -29,11 +29,14 @@ variables:
 
 parameters:
   - name: WhatIfOnly
-    type: string
+    type: boolean
     default: true
   - name: WhatIfResultFormat
     type: string
-    default: 'FullResourcePayloads' # ResourceIdOnly | FullResourcePayloads
+    default: 'FullResourcePayloads'
+    values:
+      - ResourceIdOnly
+      - FullResourcePayloads
 
   # deployment stack configurations
   - name: denySettingsMode
@@ -74,11 +77,6 @@ stages:
       serviceConnection: project-connection-dev
       # variableGroup: bicep-deploy-dev
 
-      # NOTE: 
-      # - This will always fail due to being an expermimental feature (As of Date: 2025.03.21)
-      # - Bicep tests are still an experimental feature and not yet production ready.
-      # runBicepTests: true
-
       # Show a tree structure of the folder
       # showTree: true
 
@@ -98,17 +96,16 @@ stages:
       # --- on resource group scope
       resourceGroup: rg-sample-dev
 
+      # setTemporaryIpRules: |
+      #   acr-sample-dev
+
+
   - template: stage/tmpl.bicep.infra.parameters.yaml
     parameters:
       stage: test
       condition: eq(variables['Build.SourceBranch'], 'refs/heads/dev')
       serviceConnection: project-connection-test
       # variableGroup: bicep-deploy-test
-
-      # NOTE: 
-      # - This will always fail due to being an expermimental feature (As of Date: 2025.03.21)
-      # - Bicep tests are still an experimental feature and not yet production ready.
-      # runBicepTests: true
 
       # Show a tree structure of the folder
       # showTree: true
@@ -129,17 +126,16 @@ stages:
       # --- on resource group scope
       resourceGroup: rg-sample-test
 
+      # setTemporaryIpRules: |
+      #   acr-sample-test
+
+
   - template: stage/tmpl.bicep.infra.parameters.yaml
     parameters:
       stage: prod
       condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
       serviceConnection: project-connection-prod
       # variableGroup: bicep-deploy-prod
-
-      # NOTE: 
-      # - This will always fail due to being an expermimental feature (As of Date: 2025.03.21)
-      # - Bicep tests are still an experimental feature and not yet production ready.
-      # runBicepTests: true
 
       # Show a tree structure of the folder
       # showTree: true
@@ -159,3 +155,7 @@ stages:
 
       # --- on resource group scope
       resourceGroup: rg-sample-prod
+
+      # setTemporaryIpRules: |
+      #   acr-sample-prod
+

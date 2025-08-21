@@ -117,6 +117,7 @@ $pipelineTemplates = Get-ChildItem -Path $pipelineTemplateFolder -Recurse -Depth
 
 foreach ($tmpl in $pipelineTemplates) {
   if (
+    $tmpl.Name -NOTLIKE "*.yaml" -AND
     $tmpl.Name -NOTLIKE "*.yaml.$selectedMethod" -AND 
     $tmpl.Name -NOTLIKE "*.yaml.$selectedScope" -AND 
     $tmpl.Name -NOTLIKE "*.yaml.$selectedMethod.$selectedScript" -AND 

@@ -31,9 +31,9 @@ parameters:
 steps:
   - task: AzurePowerShell@5
     ${{ if eq(parameters.restrictionMode, 'AllowAccess') }}:
-      displayName: "Add Access Restrictions"
+      displayName: "Add ACR IP Rule"
     ${{ else }}:
-      displayName: "Remove Access Restrictions"
+      displayName: "Remove ACR IP Rule"
     condition: and(${{ parameters.condition }}, always())
     inputs:
       azureSubscription: ${{ parameters.serviceConnection }}
@@ -42,6 +42,7 @@ steps:
       pwsh: true
       inline: |
 
+        $agentHostPublicIp = Invoke-RestMethod -Uri "https://api.ipify.org"
         $allowAgentIp = '${{ parameters.restrictionMode }}' -EQ 'AllowAccess'
 
         $contexts = @()
@@ -49,7 +50,7 @@ steps:
         foreach($subscription in (Get-AzSubscription)) {
           $contexts += Set-AzContext -SubscriptionId $subscription.Id
         }
-        Set-AzContext Context $defaultContext
+        Set-AzContext -Context $defaultContext
 
         $registries = "${{ parameters.registries }}" -replace "`r`n", "," -replace "`n", "," -split ','
         | Where-Object { -NOT [System.String]::IsNullOrEmpty($_) } 
@@ -58,8 +59,10 @@ steps:
 
           foreach($context in $contexts) {
             Write-Host "Searching for Registry: $name in context: $($context.Subscription.Id)"
-            $registry = Get-AzContainerRegistry -Name $name -AzContext $context
+
+            $registry = Get-AzResource -AzContext $context -Name agavdabrgbarebar -ResourceType Microsoft.ContainerRegistry/registries 
             if($null -NE $registry) {
+              $registry = Get-AzContainerRegistry -Name $name -ResourceGroupName $registry.ResourceGroupName -AzureRMContext $context
               $registry | Add-Member NoteProperty AzContext $context -Force
               return $registry
             }
@@ -70,10 +73,20 @@ steps:
 
         foreach($registry in $registries) {
           Write-Output "Removing access restriction from Container Registry: $($registry.Name)"
-          Remove-AzContainerRegistryAccessPolicy -ErrorAction Continue -AzContext $registry.AzContext `
-            -ResourceGroupName $registry.ResourceGroup `
-            -RegistryName $registry.Name `
-            -Name "AllowAzureDevOpsAgent"
+
+          $rules = $registry.NetworkRuleSetIPRule
+
+          if($rules.Count -EQ 0) {
+            continue
+          }
+
+          $rules = $rules | Where-Object -Property IPAddressOrRange -NE $agentHostPublicIp
+
+          Update-AzContainerRegistry -AzureRMContext $registry.AzContext -Name $registry.Name `
+            -ResourceGroupName $registry.ResourceGroupName `
+            -NetworkRuleBypassOption $registry.NetworkRuleBypassOption `
+            -NetworkRuleSetDefaultAction $registry.NetworkRuleSetDefaultAction `
+            -NetworkRuleSetIPRule $rules
         }
 
         # Check if we should add the access restriction
@@ -82,15 +95,26 @@ steps:
           return
         }
 
-        $agentHostPublicIp = Invoke-RestMethod -Uri "https://api.ipify.org"
         Write-Output "Public IP of agent to add: $agentHostPublicIp"
         Write-Output ""
         Write-Output "############################################"
 
         foreach($registry in $registries) {
-          Write-Output "Adding access restriction to Container Registry: $($registry.Name)"
-          Add-AzContainerRegistryAccessPolicy -ErrorAction Continue -AzContext $registry.AzContext `
-            -ResourceGroupName $registry.ResourceGroup `
-            -RegistryName $registry.Name `
-            -Name "AllowAzureDevOpsAgent"
+            Write-Output "Adding access restriction to Container Registry: $($registry.Name)"
+
+            $rules = $null
+            $rules = $registry.NetworkRuleSetIPRule
+
+            if($agentHostPublicIp -IN $rules.IPAddressOrRange) {
+              Write-Output "IP already exists in rules, skipping..."
+              continue
+            }
+
+            $rules += New-AzContainerRegistryIPRuleObject -Action 'Allow' -IPAddressOrRange $agentHostPublicIp
+
+            Update-AzContainerRegistry -AzureRMContext $registry.AzContext -Name $registry.Name `
+              -ResourceGroupName $registry.ResourceGroupName `
+              -NetworkRuleBypassOption $registry.NetworkRuleBypassOption `
+              -NetworkRuleSetDefaultAction $registry.NetworkRuleSetDefaultAction `
+              -NetworkRuleSetIPRule $rules
         }

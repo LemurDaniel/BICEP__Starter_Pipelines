@@ -29,11 +29,14 @@ variables:
 
 parameters:
   - name: WhatIfOnly
-    type: string
+    type: boolean
     default: true
   - name: WhatIfResultFormat
     type: string
-    default: 'FullResourcePayloads' # ResourceIdOnly | FullResourcePayloads
+    default: 'FullResourcePayloads'
+    values:
+      - ResourceIdOnly
+      - FullResourcePayloads
 
 # NOTE:
 # ServiceConnection must be known at pipeline compile time.
@@ -55,11 +58,6 @@ stages:
       condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/test')
       serviceConnection: project-connection-test
       # variableGroup: bicep-deploy-test
-
-      # NOTE: 
-      # - This will always fail due to being an expermimental feature (As of Date: 2025.03.21)
-      # - Bicep tests are still an experimental feature and not yet production ready.
-      # runBicepTests: true
 
       # Show a tree structure of the folder
       # showTree: true
@@ -84,11 +82,6 @@ stages:
       condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/master')
       serviceConnection: project-connection-prod
       # variableGroup: bicep-deploy-prod
-
-      # NOTE: 
-      # - This will always fail due to being an expermimental feature (As of Date: 2025.03.21)
-      # - Bicep tests are still an experimental feature and not yet production ready.
-      # runBicepTests: true
 
       # Show a tree structure of the folder
       # showTree: true

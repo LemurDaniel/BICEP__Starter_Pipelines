@@ -78,72 +78,68 @@ stages:
     jobs:
       #////////////////////////////////////////////////////////////
       #////// WhatIf
-      - deployment: what_if_${{ parameters.stage }}
+      - job: what_if_${{ parameters.stage }}
         displayName: WhatIf Bicep ${{ parameters.stage }}
-        environment: ${{ parameters.stage }}
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - checkout: self
-                - ${{ each subModule in parameters.checkoutSubModules }}:
-                    - checkout: ${{ subModule.alias }}
-                      path: s/$(Build.Repository.Name)/${{ subModule.path }}
-                #////////////////////////////////////////////////////////////
-                #////// Tree Command
-                - script: |
-                    sudo apt-get update
-                    sudo apt-get install -y tree
-                  displayName: Install tree
-                  condition: ${{ parameters.showTree }}
-                - script: |
-                    tree $(Build.SourcesDirectory)
-                  condition: ${{ parameters.showTree }}
-                  displayName: Show directory
-                #////////////////////////////////////////////////////////////
-                #////// Bicep Tests
-                - task: AzurePowerShell@5
-                  condition: eq(${{ parameters.runBicepTests }}, true)
-                  displayName: Bicep Test ${{ parameters.stage }}
-                  inputs:
-                    azureSubscription: ${{ parameters.serviceConnection }}
-                    azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
-                    ScriptType: inlineScript
-                    pwsh: true
-                    inline: |
-                      $testFiles = Get-ChildItem -Path "$(Build.SourcesDirectory)" -Filter *test.bicep -Recurse -Depth 4
-                      foreach($file in $testFiles) {
-                        bicep test $file.FullName
-                      }
-                #////////////////////////////////////////////////////////////
-                #////// WhatIf
-                - template: ./../steps/tmpl.bicep.infra.deploy.yaml
-                  parameters:
-                    displayName: WhatIf Bicep ${{ parameters.stage }}
+        steps:
+          - checkout: self
+          - ${{ each subModule in parameters.checkoutSubModules }}:
+              - checkout: ${{ subModule.alias }}
+                path: s/$(Build.Repository.Name)/${{ subModule.path }}
+          #////////////////////////////////////////////////////////////
+          #////// Tree Command
+          - script: |
+              sudo apt-get update
+              sudo apt-get install -y tree
+            displayName: Install tree
+            condition: ${{ parameters.showTree }}
+          - script: |
+              tree $(Build.SourcesDirectory)
+            condition: ${{ parameters.showTree }}
+            displayName: Show directory
+          #////////////////////////////////////////////////////////////
+          #////// Bicep Tests
+          - task: AzurePowerShell@5
+            condition: eq(${{ parameters.runBicepTests }}, true)
+            displayName: Bicep Test ${{ parameters.stage }}
+            inputs:
+              azureSubscription: ${{ parameters.serviceConnection }}
+              azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
+              ScriptType: inlineScript
+              pwsh: true
+              inline: |
+                $testFiles = Get-ChildItem -Path "$(Build.SourcesDirectory)" -Filter *test.bicep -Recurse -Depth 4
+                foreach($file in $testFiles) {
+                  bicep test $file.FullName
+                }
+          #////////////////////////////////////////////////////////////
+          #////// WhatIf
+          - template: /.devops/steps/tmpl.bicep.infra.deploy.yaml
+            parameters:
+              displayName: WhatIf Bicep ${{ parameters.stage }}
 
-                    subscriptionId: ${{ parameters.subscriptionId }}
-                    serviceConnection: ${{ parameters.serviceConnection }}
-                    azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
+              subscriptionId: ${{ parameters.subscriptionId }}
+              serviceConnection: ${{ parameters.serviceConnection }}
+              azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
 
-                    scope: ${{ parameters.scope }}
-                    location: ${{ parameters.location }}
-                    resourceGroup: ${{ parameters.resourceGroup }}
+              scope: ${{ parameters.scope }}
+              location: ${{ parameters.location }}
+              resourceGroup: ${{ parameters.resourceGroup }}
 
-                    deploymentName: ${{ parameters.deploymentName }}
-                    templateFile: ${{ parameters.templateFile }}
-                    parametersFile: ${{ parameters.parametersFile }}
+              deploymentName: ${{ parameters.deploymentName }}
+              templateFile: ${{ parameters.templateFile }}
+              parametersFile: ${{ parameters.parametersFile }}
 
-                    WhatIf: true
-                    WhatIfResultFormat: ${{ parameters.WhatIfResultFormat }}
-                    WhatIfExcludeChange: ${{ parameters.WhatIfExcludeChange }}
+              WhatIf: true
+              WhatIfResultFormat: ${{ parameters.WhatIfResultFormat }}
+              WhatIfExcludeChange: ${{ parameters.WhatIfExcludeChange }}
 
-                    registries: ${{ parameters.setTemporaryIpRules }}
+              registries: ${{ parameters.setTemporaryIpRules }}
 
-                - task: PublishBuildArtifacts@1
-                  displayName: "Bicep WhatIf Artifact"
-                  inputs:
-                    targetPath: "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
-                    artifactName: "bicep_whatif_${{ parameters.stage }}"
+          - task: PublishBuildArtifacts@1
+            displayName: "Bicep WhatIf Artifact"
+            inputs:
+              targetPath: "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
+              artifactName: "bicep_whatif_${{ parameters.stage }}"
 
       - job: approve_${{ parameters.stage }}
         condition: and(succeeded(), eq(${{ parameters.WhatIfOnly }}, false))
@@ -157,35 +153,31 @@ stages:
 
       #////////////////////////////////////////////////////////////
       #////// Deploy
-      - deployment: deployment_${{ parameters.stage }}
+      - job: deployment_${{ parameters.stage }}
         condition: and(succeeded(), eq(${{ parameters.WhatIfOnly }}, false))
         dependsOn: approve_${{ parameters.stage }}
         displayName: Deploy Bicep ${{ parameters.stage }}
-        environment: ${{ parameters.stage }}
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - checkout: self
-                - ${{ each subModule in parameters.checkoutSubModules }}:
-                    - checkout: ${{ subModule.alias }}
-                      path: s/$(Build.Repository.Name)/${{ subModule.path }}
+        steps:
+          - checkout: self
+          - ${{ each subModule in parameters.checkoutSubModules }}:
+              - checkout: ${{ subModule.alias }}
+                path: s/$(Build.Repository.Name)/${{ subModule.path }}
 
-                - template: ./../steps/tmpl.bicep.infra.deploy.yaml
-                  parameters:
-                    displayName: Deploy Bicep ${{ parameters.stage }}
+          - template: /.devops/steps/tmpl.bicep.infra.deploy.yaml
+            parameters:
+              displayName: Deploy Bicep ${{ parameters.stage }}
 
-                    subscriptionId: ${{ parameters.subscriptionId }}
-                    serviceConnection: ${{ parameters.serviceConnection }}
-                    azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
+              subscriptionId: ${{ parameters.subscriptionId }}
+              serviceConnection: ${{ parameters.serviceConnection }}
+              azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
 
-                    scope: ${{ parameters.scope }}
-                    location: ${{ parameters.location }}
-                    resourceGroup: ${{ parameters.resourceGroup }}
+              scope: ${{ parameters.scope }}
+              location: ${{ parameters.location }}
+              resourceGroup: ${{ parameters.resourceGroup }}
 
-                    deploymentName: ${{ parameters.deploymentName }}
-                    templateFile: ${{ parameters.templateFile }}
-                    parametersFile: ${{ parameters.parametersFile }}
+              deploymentName: ${{ parameters.deploymentName }}
+              templateFile: ${{ parameters.templateFile }}
+              parametersFile: ${{ parameters.parametersFile }}
 
-                    registries: ${{ parameters.setTemporaryIpRules }}
+              registries: ${{ parameters.setTemporaryIpRules }}
 

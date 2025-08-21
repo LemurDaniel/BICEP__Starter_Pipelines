@@ -9,7 +9,7 @@ targetScope = 'resourceGroup'
 import {
   demoExportedVariable
   demoTypeDefinition
-} from '../exports/demo.bicep'
+} from '../modules/utility/demo.bicep'
 
 /*
 

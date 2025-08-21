@@ -62,7 +62,7 @@ steps:
       restrictionMode: AllowAccess
       serviceConnection: ${{ parameters.serviceConnection }}
       azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
-      registry: ${{ parameters.registries }}
+      registries: ${{ parameters.registries }}
   - task: AzurePowerShell@5
     displayName: ${{ parameters.displayName }}
     inputs:
@@ -82,10 +82,13 @@ steps:
             TemplateParameterFile   = '${{ parameters.parametersFile }}'
         }
 
-        $workingDir = '$(Build.SourcesDirectory)/$(Build.Repository.Name)'
-
-        $Deployment['TemplateFile']          = "$workingDir/$($Deployment['TemplateFile'])"
-        $Deployment['TemplateParameterFile'] = "$workingDir/$($Deployment['TemplateParameterFile'])"
+        # Adjust path when multiple repos are checked out
+        $workingDirIsGitRepo = (Get-ChildItem -Hidden -Filter ".git").Count -EQ 1
+        if(-NOT $workingDirIsGitRepo) {
+          $workingDir = '$(Build.SourcesDirectory)/$(Build.Repository.Name)'
+          $Deployment['TemplateFile']          = "$workingDir/$($Deployment['TemplateFile'])"
+          $Deployment['TemplateParameterFile'] = "$workingDir/$($Deployment['TemplateParameterFile'])"
+        }
 
         if(-NOT [System.String]::IsNullOrEmpty('${{ parameters.WhatIfExcludeChange }}')) {
             $Deployment.Add('WhatIfExcludeChangeType', '${{ parameters.WhatIfExcludeChange }}')
@@ -128,4 +131,4 @@ steps:
       restrictionMode: RemoveAccess
       serviceConnection: ${{ parameters.serviceConnection }}
       azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
-      registry: ${{ parameters.registries }}
+      registries: ${{ parameters.registries }}
