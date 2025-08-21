@@ -39,6 +39,19 @@ on:
         required: false
         default: 'ubuntu-latest'
 
+      # Name or Id of the set_temporary_ip_rules
+      # Single mode
+      #  - set_temporary_ip_rules: acr-bla-dev-001
+      # Multi mode
+      #  - set_temporary_ip_rules: |
+      #     acr-bla-dev-001
+      #     acr-bla-dev-002
+      set_temporary_ip_rules:
+        type: string
+        description: Temporary IP Rules to apply on container registries
+        required: false
+        default: ''
+
 jobs:
   publish_module:
     name: Verify ${{ inputs.module }}
@@ -70,6 +83,13 @@ jobs:
         # ////////////////////////////////////////////////////////////////////////////////////////
         # Runs bicep tests and Test deployment
         #
+        - name: Add ACR IP Rule
+          uses: ./.github/actions/tmpl.bicepRegistry.ipRules
+          if: ${{ inputs.set_temporary_ip_rules!= '' }}
+          with:
+            restriction_mode: AllowAccess
+            registries: ${{ inputs.set_temporary_ip_rules }}
+            azps_version: ${{ inputs.azps_version }}
 
         - name: Test Frame Work for ${{ inputs.module }}
           if: ${{ inputs.run_bicep_test }}
@@ -97,3 +117,11 @@ jobs:
             azPSVersion: ${{ inputs.azps_version }}
             inlineScript: |
               . ./.scripts/deploy.ps1 -ModulePath "${{ env.MODULE_PATH }}"
+
+        - name: Remove ACR IP Rule
+          uses: ./.github/actions/tmpl.bicepRegistry.ipRules
+          if: ${{ always() && inputs.set_temporary_ip_rules!= '' }}
+          with:
+            restriction_mode: RemoveAccess
+            registries: ${{ inputs.set_temporary_ip_rules }}
+            azps_version: ${{ inputs.azps_version }}

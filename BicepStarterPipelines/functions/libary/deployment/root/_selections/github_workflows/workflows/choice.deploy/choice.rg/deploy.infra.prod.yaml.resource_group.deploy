@@ -53,3 +53,6 @@ jobs:
       parameter_file: ./params/main.prod.bicepparam
       
       what_if_only: ${{ github.EVENT_NAME  == 'pull_request' || inputs.what_if_only == true }}
+
+      # set_temporary_ip_rules: |
+      #   acr-sample-prod

@@ -82,6 +82,9 @@ stages:
       # --- on resource group scope
       # resourceGroup: rg-sample-dev
 
+      # setTemporaryIpRules: |
+      #   acr-sample-dev
+
   - template: stage/tmpl.bicep.infra.parameters.yaml
     parameters:
       stage: test
@@ -106,6 +109,9 @@ stages:
       # --- on resource group scope
       # resourceGroup: rg-sample-test
 
+      # setTemporaryIpRules: |
+      #   acr-sample-test
+
   - template: stage/tmpl.bicep.infra.parameters.yaml
     parameters:
       stage: prod
@@ -129,3 +135,6 @@ stages:
 
       # --- on resource group scope
       # resourceGroup: rg-sample-prod
+
+      # setTemporaryIpRules: |
+      #   acr-sample-prod

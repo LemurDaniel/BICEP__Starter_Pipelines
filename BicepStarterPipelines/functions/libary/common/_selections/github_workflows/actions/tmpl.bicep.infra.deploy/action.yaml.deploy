@@ -6,7 +6,7 @@ inputs:
     required: false
     default: ''
 
-  pwsh_version:
+  azps_version:
     description: The Azure PowerShell version to use
     required: false
     default: "12.1.0"
@@ -52,7 +52,7 @@ runs:
     - name: Run Bicep Deployment
       uses: azure/powershell@v2
       with:
-        azPSVersion: ${{ inputs.pwsh_version }}
+        azPSVersion: ${{ inputs.azps_version }}
         inlineScript: |
 
             if(-NOT [System.String]::IsNullOrEmpty('${{ inputs.subscription_id }}')) {

@@ -1,7 +1,7 @@
 name: "Manage ACR Access Restrictions"
 description: "Manages ACR access restrictions using PowerShell"
 inputs:
-  pwsh_version:
+  azps_version:
     description: "Azure PowerShell Version"
     required: false
     default: "LatestVersion"
@@ -28,7 +28,7 @@ runs:
     - name: ${{ inputs.restriction_mode == 'AllowAccess' && 'Add ACR IP Rule' || 'Remove ACR IP Rule' }}
       uses: azure/powershell@v2
       with:
-        azPSVersion: ${{ inputs.pwsh_version }}
+        azPSVersion: ${{ inputs.azps_version }}
         inlineScript: |
 
           $agentHostPublicIp = Invoke-RestMethod -Uri "https://api.ipify.org"

@@ -50,6 +50,19 @@ on:
         required: false
         default: 'ubuntu-latest'
 
+      # Name or Id of the set_temporary_ip_rules
+      # Single mode
+      #  - set_temporary_ip_rules: acr-bla-dev-001
+      # Multi mode
+      #  - set_temporary_ip_rules: |
+      #     acr-bla-dev-001
+      #     acr-bla-dev-002
+      set_temporary_ip_rules:
+        type: string
+        description: Temporary IP Rules to apply on container registries
+        required: false
+        default: ''
+
 jobs:
   publish_module:
     name: Publish ${{ inputs.module }}
@@ -97,6 +110,14 @@ jobs:
         # ////////////////////////////////////////////////////////////////////////////////////////
         # Publish and optionally lock image
         #
+        - name: Add ACR IP Rule
+          uses: ./.github/actions/tmpl.bicepRegistry.ipRules
+          if: ${{ inputs.set_temporary_ip_rules!= '' }}
+          with:
+            restriction_mode: AllowAccess
+            registries: ${{ inputs.set_temporary_ip_rules }}
+            azps_version: ${{ inputs.azps_version }}
+
         - name: Publish Bicep ${{ env.ACR_IMAGE_NAME }}:${{ env.ACR_IMAGE_TAG }}
           uses: azure/powershell@v2
           with:
@@ -116,9 +137,17 @@ jobs:
             azPSVersion: ${{ inputs.azps_version }}
             inlineScript: |
 
-              $null = Update-AzContainerRegistryTag `
+              Update-AzContainerRegistryTag `
                 -RegistryName "${{ inputs.registry }}" `
                 -RepositoryName "${{ env.ACR_IMAGE_NAME }}" `
                 -Name "${{ env.ACR_IMAGE_TAG }}" `
                 -WriteEnabled $false `
                 -DeleteEnabled $false
+
+        - name: Remove ACR IP Rule
+          uses: ./.github/actions/tmpl.bicepRegistry.ipRules
+          if: ${{ always() && inputs.set_temporary_ip_rules!= '' }}
+          with:
+            restriction_mode: RemoveAccess
+            registries: ${{ inputs.set_temporary_ip_rules }}
+            azps_version: ${{ inputs.azps_version }}

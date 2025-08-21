@@ -62,6 +62,10 @@ jobs:
       folder: ${{ needs.detect_changes.outputs.module_folder }}
       module: ${{ matrix.module }}
 
+      # set_temporary_ip_rules: |
+      #   acr-sample-test-001
+
+
   publish_solution:
     needs: 
     - detect_changes
@@ -81,3 +85,6 @@ jobs:
 
       prefix: ${{ github.event_name == 'push' && '' || 'unreleased/' }}     
       immutable: ${{ github.event_name == 'push' }}
+
+      # set_temporary_ip_rules: |
+      #   acr-sample-test-001
