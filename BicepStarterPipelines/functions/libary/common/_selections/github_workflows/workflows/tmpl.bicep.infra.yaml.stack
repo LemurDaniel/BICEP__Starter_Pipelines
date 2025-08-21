@@ -144,7 +144,7 @@ jobs:
 
       - name: Add ACR IP Rule
         uses: ./.github/actions/tmpl.bicepRegistry.ipRules
-        if: ${{ inputs.registries != '' }}
+        if: ${{ inputs.set_temporary_ip_rules != '' }}
         with:
           restriction_mode: AllowAccess
           registries: ${{ inputs.set_temporary_ip_rules }}
@@ -171,7 +171,7 @@ jobs:
 
       - name: Remove ACR IP Rule
         uses: ./.github/actions/tmpl.bicepRegistry.ipRules
-        if: ${{ always() && inputs.registries != '' }}
+        if: ${{ always() && inputs.set_temporary_ip_rules!= '' }}
         with:
           restriction_mode: RemoveAccess
           registries: ${{ inputs.set_temporary_ip_rules }}
@@ -207,7 +207,7 @@ jobs:
 
       - name: Add ACR IP Rule
         uses: ./.github/actions/tmpl.bicepRegistry.ipRules
-        if: ${{ inputs.registries != '' }}
+        if: ${{ inputs.set_temporary_ip_rules != '' }}
         with:
           restriction_mode: AllowAccess
           registries: ${{ inputs.set_temporary_ip_rules }}
@@ -230,7 +230,7 @@ jobs:
 
       - name: Remove ACR IP Rule
         uses: ./.github/actions/tmpl.bicepRegistry.ipRules
-        if: ${{ always() && inputs.registries != '' }}
+        if: ${{ always() && inputs.set_temporary_ip_rules!= '' }}
         with:
           restriction_mode: RemoveAccess
           registries: ${{ inputs.set_temporary_ip_rules }}
