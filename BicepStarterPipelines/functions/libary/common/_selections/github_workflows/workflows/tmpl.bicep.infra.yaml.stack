@@ -185,8 +185,6 @@ jobs:
           path: ./bicep_whatif.txt
           retention-days: ${{ inputs.what_if_retention_days }}
 
-
-
   deploy_bicep:
     needs:
     - what_if
