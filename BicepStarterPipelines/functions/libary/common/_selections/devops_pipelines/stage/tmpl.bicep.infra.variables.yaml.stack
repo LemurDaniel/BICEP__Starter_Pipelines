@@ -42,9 +42,29 @@ parameters:
   - name: azurePowerShellVersion
     type: string
     default: LatestVersion
+  # Name or Id of the registries
+  # Single mode
+  #  - setTemporaryIpRules: acr-bla-dev-001
+  # Multi mode
+  #  - setTemporaryIpRules: |
+  #     acr-bla-dev-001
+  #     acr-bla-dev-002
   - name: setTemporaryIpRules
     type: string
     default: ''
+
+  # Checkout repositories to a path
+  # checkoutSubModules:
+  # - alias: sharedModules
+  #   path: ./modules
+  #
+  # Repositoires must be added with an alias before!
+  #  resources:
+  #    repositories:
+  #      - repository: sharedModules
+  #        name: <PROJECT>/<REPO_NAME>
+  #        type: git
+  #        ref: refs/tags/v1.0.0
   - name: checkoutSubModules
     type: object
     default: {}

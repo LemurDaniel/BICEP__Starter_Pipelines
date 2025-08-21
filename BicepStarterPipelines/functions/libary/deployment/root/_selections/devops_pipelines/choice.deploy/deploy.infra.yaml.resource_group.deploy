@@ -1,8 +1,14 @@
-name: Bicep Deployment
 
+# Reference repositories to checkout multiple repos:
 #
-# This is a template for deploying a Bicep file
-#
+# resources:
+#   repositories:
+#     - repository: sharedModules
+#       name: <PROJECT>/<REPO_NAME>
+#       type: git
+#       ref: refs/tags/v1.0.0
+
+name: Bicep Deployment
 
 # NOTE:
 # This may need to be adjusted to your used pool
@@ -85,6 +91,11 @@ stages:
       # setTemporaryIpRules: |
       #   acr-sample-dev
 
+      # alias refers to 'repository: sharedModules' in resources at the very top
+      # checkoutSubModules:
+      # - alias: sharedModules 
+      #   path: ./sharedModules
+
 
   - template: stage/tmpl.bicep.infra.parameters.yaml
     parameters:
@@ -113,6 +124,11 @@ stages:
       # setTemporaryIpRules: |
       #   acr-sample-test
 
+      # alias refers to 'repository: sharedModules' in resources at the very top
+      # checkoutSubModules:
+      # - alias: sharedModules 
+      #   path: ./sharedModules
+
 
   - template: stage/tmpl.bicep.infra.parameters.yaml
     parameters:
@@ -140,3 +156,8 @@ stages:
 
       # setTemporaryIpRules: |
       #   acr-sample-prod
+
+      # alias refers to 'repository: sharedModules' in resources at the very top
+      # checkoutSubModules:
+      # - alias: sharedModules 
+      #   path: ./sharedModules
