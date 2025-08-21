@@ -91,7 +91,6 @@ runs:
 
     - name: Run Bicep Deployment
       uses: azure/powershell@v2
-      if: inputs.condition
       with:
         azPSVersion: ${{ inputs.pwsh_version }}
         inlineScript: |
