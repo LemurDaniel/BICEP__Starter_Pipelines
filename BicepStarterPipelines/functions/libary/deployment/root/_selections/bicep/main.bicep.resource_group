@@ -1,5 +1,12 @@
 targetScope = 'resourceGroup'
 
+import { schemaReference } from 'var.naming.bicep'
+
+output testName string = genName('Microsoft.Web/site', schemaReference, 'westeurope', {
+  environment: 'development'
+  name: 'test'
+})
+
 /*
 
   #################################################

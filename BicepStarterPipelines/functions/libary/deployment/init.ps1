@@ -4,6 +4,7 @@ param(
   [System.String]$Scope = $null,
   [System.String]$Script = $null,
   [System.String]$Pipeline = $null,
+  [System.String]$ModuleReleaseUrl = $null,
   [switch]$PipelineOnly
 )
 
@@ -60,7 +61,7 @@ $deploymentScripts = [ordered]@{
 
 $selectedScript = $deploymentScripts[$Script]
 
-if($selectedScript -EQ 'cli') {
+if ($selectedScript -EQ 'cli') {
   Write-Warning "The Azure CLI pipeline in this module are not maintained anymore, due to too much overhead."
   Write-Warning "Please. consider using PowerShell Pipelines instead."
 }
@@ -153,6 +154,50 @@ if ($PipelineOnly.IsPresent) {
   | Where-Object -Property Name -INE '.github'
   | Where-Object -Property Name -INE '.devops'
   | Remove-Item -Recurse -Force
+}
+else {
+
+  try {
+    $zipPath = "$stagingDir/modules/temp.zip"
+    $null = Invoke-WebRequest -Uri $ModuleReleaseUrl -OutFile $zipPath
+
+    $zipArchive = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
+    $namingModule = $zipArchive.Entries 
+    | Where-Object -Property FullName -LIKE "*utility/naming*" 
+    | Where-Object -Property FullName -NOTLIKE "*example*" `
+    | Where-Object -Property FullName -NOTLIKE "*defaults*"
+    | Where-Object -Property Name -NE "version.json"
+    | Where-Object -Property Name -NE "readme.md"
+    | Sort-Object -Property Length
+
+    foreach ($entry in $namingModule) {
+
+      $segments = $entry.FullName -split "/"
+      $segments = $segments 
+      | Select-Object -Skip $segments.IndexOf("utility")
+
+      $relativePath = $segments -join "/"
+      $fileItem = [System.IO.FileInfo]::new("$stagingDir/modules/$relativePath")
+
+      if (-NOT $fileItem.Parent.Exists) {
+        $null = New-Item -ItemType Directory -Path $fileItem.DirectoryName -ErrorAction SilentlyContinue
+      }
+
+      if ([System.String]::IsNullOrEmpty($fileItem.Extension)) {
+        continue
+      }
+
+      [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $fileItem.FullName, $true)
+    }
+
+    $zipArchive.Dispose()
+    Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue
+  }
+  catch {
+    Write-Host -ForegroundColor Red "Error when downloading naming module"
+    Write-Host -ForegroundColor Red "URL: $ModuleReleaseUrl"
+  }
+
 }
 
 

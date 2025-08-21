@@ -49,6 +49,8 @@ function Initialize-BicepStarterPipeline {
         $Pipeline = $null
     )
 
+    $moduleReleaseUrl = 'https://codeload.github.com/LemurDaniel/BICEP__Module-Registry/zip/refs/tags/dev1.0.0?token=ALZGX7X6VBPPD4K3DQXZ7RDIU5GDI'
+
     if ($PSCmdlet.MyInvocation.InvocationName -IEQ 'bicep-deployment') {
         $Template = 'deployment'
     } 
@@ -72,5 +74,6 @@ function Initialize-BicepStarterPipeline {
     }
 
     $null = $PSBoundParameters.Remove('Template')
-    Initialize-BicepTemplate -Template $Template -Target $Target -InitParameter $PSBoundParameters
+    $null = $PSBoundParameters.Add('ModuleReleaseUrl', $moduleReleaseUrl)
+    Initialize-BicepTemplate -Template $Template -Target $Target -InitParameter $PSBoundParameters 
 }
