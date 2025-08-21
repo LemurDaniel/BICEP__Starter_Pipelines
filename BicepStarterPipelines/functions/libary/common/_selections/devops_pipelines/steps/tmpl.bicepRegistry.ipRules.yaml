@@ -78,19 +78,23 @@ steps:
         foreach($registry in $registries) {
           Write-Output "Removing access restriction from Container Registry: $($registry.Name)"
 
-          $rules = $registry.NetworkRuleSetIPRule
+          $rules = $null
+          $rules = $registry.NetworkRuleSetIPRule 
+          | Where-Object -Property IPAddressOrRange -NE $agentHostPublicIp
+
+          Write-Host "$($rules | ConvertTo-Json)"
 
           if($rules.Count -EQ 0) {
-            continue
+            $rules = @()
           }
 
-          $rules = $rules | Where-Object -Property IPAddressOrRange -NE $agentHostPublicIp
-
-          $null = Update-AzContainerRegistry -AzureRMContext $registry.AzContext -Name $registry.Name `
+          $result = Update-AzContainerRegistry -AzureRMContext $registry.AzContext -Name $registry.Name `
             -ResourceGroupName $registry.ResourceGroupName `
             -NetworkRuleBypassOption $registry.NetworkRuleBypassOption `
             -NetworkRuleSetDefaultAction $registry.NetworkRuleSetDefaultAction `
             -NetworkRuleSetIPRule $rules
+
+          $result | Select-Object -Property Name, Location, NetworkRuleSetDefaultAction, NetworkRuleSetIPRule
         }
 
         # Check if we should add the access restriction
@@ -105,6 +109,11 @@ steps:
             $rules = $null
             $rules = $registry.NetworkRuleSetIPRule
 
+            if($registry.NetworkRuleSetDefaultAction -EQ 'Allow') {
+              Write-Output "Default action is Allow, skipping Adding of IP rules."
+              continue
+            }
+
             if($agentHostPublicIp -IN $rules.IPAddressOrRange) {
               Write-Output "IP already exists in rules, skipping..."
               continue
@@ -112,9 +121,13 @@ steps:
 
             $rules += New-AzContainerRegistryIPRuleObject -Action 'Allow' -IPAddressOrRange $agentHostPublicIp
 
-            $null = Update-AzContainerRegistry -AzureRMContext $registry.AzContext -Name $registry.Name `
+            Write-Host "$($rules | ConvertTo-Json)"
+
+            $result = Update-AzContainerRegistry -AzureRMContext $registry.AzContext -Name $registry.Name `
               -ResourceGroupName $registry.ResourceGroupName `
               -NetworkRuleBypassOption $registry.NetworkRuleBypassOption `
               -NetworkRuleSetDefaultAction $registry.NetworkRuleSetDefaultAction `
               -NetworkRuleSetIPRule $rules
+
+            $result | Select-Object -Property Name, Location, NetworkRuleSetDefaultAction, NetworkRuleSetIPRule
         }
