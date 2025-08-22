@@ -24,7 +24,7 @@ function Initialize-BicepStarterPipeline {
         $PipelineOnly,
 
         [Parameter()]
-        [ValidateSet('deployment')] # registry # In Development
+        [ValidateSet('deployment', 'registry')] # registry # In Development
         [System.String]
         $Template = 'deployment',
 

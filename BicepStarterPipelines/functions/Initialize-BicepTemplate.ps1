@@ -32,7 +32,7 @@ function Initialize-BicepTemplate {
         This avoids problems with existing subdirectories on Copy-Item in the staging directory.
         By only creating subdirectories when they do not exist and then copying all files.
 
-    #>
+        #>
         function Copy-Helper {
 
             param(
@@ -73,10 +73,10 @@ function Initialize-BicepTemplate {
         - commonDir for common files
         - initPs1 for the template initialization script
 
-    #>
-        $common = Get-Item -Path "$PSScriptRoot/libary/common"
-        $initPs1 = Get-Item -Path "$PSScriptRoot/libary/$Template/init.ps1"
-        $rootDir = Get-Item -Path "$PSScriptRoot/libary/$Template/root"
+        #>
+        $common = Get-Item -Path "$PSScriptRoot/library/common"
+        $initPs1 = Get-Item -Path "$PSScriptRoot/library/init.ps1"
+        $rootDir = Get-Item -Path "$PSScriptRoot/library/$Template"
 
         if (-NOT [System.IO.Path]::IsPathFullyQualified($Target)) {
             $rootedPath = [System.IO.Path]::Join((Get-Location).Path, $Target)
@@ -89,8 +89,8 @@ function Initialize-BicepTemplate {
 
         <#    
         
-            All files are copied to the staging directory,
-            where they are modified and then copied to the target directory.
+        All files are copied to the staging directory,
+        where they are modified and then copied to the target directory.
 
         #>
         
@@ -137,8 +137,8 @@ function Initialize-BicepTemplate {
 
         <#
 
-            This is the final copy operation from staging to the user directory
-            Uses the copy dialog for Windows and the shell copy for Linux.
+        This is the final copy operation from staging to the user directory
+        Uses the copy dialog for Windows and the shell copy for Linux.
 
         #>
 
