@@ -33,7 +33,7 @@ param config demoTypeDefinition
   #### Resources and Modules
 
 */
-module demoModule 'infraCore/demo.bicep' = {
+module demoModule 'infra/demo.bicep' = {
   name: '${subDeploymentName}.module.demo'
   params: {
     config: config

@@ -39,17 +39,10 @@ function Initialize-BicepStarterPipeline {
         $Scope = $null,
 
         [Parameter()]
-        [ValidateSet('PowerShell', 'Azure CLI')]
-        [System.String]
-        $Script = $null,
-
-        [Parameter()]
         [ValidateSet('Github', 'Azure DevOps')]
         [System.String]
         $Pipeline = $null
     )
-
-    $moduleReleaseUrl = 'https://codeload.github.com/LemurDaniel/BICEP__Module-Registry/zip/refs/tags/dev1.0.0?token=ALZGX7X6VBPPD4K3DQXZ7RDIU5GDI'
 
     if ($PSCmdlet.MyInvocation.InvocationName -IEQ 'bicep-deployment') {
         $Template = 'deployment'
@@ -65,15 +58,12 @@ function Initialize-BicepStarterPipeline {
                 Display = 'Bicep Deployment'
                 Value   = 'deployment'
             }
-            # In Development
-            # @{
-            #     Display = 'Bicep Registry'
-            #     Value   = 'registry'
-            # }
+            @{
+                Display = 'Bicep Registry'
+                Value   = 'registry'
+            }
         ) | Select-UtilsUserOption
     }
 
-    $null = $PSBoundParameters.Remove('Template')
-    $null = $PSBoundParameters.Add('ModuleReleaseUrl', $moduleReleaseUrl)
     Initialize-BicepTemplate -Template $Template -Target $Target -InitParameter $PSBoundParameters 
 }
