@@ -1,14 +1,14 @@
-function Get-ChangedVersions {
+function Invoke-FilterChanges {
     param(
         <#
         [Required]
-        Specifies the name of the event to process (e.g., 'push', 'pull_request').
+        Specifies all changes to filter or target specific directories.
         #>
         [Parameter(
             Mandatory = $true
         )]
         [System.String]
-        $EventName,
+        $Changes,
 
         <#
         [Required]
@@ -21,24 +21,9 @@ function Get-ChangedVersions {
         $FolderPrefix
     )
 
-    if ($EventName -EQ "pull_request") {
-        git fetch --all
-        $gitChanges = git --no-pager diff --name-only origin/master...origin/dev
-    }
-    elseif ($EventName -EQ "push") {
-        git fetch --all
-        git checkout master
-        git pull origin master
-        $gitChanges = git --no-pager show --name-only --first-parent origin/master
-    }
-    else {
-        Write-Host "Unsupported event: $EventName"
-        return
-    }
+    $Changes = $Changes -split "`n"
 
-    $gitChanges = $gitChanges -split "`n"
-
-    $changedVersions = $gitChanges 
+    $changedVersions = $Changes 
     | Where-Object { 
         $_ -like "*/version.json" 
     } 

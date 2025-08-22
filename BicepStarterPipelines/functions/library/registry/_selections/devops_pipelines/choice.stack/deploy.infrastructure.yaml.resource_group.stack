@@ -1,9 +1,5 @@
 name: Bicep Deployment
 
-#
-# This is a template for deploying a Bicep file
-#
-
 # NOTE:
 # This may need to be adjusted to your used pool
 pool:
@@ -63,15 +59,6 @@ parameters:
 # NOTE:
 # ServiceConnection must be known at pipeline compile time.
 #
-#
-# The Following Parameters can be set in the variables group instead:
-# This requries using the 'stage/tmpl.bicep.deploy.variables.yaml' instead!
-#   - SCOPE: resourceGroup | subscription
-#   - DEPLOYMENT_NAME:
-#   - TEMPLATE_FILE:
-#   - PARAMETERS_FILE:
-#   - LOCATION:
-#   - RESOURCE_GROUP:
 #
 stages:
   - template: stage/tmpl.bicep.infra.parameters.yaml
