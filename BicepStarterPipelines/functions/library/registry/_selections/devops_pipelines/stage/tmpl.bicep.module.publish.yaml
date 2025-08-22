@@ -1,0 +1,242 @@
+parameters:
+  - name: condition
+    type: string
+    default: true
+  - name: stage
+    type: string
+  - name: displayName
+    type: string
+    default: ""
+  - name: serviceConnection
+    type: string
+  - name: variableGroup
+    type: string
+    default: ""
+
+  - name: folderPrefix
+    type: string
+    default: modules/
+  - name: deployScript
+    type: string
+  - name: defaultLocation
+    type: string
+  - name: concurrencyLimit
+    type: string
+
+  # Name of the registry to publish to
+  - name: registryName
+    type: string
+  # Prefix to add to the image name
+  - name: imagePrefix
+    type: string
+
+  - name: testDeployCondition
+    type: string
+    default: eq(variables['Build.Reason'], 'PullRequest')
+  - name: publishModuleCondition
+    type: string
+    default: ne(variables['Build.Reason'], 'PullRequest')
+
+  # others
+  - name: azurePowerShellVersion
+    type: string
+    default: LatestVersion
+  # Name or Id of the registries
+  # Single mode
+  #  - setTemporaryIpRules: acr-bla-dev-001
+  # Multi mode
+  #  - setTemporaryIpRules: |
+  #     acr-bla-dev-001
+  #     acr-bla-dev-002
+  - name: setTemporaryIpRules
+    type: string
+    default: ""
+
+stages:
+  #////////////////////////////////////////////////////////////
+  #////// detect changes
+  - stage: detect_change_${{ parameters.stage }}
+    condition: ${{ parameters.condition }}
+    displayName: Detect Changes ${{ parameters.stage }}
+
+    jobs:
+      - job: detect_change_${{ parameters.stage }}_job
+        displayName: Detect Bicep Module Changes
+        steps:
+          - checkout: self
+            persistCredentials: true
+          - task: PowerShell@2
+            displayName: Detect Changes ${{ parameters.stage }}
+            name: detect
+            inputs:
+              targetType: "inline"
+              script: |
+
+                $changes = $null
+                $FolderPrefix = Resolve-Path "./${{ parameters.folderPrefix }}"
+                | Select-Object -ExpandProperty Path
+
+                if("$(Build.Reason)" -EQ "PullRequest") {
+                    $TargetBranch = "origin/$(System.PullRequest.SourceBranchName)"
+                    $SourceBranch = "origin/$(System.PullRequest.TargetBranchName)"
+
+                    Write-Host "Detecting changes in pull request"
+                    Write-Host "Source Branch: $SourceBranch"
+                    Write-Host "Target Branch: $TargetBranch"
+
+                    $filter = "$SourceBranch..$TargetBranch"
+                    $changes = git --no-pager diff --name-only $filter
+                } else {
+                    $branch = "$(Build.SourceBranchName)" # git branch --show-current"
+                    $tagName = "meta-$branch-last-successful-publish"
+
+                    Write-Host "Detecting changes in branch"
+                    Write-Host "Branch: $branch"
+
+                    # Delete local tag and refetch
+                    git tag -d $tagName 2>$null
+                    git fetch --tags
+
+                    # Check if the tag exists
+                    $tagName = git tag --list $tagName
+
+                    if([System.String]::IsNullOrEmpty($tagName)) {
+                      Write-Host "Tag $tagName does not exist => treat all modules as changed"
+                      $changes = Get-ChildItem -Path "$FolderPrefix" -Recurse -File 
+                      | Select-Object -ExpandProperty FullName
+                    } else {
+                      $changes = git --no-pager diff --name-only $tagName
+                      $changes = $changes -split "`n"
+                    }
+                }
+
+                $changedVersions = $changes
+                | Where-Object { 
+                    $_ -LIKE "*version.json" 
+                } 
+                # Verify the module wasn't deleted with the commit
+                | Where-Object { 
+                    Test-Path $_ 
+                } 
+                # Get the directory
+                | ForEach-Object {
+                    [System.IO.FileInfo]::new($_).Directory
+                }
+                # Get the relative paths
+                | ForEach-Object { 
+                    Resolve-Path -Path $_ -Relative -RelativeBase $FolderPrefix
+                }
+
+                $concurrencyLimit = [System.Int32]::Parse("${{ parameters.concurrencyLimit }}")
+                if($changedVersions.Count -GT $concurrencyLimit) {
+                    throw [System.Exception]"Concurrency limit of $concurrencyLimit exceeded.`nIncrease the `Concurrency` parameter or reduce the number of changed modules."
+                    exit -1;
+                }
+
+                # Debug output
+                Write-Host "Module Folder: $FolderPrefix"
+                Write-Host "Version.json changes: $($changedVersions | ConvertTo-Json -Compress -AsArray)"
+
+                # Matrix in Azure DevOps needs a MAP
+                $changedVersionsMap = [System.Collections.Hashtable]::new()
+                foreach($path in $changedVersions) {
+                    $changedVersionsMap.Add($path, 
+                      @{
+                        folderPrefix = $FolderPrefix
+                        modulePath = $path
+                      }
+                    )
+                }
+
+                $changedVersionsJson = $changedVersionsMap | ConvertTo-Json -Compress
+
+                Write-Host "Json: $changedVersionsJson"
+
+                Write-Host "##vso[task.setvariable variable=module_changes;isOutput=true]$changedVersionsJson"
+
+  #////////////////////////////////////////////////////////////
+  #////// Test and Publish Modules
+  - stage: publish_bicep_${{ parameters.stage }}
+    condition: and(${{ parameters.condition }}, in(stageDependencies.detect_change_${{ parameters.stage }}.result, 'Succeeded'))
+    dependsOn: detect_change_${{ parameters.stage }}
+    ${{ if eq(parameters.displayName, '') }}:
+      displayName: Publish Bicep ${{ parameters.stage }}
+    ${{ if ne(parameters.displayName, '') }}:
+      displayName: ${{ parameters.displayName }}
+    jobs:
+      - job: deploy_modules_${{ parameters.stage }}
+        displayName: Deploy Bicep Modules
+        condition: and(${{ parameters.testDeployCondition }}, ne(variables['Agent.JobStatus'], 'Canceled'))
+        strategy:
+          matrix: $[ stageDependencies.detect_change_${{ parameters.stage }}.detect_change_${{ parameters.stage }}_job.outputs['detect.module_changes'] ]
+        steps:
+          - checkout: self
+          - template: /.devops/steps/tmpl.bicep.module.verify.yaml
+            parameters:
+              serviceConnection: ${{ parameters.serviceConnection }}
+              azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
+
+              deployScript: ${{ parameters.deployScript }}
+              location: ${{ parameters.defaultLocation }}
+              folderPrefix: $(folderPrefix)
+              modulePath: $(modulePath)
+
+              registries: ${{ parameters.setTemporaryIpRules }}
+
+      - job: publish_modules_${{ parameters.stage }}
+        displayName: Publish Bicep Modules
+        dependsOn: deploy_modules_${{ parameters.stage }}
+        condition: and(and(${{ parameters.publishModuleCondition }}, ne(variables['Agent.JobStatus'], 'Canceled')), in(dependencies.deploy_modules_${{ parameters.stage }}.result, 'Succeeded', 'Skipped'))
+        strategy:
+          matrix: $[ stageDependencies.detect_change_${{ parameters.stage }}.detect_change_${{ parameters.stage }}_job.outputs['detect.module_changes'] ]
+        steps:
+          - checkout: self
+          - template: /.devops/steps/tmpl.bicep.module.verify.yaml
+            parameters:
+              serviceConnection: ${{ parameters.serviceConnection }}
+              azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
+
+              folderPrefix: $(folderPrefix)
+              modulePath: $(modulePath)
+
+              imagePrefix: ${{ parameters.imagePrefix }}
+              registryName: ${{ parameters.registryName }}
+
+              registries: ${{ parameters.setTemporaryIpRules }}
+
+      #////////////////////////////////////////////////////////////
+      #////// Update Tag Marker
+      - job: update_change_${{ parameters.stage }}
+        displayName: Set Tag Marker ${{ parameters.stage }}
+        dependsOn: publish_modules_${{ parameters.stage }}
+        condition: and(ne(variables['Agent.JobStatus'], 'Canceled'), in(dependencies.publish_modules_${{ parameters.stage }}.result, 'Succeeded'))
+        steps:
+          # Checkout with credential to fix the error- AFTER everything is tested!!
+          # - checkout: self
+          #   persistCredentials: true
+          - task: PowerShell@2
+            displayName: Tag last successful publish
+            inputs:
+              targetType: "inline"
+              script: |
+                Write-Host "Agent Job Status: $env:AGENT_JOBSTATUS"
+                if ("$env:AGENT_JOBSTATUS" -EQ "Canceled") {
+                  Write-Host "Job wurde gecancelt ❌"
+                  exit 1
+                }
+
+                $branch   = "$(Build.SourceBranchName)"
+                $tagName  = "meta-$branch-last-successful-publish"
+                $message  = "DO NOT DELETE | Tracks when commit for detecting module changes."
+
+                git config user.name "AzureDevOps"
+                git config user.email "build@azdo"
+
+                # Make sure we're on the branch and up-to-date
+                git fetch origin $branch
+                git checkout $branch
+                git reset --hard origin/$branch
+
+                # Create or update the tag
+                git tag $tagName -m "$message" --force
+                git push origin $tagName --force

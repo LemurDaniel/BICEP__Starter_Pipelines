@@ -5,11 +5,36 @@ This script tests the deployment of a Bicep module.
 #>
 
 param(
+    <#
+    [Required]
+    The folder prefix container all modules
+    e.g. "modules/"
+    #>
+    [Parameter(
+        Mandatory = $true
+    )]
+    [System.String]
+    $FolderPrefix,
+
+    <#
+    [Required]
+    The path to the Bicep module. Relative to the folder prefix.
+    #>
     [Parameter(
         Mandatory = $true
     )]
     [System.String]
     $ModulePath,
+
+    <#
+    [Required]
+    The location to use for Azure resources.
+    #>
+    [Parameter(
+        Mandatory = $true 
+    )]
+    [System.String]
+    $location,
 
     [Parameter()]
     [Switch]
@@ -19,18 +44,24 @@ param(
 . $PSScriptRoot/Invoke-ResourceGroupDeployment.ps1
 . $PSScriptRoot/Invoke-SubscriptionDeployment.ps1
 
-
-$location = 'Westeurope'
-
-$examples = Get-ChildItem -Path $ModulePath -Filter "example*"
+$examples = Get-ChildItem -Path "$folderPrefix/$ModulePath" -Filter "example*"
 
 for ($index = 0; $index -lt $examples.Count; $index++) {
 
     Write-Host -ForegroundColor Magenta "------------------------------------------------------"
     Write-Host -ForegroundColor Magenta "Deploying example $index for module $ModulePath"
 
-    $deploymentName = [System.String]::Format('module.{0}.{1}',
-        $ModulePath.Replace('/', '.'), $index
+    $formatString = "module.{0}.{1}"
+    $adjustedPath = $ModulePath
+
+    if ($adjustedPath.Length + $formatString.Length -GT 64) {
+        $allowedLength = 64 - $formatString.Length
+        $indexStart = $adjustedPath.Length - $allowedLength
+        $adjustedPath = $adjustedPath.Substring($indexStart)
+    }
+
+    $deploymentName = [System.String]::Format($formatString,
+        $adjustedPath.Replace('/', '.'), $index
     )
 
     $basePath = $examples[$index].FullName
