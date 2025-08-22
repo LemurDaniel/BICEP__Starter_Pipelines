@@ -13,15 +13,15 @@ on:
     branches:
       - master
     paths:
-      - './infrastructure/registry.bicep'
-      - './infrastructure/params/main.prod.bicepparam'
+      - './infra/*.bicep'
+      - './infra/params/*.prod.bicepparam'
 
   pull_request:
     branches:
       - master
     paths:
-      - './infrastructure/registry.bicep'
-      - './infrastructure/params/main.prod.bicepparam'
+      - './infra/*.bicep'
+      - './infra/params/*.prod.bicepparam'
    
 jobs:
   deploy_prod:
@@ -49,7 +49,7 @@ jobs:
       
       deployment_name: 'sample-prod'
       template_file: ./infrastructure/registry.bicep
-      parameter_file: ./infrastructure/params/main.prod.bicepparam
+      parameter_file: ./infrastructure/params/registry.prod.bicepparam
       
       what_if_only: ${{ github.EVENT_NAME  == 'pull_request' || inputs.what_if_only == true }}
 

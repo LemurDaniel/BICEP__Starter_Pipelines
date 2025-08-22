@@ -170,7 +170,7 @@ stages:
       - job: approve_${{ parameters.stage }}
         condition: and(succeeded(), eq(${{ parameters.WhatIfOnly }}, false))
         dependsOn: what_if_${{ parameters.stage }}
-        displayName: Approve
+        displayName: Approve Bicep ${{ parameters.stage }}
         pool: server
         steps:
           - task: ManualValidation@0

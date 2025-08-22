@@ -20,23 +20,13 @@ trigger:
       - master
   paths:
     include:
-      - main.bicep
-      - infraCore/**
-      - modules/**
-      - params/**
-
-variables:
-  - name: deploymentName_FILE
-    value: ./infrastructure/registry.bicep
-  - name: deploymentName_NAME
-    value: bicep.registry
-  - name: deploymentName_SCOPE
-    value: resourceGroup # subscription | resourceGroup
+      - infra/*.bicep
+      - infra/params/*.bicepparam
 
 parameters:
   - name: WhatIfOnly
     type: boolean
-    default: true
+    default: false
   - name: WhatIfResultFormat
     type: string
     default: 'FullResourcePayloads'
@@ -49,7 +39,7 @@ parameters:
 #
 #
 # The Following Parameters can be set in the variables group instead:
-# This requried using the 'stage/tmpl.bicep.deploy.variables.yaml' instead!
+# This requries using the 'stage/tmpl.bicep.deploy.variables.yaml' instead!
 #   - SCOPE: resourceGroup | subscription
 #   - DEPLOYMENT_NAME:
 #   - TEMPLATE_FILE:
@@ -62,7 +52,7 @@ stages:
     parameters:
       stage: test
       condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/dev')
-      serviceConnection: project-connection-test
+      serviceConnection: project-connection
       # variableGroup: bicep-deploy-test
 
       # Show a tree structure of the folder
@@ -71,26 +61,31 @@ stages:
       whatIfOnly: ${{ parameters.whatIfOnly }}
 
       # env parameters
-      scope: ${{ variables.DEPLOYMENT_SCOPE }}
-      deploymentName: ${{ variables.DEPLOYMENT_NAME }} 
-      templateFile: ${{ variables.DEPLOYMENT_FILE }}
-      parametersFile: ./infrastructure/params/main.test.bicepparam
+      scope: resourceGroup # subscription | resourceGroup
+      deploymentName: deploy-registry-test
+      parametersFile: ./infra/params/registry.test.bicepparam
 
       # --- on subscription scope
       # location: germanywestcentral
+      # templateFile: ./infra/registry.scope.subscription.bicep
 
       # --- on resource group scope
       resourceGroup: rg-sample-test
+      templateFile: ./infra/registry.scope.resource_group.bicep
 
       # setTemporaryIpRules: |
       #   acr-sample-test
+
+      # skipApproval: true
+      # deploymentApprovers: 
+      # allowApproversToApproveTheirOwnRuns: false
 
 
   - template: stage/tmpl.bicep.infra.parameters.yaml
     parameters:
       stage: prod
       condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/master')
-      serviceConnection: project-connection-prod
+      serviceConnection: project-connection
       # variableGroup: bicep-deploy-prod
 
       # Show a tree structure of the folder
@@ -99,17 +94,22 @@ stages:
       whatIfOnly: ${{ parameters.whatIfOnly }}
 
       # env parameters
-      scope: ${{ variables.DEPLOYMENT_SCOPE }}
-      deploymentName: ${{ variables.DEPLOYMENT_NAME }} 
-      templateFile: ${{ variables.DEPLOYMENT_FILE }}
-      parametersFile: ./infrastructure/params/main.prod.bicepparam
+      scope: resourceGroup # subscription | resourceGroup
+
+      deploymentName:  deploy-registry-prod
+      parametersFile: ./infra/params/registry.prod.bicepparam
 
       # --- on subscription scope
       # location: germanywestcentral
+      # templateFile: ./infra/registry.scope.subscription.bicep
 
       # --- on resource group scope
       resourceGroup: rg-sample-prod
+      templateFile: ./infra/registry.scope.resource_group.bicep
 
       # setTemporaryIpRules: |
       #   acr-sample-prod
 
+      # skipApproval: true
+      # deploymentApprovers: 
+      # allowApproversToApproveTheirOwnRuns: false

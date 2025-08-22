@@ -84,6 +84,20 @@ parameters:
     type: object
     default: {}
 
+  #
+  # Specify a comma separated list of users/groups/project teams to act on a manual validation. 
+  # In absence of input, users with queue build permission will be able to take action.
+  - name: deploymentApprovers
+    type: string
+    default: ''
+  - name: skipApproval
+    type: boolean
+    default: false
+  - name: allowApproversToApproveTheirOwnRuns
+    type: boolean
+    default: true
+    
+
 stages:
   - stage: ${{ parameters.stage }}
     condition: ${{ parameters.condition }}
@@ -162,19 +176,24 @@ stages:
               artifactName: "bicep_whatif_${{ parameters.stage }}"
 
       - job: approve_${{ parameters.stage }}
-        condition: and(succeeded(), eq(${{ parameters.WhatIfOnly }}, false))
+        condition: and(and(succeeded(), eq(${{ parameters.skipApproval }}, false)), eq(${{ parameters.WhatIfOnly }}, false))
         dependsOn: what_if_${{ parameters.stage }}
-        displayName: Approve
+        displayName: Approve Bicep ${{ parameters.stage }}
         pool: server
         steps:
           - task: ManualValidation@0
             displayName: Manual Validation
             timeoutInMinutes: 1440
+            inputs:
+              onTimeout: 'reject'
+              instructions: Approve or reject the Bicep Deployment for ${{ parameters.stage }}
+              approvers: ${{ parameters.deploymentApprovers }}
+              allowApproversToApproveTheirOwnRuns: ${{ parameters.allowApproversToApproveTheirOwnRuns }}
 
       #////////////////////////////////////////////////////////////
       #////// Deploy
       - job: deployment_${{ parameters.stage }}
-        condition: and(succeeded(), eq(${{ parameters.WhatIfOnly }}, false))
+        condition: and(in(dependencies.approve_${{ parameters.stage }}.result, 'Succeeded', 'Skipped'), eq(${{ parameters.WhatIfOnly }}, false))
         dependsOn: approve_${{ parameters.stage }}
         displayName: Deploy Bicep ${{ parameters.stage }}
         steps:

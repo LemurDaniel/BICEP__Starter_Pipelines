@@ -5,12 +5,17 @@ using '../registry.scope.resource_group.bicep'
 param tags = {}
 
 param name = {
-  resourceGroup: 'rg-sample-prod'
-  registry: 'acr-sample-prod.28342035'
+  resourceGroup: 'rg-sample-test'
+  registry: 'acrsampletest'
 
   // Deploys a managed identity with Pull Acess
-  // identityName: 'identity-sample-prod.28342035'
+  // identityName: 'identity-sample-test'
 }
+
+// NOTE:
+// Required User Access Permissions
+// Disable if you want to set role assignments yourself
+param deployRoleAssignments = true 
 
 // NOTE:
 // This disables admin access and password. Prefer:
@@ -31,7 +36,7 @@ param networking = {
   access: 'Restricted' // 'Public' | 'Restricted' | 'Disabled'
   ipRules: [
     // Add your IP rules here
-    // '0.0.0.0/0'
+    // '0.0.0.0/32'
     // '10.0.0.0/24'
   ]
 }
@@ -48,14 +53,3 @@ param identity = {
     // '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-sample-prod/providers/Microsoft.ManagedIdentity/userAssignedIdentities/identity-sample-prod.28342035'
   ]
 }
-
-//
-// Define private Endpoints when Network Settings is 'Disabled'
-//
-// param privateEndpoints = [
-//   {
-//     name: 'pe-acr-sample-prod'
-//     subnetId: '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-sample-prod/providers/Microsoft.Network/virtualNetworks/vnet-sample-prod/subnets/subnet-sample-prod'
-//     privateDnsZoneId: '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-sample-prod/providers/Microsoft.Network/privateDnsZones/privatelink.azurecr.io'
-//   }
-// ]

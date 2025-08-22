@@ -28,17 +28,17 @@ on:
 
   push:
     branches:
-      - master
+      - dev
     paths:
-      - './infrastructure/registry.bicep'
-      - './infrastructure/params/main.test.bicepparam'
+      - './infra/*.bicep'
+      - './infra/params/*.test.bicepparam'
 
   pull_request:
     branches:
-      - master
+      - dev
     paths:
-      - './infrastructure/registry.bicep'
-      - './infrastructure/params/main.test.bicepparam'
+      - './infra/*.bicep'
+      - './infra/params/*.test.bicepparam'
    
 jobs:
   deploy_test:
@@ -65,7 +65,7 @@ jobs:
       
       deployment_name: 'sample-test'
       template_file: ./infrastructure/registry.bicep
-      parameter_file: ./infrastructure/params/main.test.bicepparam
+      parameter_file: ./infrastructure/params/registry.test.bicepparam
 
       action_on_unmanage: ${{ inputs.action_on_unmanage }}
       deny_settings_mode: ${{ inputs.deny_settings_mode }}

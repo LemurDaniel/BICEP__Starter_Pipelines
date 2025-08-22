@@ -20,6 +20,8 @@ param enableAdminUser bool = false
 
 param enableAnonymousPulls bool = false
 
+param deployRoleAssignments bool = true
+
 param sku 'Basic' | 'Premium' | 'Standard'?
 var paramSku = !empty(sku) ? sku : (paramNetworking.access == 'Public' ? 'Standard' : 'Premium')
 
@@ -34,12 +36,6 @@ var paramNetworking = {
   bypass: networking.?bypass ?? 'AzureServices'
   ipRules: networking.?ipRules ?? []
 }
-
-param privateEndpoints {
-  name: string
-  subnetId: string
-  privateDnsZoneId: string?
-}[] = []
 
 param identity {
   systemAssigned: bool?
@@ -69,10 +65,9 @@ module modRegistry 'registry.scope.resource_group.bicep' = {
 
     enableAdminUser: enableAdminUser
     enableAnonymousPulls: enableAnonymousPulls
+    deployRoleAssignments: deployRoleAssignments
 
     networking: paramNetworking
     identity: paramIdentity
-
-    privateEndpoints: privateEndpoints
   }
 }

@@ -13,15 +13,15 @@ on:
     branches:
       - dev
     paths:
-      - './infrastructure/registry.bicep'
-      - './infrastructure/params/main.test.bicepparam'
+      - './infra/*.bicep'
+      - './infra/params/*.test.bicepparam'
 
   pull_request:
     branches:
       - dev
     paths:
-      - './infrastructure/registry.bicep'
-      - './infrastructure/params/main.test.bicepparam'
+      - './infra/*.bicep'
+      - './infra/params/*.test.bicepparam'
    
 jobs:
   deploy_test:
@@ -48,7 +48,7 @@ jobs:
       
       deployment_name: 'sample-test'
       template_file: ./infrastructure/registry.bicep
-      parameter_file: ./infrastructure/params/main.test.bicepparam
+      parameter_file: ./infrastructure/params/registry.test.bicepparam
       
       what_if_only: ${{ github.EVENT_NAME  == 'pull_request' || inputs.what_if_only == true }}
 

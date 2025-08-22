@@ -20,7 +20,9 @@ param enableAdminUser bool = false
 
 param enableAnonymousPulls bool = false
 
-param sku 'Basic' | 'Premium' | 'Standard'?
+param deployRoleAssignments bool = true
+
+param sku 'Premium' | 'Standard' | 'Basic'?
 var paramSku = !empty(sku) ? sku : (paramNetworking.access == 'Public' ? 'Standard' : 'Premium')
 
 param networking {
@@ -35,11 +37,11 @@ var paramNetworking = {
   ipRules: networking.?ipRules ?? []
 }
 
-param privateEndpoints {
-  name: string
-  subnetId: string
-  privateDnsZoneId: string?
-}[] = []
+// param privateEndpoints {
+//   name: string
+//   subnetId: string
+//   privateDnsZoneId: string?
+// }[] = []
 
 param identity {
   systemAssigned: bool?
@@ -71,9 +73,73 @@ var validation = map(
 ////////////////////////////////////////////////
 //// Module Deployment
 
-var varDeploymentName = length(deployment().name) > length('.registry.0.9.1')
-  ? uniqueString(deployment().name)
-  : deployment().name
+resource resRegistry 'Microsoft.ContainerRegistry/registries@2025-04-01' = {
+  name: name.registry
+  location: location
+
+  sku: {
+    name: any(paramSku)
+  }
+
+  properties: {
+    adminUserEnabled: enableAdminUser
+    anonymousPullEnabled: enableAnonymousPulls
+
+    publicNetworkAccess: paramNetworking.access != 'Private' ? 'Enabled' : 'Disabled'
+    networkRuleBypassOptions: paramNetworking.bypass
+    networkRuleSet: {
+      defaultAction: paramNetworking.access == 'Public' ? 'Allow' : 'Deny'
+      ipRules: [
+        for ipRule in paramNetworking.ipRules: {
+          action: 'Allow'
+          value: contains(ipRule, '/') ? ipRule : '${ipRule}/32'
+        }
+      ]
+    }
+
+    policies: {
+      exportPolicy: {
+        status: paramNetworking.access != 'Private' ? 'enabled' : 'disabled'
+      }
+    }
+  }
+
+  identity: {
+    type: filter(
+      [
+        {
+          type: 'None'
+          bool: !paramIdentity.systemAssigned && length(paramIdentity.userAssigned) == 0
+        }
+        {
+          type: 'SystemAssigned'
+          bool: paramIdentity.systemAssigned && length(paramIdentity.userAssigned) == 0
+        }
+        {
+          type: 'UserAssigned'
+          bool: !paramIdentity.systemAssigned && length(paramIdentity.userAssigned) > 0
+        }
+        {
+          type: 'SystemAssigned, UserAssigned'
+          bool: paramIdentity.systemAssigned && length(paramIdentity.userAssigned) > 0
+        }
+      ],
+      entry => entry.bool == true
+    )[0].type
+    userAssignedIdentities: length(paramIdentity.userAssigned) > 0
+      ? toObject(paramIdentity.userAssigned, id => id, id => {})
+      : {}
+  }
+}
+
+resource resRoleAssignmentSPN 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (deployRoleAssignments) {
+  name: guid(resRegistry.id, 'AcrPush')
+  scope: resRegistry
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'AcrPush')
+    principalId: deployer().objectId
+  }
+}
 
 resource resManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = if (!empty(name.?identity)) {
   name: any(name.?identity)
@@ -81,67 +147,11 @@ resource resManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@20
   tags: tags
 }
 
-module modRegistry 'br/public:avm/res/container-registry/registry:0.9.1' = {
-  name: format('{0}.registry.0.9.1', varDeploymentName)
-  params: {
-    name: name.registry
-    location: location
-    tags: tags
-
-    acrSku: paramSku
-    acrAdminUserEnabled: enableAdminUser
-    anonymousPullEnabled: enableAnonymousPulls
-
-    exportPolicyStatus: paramNetworking.access != 'Private' ? 'enabled' : 'disabled'
-    publicNetworkAccess: paramNetworking.access != 'Private' ? 'Enabled' : 'Disabled'
-    networkRuleSetDefaultAction: paramNetworking.access == 'Public' ? 'Allow' : 'Deny'
-    networkRuleSetIpRules: [
-      for ipRule in paramNetworking.ipRules: {
-        action: 'Allow'
-        value: ipRule
-      }
-    ]
-
-    managedIdentities: {
-      systemAssigned: paramIdentity.systemAssigned
-      userAssignedResourceIds: paramIdentity.userAssigned
-    }
-
-    // Authenticates:
-    // - deployer SPN for Acr Push
-    // - user assigned identity for Acr Pull
-    roleAssignments: filter(
-      [
-        {
-          principalId: deployer().objectId
-          roleDefinitionIdOrName: 'AcrPush'
-        }
-        {
-          principalId: resManagedIdentity.?id
-          roleDefinitionIdOrName: 'AcrPull'
-        }
-      ],
-      item => !empty(item.principalId)
-    )
-
-    privateEndpoints: [
-      for (endpoint, index) in privateEndpoints: {
-        tags: tags
-        name: endpoint.name
-
-        subnetResourceId: endpoint.subnetId
-        privateDnsZoneGroup: empty(endpoint.?privateDnsZoneId)
-          ? null
-          : {
-              privateDnsZoneGroupConfigs: [
-                {
-                  privateDnsZoneResourceId: any(endpoint.?privateDnsZoneId)
-                }
-              ]
-            }
-
-        customDnsConfigs: []
-      }
-    ]
+resource resRoleAssignmentIdentity 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (deployRoleAssignments && !empty(resManagedIdentity.?id)) {
+  name: guid(resRegistry.id, 'AcrPull')
+  scope: resManagedIdentity
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'AcrPull')
+    principalId: any(resManagedIdentity.?properties.principalId)
   }
 }
