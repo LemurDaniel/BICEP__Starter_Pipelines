@@ -80,7 +80,7 @@ Describe 'Initialize-BicepStartPipeline' {
             Test-Path -Path "$destination/.devops/stage" | Should -Be $azdoMatch
             Test-Path -Path "$destination/.devops/deploy.infrastructure.yaml" | Should -Be $azdoMatch
             Test-Path -Path "$destination/.devops/stage/tmpl.bicep.infra.variables.yaml" | Should -Be $azdoMatch
-            Test-Path -Path "$destination/.devops/stage/tmpl.bicep.infra.parameters.yaml" | Should -Be $azdoMatch
+            Test-Path -Path "$destination/.devops/stage/tmpl.bicep.infra.deploy.yaml" | Should -Be $azdoMatch
         }
 
         It 'Should use <method>' {

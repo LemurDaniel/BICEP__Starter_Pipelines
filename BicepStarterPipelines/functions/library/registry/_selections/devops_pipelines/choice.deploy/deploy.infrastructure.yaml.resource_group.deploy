@@ -35,7 +35,7 @@ parameters:
 #
 #
 stages:
-  - template: stage/tmpl.bicep.infra.parameters.yaml
+  - template: stage/tmpl.bicep.infra.deploy.yaml
     parameters:
       stage: test
       condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/dev')
@@ -68,7 +68,7 @@ stages:
       # allowApproversToApproveTheirOwnRuns: false
 
 
-  - template: stage/tmpl.bicep.infra.parameters.yaml
+  - template: stage/tmpl.bicep.infra.deploy.yaml
     parameters:
       stage: prod
       condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/master')

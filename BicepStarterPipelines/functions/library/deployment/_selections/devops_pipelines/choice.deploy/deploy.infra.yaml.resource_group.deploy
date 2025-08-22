@@ -55,7 +55,7 @@ parameters:
 #
 #
 stages:
-  - template: stage/tmpl.bicep.infra.parameters.yaml
+  - template: stage/tmpl.bicep.infra.deploy.yaml
     parameters:
       stage: dev
       condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/feature')
@@ -87,7 +87,7 @@ stages:
       # allowApproversToApproveTheirOwnRuns: false
 
 
-  - template: stage/tmpl.bicep.infra.parameters.yaml
+  - template: stage/tmpl.bicep.infra.deploy.yaml
     parameters:
       stage: test
       condition: eq(variables['Build.SourceBranch'], 'refs/heads/dev')
@@ -119,7 +119,7 @@ stages:
       # allowApproversToApproveTheirOwnRuns: false
 
 
-  - template: stage/tmpl.bicep.infra.parameters.yaml
+  - template: stage/tmpl.bicep.infra.deploy.yaml
     parameters:
       stage: prod
       condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')

@@ -39,7 +39,7 @@ parameters:
 #
 #
 stages:
-  - template: stage/tmpl.bicep.infra.parameters.yaml
+  - template: stage/tmpl.bicep.infra.deploy.yaml
     parameters:
       stage: dev
       condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/feature')
@@ -63,7 +63,7 @@ stages:
       # --- on resource group scope
       # resourceGroup: rg-sample-dev
 
-  - template: stage/tmpl.bicep.infra.parameters.yaml
+  - template: stage/tmpl.bicep.infra.deploy.yaml
     parameters:
       stage: test
       condition: eq(variables['Build.SourceBranch'], 'refs/heads/dev')
@@ -87,7 +87,7 @@ stages:
       # --- on resource group scope
       # resourceGroup: rg-sample-test
 
-  - template: stage/tmpl.bicep.infra.parameters.yaml
+  - template: stage/tmpl.bicep.infra.deploy.yaml
     parameters:
       stage: prod
       condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
