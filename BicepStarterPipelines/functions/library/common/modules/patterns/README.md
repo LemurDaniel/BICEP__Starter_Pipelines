@@ -1,8 +1,8 @@
 # Bicep Patterns Modules
 
 This folder contains **local modules** for Bicep patterns, including:
-- Custom pattern modules
-- Wrapper modules for Azure Verified Modules
+- **Custom pattern modules**
+- **Wrapper modules for [Azure Verified Modules](https://azure.github.io/Azure-Verified-Modules/indexes/bicep)**
 
 If you want to share patterns across projects, consider using a Bicep module registry.
 
@@ -12,6 +12,8 @@ Patterns modules help you implement common architectural patterns or best practi
 
 ### Typical Use Cases
 
-- Deploying a multi-tier application pattern
-- Deploying App Gateway, Key Vault, Networking, and related resources
+- Deploying compositions of multiple resources and resource modules
+    - For Example: 
+    - App Gateway, Key Vault, Networking, and related resources
+    - Container Registry with networking and identity
 - Enforcing organizational standards across environments

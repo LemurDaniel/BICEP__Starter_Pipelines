@@ -7,8 +7,8 @@
         }
     },
     "experimentalFeaturesEnabled": {
-        "testFramework": true,
-        "assertions": true
+        // "testFramework": true,
+        // "assertions": true
     },
     "moduleAliases": {}
 }

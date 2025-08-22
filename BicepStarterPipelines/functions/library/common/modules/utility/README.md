@@ -1,13 +1,12 @@
 # Utility Modules
 
-This folder contains local Bicep utility modules, including:
-
+This folder contains **local modules** for Bicep patterns, including:
 - **Custom pattern modules**
-- **Wrapper modules for Azure Verified Modules**
+- **Wrapper modules for [Azure Verified Modules](https://azure.github.io/Azure-Verified-Modules/indexes/bicep)**
 
-If you need to share utilities across projects, consider using a Bicep module registry.
+If you want to share patterns across projects, consider using a Bicep module registry.
 
-## Purpose
+## What are Utility Modules?
 
 Utility modules encapsulate common tasks or reusable logic by standardizing parameters, outputs, or resource definitions.
 
