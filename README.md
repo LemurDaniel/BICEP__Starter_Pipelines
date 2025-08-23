@@ -74,8 +74,8 @@ PS> ./bicep-init ./destinationFolder
 
 ## 📖 Notes & Tips
 
-* You can adjust the **destination folder** in both methods.
-* This repo is meant as a **starter template**, so feel free to fork and adapt it.
+* You can adjust the **destination folder** in both methods, by default inits to current directory.
+* This repo is meant as a **starter template**, so feel free to adjust the templates.
 * Contributions or feedback are welcome — just keep it friendly 😸.
 
 ---
