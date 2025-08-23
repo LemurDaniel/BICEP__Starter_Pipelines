@@ -94,8 +94,8 @@ jobs:
         shell: pwsh
         run: |
 
-          publishModule = [System.Boolean]::Parse("${{ env.PUBLISH_MODULE_IF || 'false' }}")
-          deployModule = [System.Boolean]::Parse("${{ env.DEPLOY_MODULE_IF || 'false' }}")
+          $publishModule = [System.Boolean]::Parse("${{ env.PUBLISH_MODULE_IF || 'false' }}")
+          $deployModule = [System.Boolean]::Parse("${{ env.DEPLOY_MODULE_IF || 'false' }}")
 
           $configuration = [PSCustomObject]@{
             "set_ip_rules" = "${{ vars.SET_IP_RULES || '' }}"
