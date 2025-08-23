@@ -1,0 +1,100 @@
+name: Detect and Publish Module Changes
+
+# NOTE:
+# This may need to be adjusted to your used pool
+pool:
+  name: "Azure Pipelines"
+  vmImage: "ubuntu-latest"
+
+# NOTE:
+# Triggers on Pull Request are configured via branch policies in Azure DevOps
+trigger:
+  branches:
+    include:
+      - dev
+      - main
+      - master
+  paths:
+    include:
+      - modules/**
+
+parameters:
+  - description: Will fail as a precautionwhen too many modules are being deployed at once. Increase to confirm your intend.
+    name: concurrencyLimit
+    type: number
+    default: 5
+
+variables:
+  DEPLOY_SCRIPT: ./.scripts/deploy.ps1
+  FOLDER_PREFIX: "modules/"
+  DEFAULT_LOCATION: "westeurope"
+
+stages:
+  - template: stage/tmpl.bicep.module.publish.yaml
+    parameters:
+      stage: test
+      condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/dev')
+      serviceConnection: project-connection
+
+      # Pipeline will fail when too many modules are being deployed at once
+      # This is to prevent accidental runs deploying too many modules
+      concurrencyLimit: ${{ parameters.concurrencyLimit }}
+
+      # Customize when to deploy and publish
+      # The Following conditions are also set by default when removed.
+      testDeployCondition: eq(variables['Build.Reason'], 'PullRequest')
+      publishModuleCondition: ne(variables['Build.Reason'], 'PullRequest')
+
+      # Runs test deployment when set.
+      deployScript: $(DEPLOY_SCRIPT)
+      folderPrefix: $(FOLDER_PREFIX)
+      defaultLocation: $(DEFAULT_LOCATION)
+
+      registryName: acr-sample-dev
+
+      # Set the registry image to be immutable
+      setImageImmutable: false
+
+      # Sets a image prefix to the generated image name
+      # image name is generate from module path: utility/naming/schema
+      # imagePrefix: custom/image-prefix
+
+      # Sets temporary IP rules on the ACR
+      # Use this when the ACR network is restricted
+      setTemporaryIpRules: |
+        acr-sample-dev
+
+
+  - template: stage/tmpl.bicep.module.publish.yaml
+    parameters:
+      stage: prod
+      condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/master')
+      serviceConnection: project-connection
+
+      # Pipeline will fail when too many modules are being deployed at once
+      # This is to prevent accidental runs deploying too many modules
+      concurrencyLimit: ${{ parameters.concurrencyLimit }}
+  
+      # Customize when to deploy and publish
+      # The Following conditions are also set by default when removed.
+      testDeployCondition: eq(variables['Build.Reason'], 'PullRequest')
+      publishModuleCondition: ne(variables['Build.Reason'], 'PullRequest')
+
+      # Runs test deployment when set.
+      deployScript: $(DEPLOY_SCRIPT)
+      folderPrefix: $(FOLDER_PREFIX)
+      defaultLocation: $(DEFAULT_LOCATION)
+
+      registryName: acr-sample-prod
+
+      # Set the registry image to be immutable
+      setImageImmutable: false
+
+      # Sets a image prefix to the generated image name
+      # image name is generate from module path: utility/naming/schema
+      # imagePrefix: custom/image-prefix
+
+      # Sets temporary IP rules on the ACR
+      # Use this when the ACR network is restricted
+      setTemporaryIpRules: |
+        acr-sample-prod

@@ -30,7 +30,7 @@ jobs:
         os: [windows-latest, ubuntu-latest, macos-latest] 
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Install Pester
         shell: pwsh
         run: Install-Module -Name Pester -Force -SkipPublisherCheck
@@ -50,7 +50,7 @@ jobs:
     name: Pack Module
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
     
       - name: Pack Module
         shell: pwsh

@@ -29,6 +29,10 @@ parameters:
   # Prefix to add to the image name
   - name: imagePrefix
     type: string
+  # Set image immutable
+  - name: setImageImmutable
+    type: boolean
+    default: false
 
   - name: testDeployCondition
     type: string
@@ -201,6 +205,7 @@ stages:
 
               imagePrefix: ${{ parameters.imagePrefix }}
               registryName: ${{ parameters.registryName }}
+              setImageImmutable: ${{ parameters.setImageImmutable }}
 
               registries: ${{ parameters.setTemporaryIpRules }}
 

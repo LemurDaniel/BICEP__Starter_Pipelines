@@ -1,0 +1,93 @@
+name: "Manage ACR Access Restrictions"
+description: "Manages ACR access restrictions using PowerShell"
+inputs:
+  folder_prefix:
+    description: "The folder prefix to use"
+    required: true
+  concurrency_limit:
+    description: "The maximum number of concurrent operations"
+    required: true
+outputs:
+  module_changes:
+    description: The list of changed modules
+    value: ${{ steps.get_diff.outputs.module_changes }}
+  module_folder:
+    description: The folder of the changed modules
+    value: ${{ steps.get_diff.outputs.module_folder }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Run PowerShell script inline
+      id: get_diff
+      shell: pwsh
+      run: |
+        $changes = $null
+        $FolderPrefix = Resolve-Path "./${{ inputs.folderPrefix }}"
+        | Select-Object -ExpandProperty Path
+
+        if("${{ github.event_name }}" -EQ "pull_request") {
+            $TargetBranch = "origin/${{ github.base_ref }}"
+            $SourceBranch = "origin/${{ github.head_ref }}"
+
+            Write-Host "Detecting changes in pull request"
+            Write-Host "Source Branch: $SourceBranch"
+            Write-Host "Target Branch: $TargetBranch"
+
+            $filter = "$SourceBranch..$TargetBranch"
+            $changes = git --no-pager diff --name-only $filter
+        } else {
+            $branch = "${{ github.ref_name }}" # git branch --show-current"
+            $tagName = "meta-$branch-last-successful-publish"
+
+            Write-Host "Detecting changes in branch"
+            Write-Host "Branch: $branch"
+
+            # Delete local tag and refetch
+            git tag -d $tagName 2>$null
+            git fetch --tags
+
+            # Check if the tag exists
+            $tagName = git tag --list $tagName
+
+            if([System.String]::IsNullOrEmpty($tagName)) {
+              Write-Host "Tag $tagName does not exist => treat all modules as changed"
+              $changes = Get-ChildItem -Path "$FolderPrefix" -Recurse -File 
+              | Select-Object -ExpandProperty FullName
+            } else {
+              $changes = git --no-pager diff --name-only $tagName
+              $changes = $changes -split "`n"
+            }
+        }
+
+        $changedVersions = $changes
+        | Where-Object { 
+            $_ -LIKE "*version.json" 
+        } 
+        # Verify the module wasn't deleted with the commit
+        | Where-Object { 
+            Test-Path $_ 
+        } 
+        # Get the directory
+        | ForEach-Object {
+            [System.IO.FileInfo]::new($_).Directory
+        }
+        # Get the relative paths
+        | ForEach-Object { 
+            Resolve-Path -Path $_ -Relative -RelativeBase $FolderPrefix
+        }
+
+        $concurrencyLimit = [System.Int32]::Parse("${{ inputs.concurrency_limit }}")
+        if($changedVersions.Count -GT $concurrencyLimit) {
+            throw [System.Exception]"Concurrency limit of $concurrencyLimit exceeded.`nIncrease the `Concurrency` parameter or reduce the number of changed modules."
+            exit -1;
+        }
+
+        # Debug output
+        Write-Host "Module Folder: $FolderPrefix"
+        Write-Host "Version.json changes: $($changedVersions | ConvertTo-Json -Compress -AsArray)"
+
+        $changedVersionsJson = $changedVersions | ConvertTo-Json -Compress -AsArray
+
+        "module_changes=$changedVersionsJson" >> $env:GITHUB_OUTPUT
+        "module_folder=$FolderPrefix" >> $env:GITHUB_OUTPUT
