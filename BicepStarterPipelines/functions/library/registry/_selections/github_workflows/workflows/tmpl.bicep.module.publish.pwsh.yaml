@@ -8,6 +8,10 @@ name: (Template) PWSH - Publish to Bicep Registry
 on:
   workflow_call:
     inputs:
+      environment:
+        type: string
+        description: The github environment with the credentials
+        required: false
       folder_prefix:
         type: string
         description: This is prefix to the module path and left out from the automatic image name
@@ -21,10 +25,11 @@ on:
         type: string
         description: Name of the Azure Registry to publish into
         required: true
-      environment:
+      registry_url:
         type: string
-        description: The github environment with the credentials
+        description: The URL of the Azure Container Registry
         required: false
+        default: ''
 
       image_tag:
         type: string
@@ -97,21 +102,23 @@ jobs:
           id: read_version
           shell: pwsh
           run: |
-
-            $registryUrl = "${{ inputs.registry_name }}.azurecr.io"
             $localPath = "${{ inputs.folder_prefix }}/${{ inputs.module_path }}"
+
+            $customRegistryUrl = "${{ inputs.registry_url }}"
+            $defaultRegistryUrl = "${{ inputs.registry_name }}.azurecr.io"
+            $registryUrl = [System.String]::IsNullOrEmpty($customRegistryUrl) ? $defaultRegistryUrl : $customRegistryUrl
 
             # This is the full path in the registry
             $acrImageName = "${{ inputs.image_prefix }}${{ inputs.image_name }}" 
             $acrImageName = $acrImageName -replace "/+", "/" -replace "/+$", ""
 
             $acrImageTag = "${{ inputs.image_tag }}"
-            $acrImageFull = "br:$acrImageName`:$acrImageTag"
+            $acrImageFull = "br:$registryUrl/$acrImageName`:$acrImageTag"
 
 
             "LOCAL_PATH=$localPath" >> $env:GITHUB_ENV
 
-            "ACR_IMAGE_TAG=$acrVersion" >> $env:GITHUB_ENV
+            "ACR_IMAGE_TAG=$acrImageTag" >> $env:GITHUB_ENV
             "ACR_IMAGE_NAME=$acrImageName" >> $env:GITHUB_ENV
             "ACR_IMAGE_FULL=$acrImageFull" >> $env:GITHUB_ENV
             "ACR_REGISTRY_URL=$registryUrl" >> $env:GITHUB_ENV

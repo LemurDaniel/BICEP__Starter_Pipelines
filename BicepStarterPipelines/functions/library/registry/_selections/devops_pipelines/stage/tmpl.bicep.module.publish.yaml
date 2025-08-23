@@ -26,6 +26,10 @@ parameters:
   # Name of the registry to publish to
   - name: registryName
     type: string
+  - name: registryUrl
+    type: string
+    default: ""
+    
   # Prefix to add to the image name
   - name: imagePrefix
     type: string
@@ -218,6 +222,7 @@ stages:
 
               imagePrefix: ${{ parameters.imagePrefix }}
               registryName: ${{ parameters.registryName }}
+              registryUrl: ${{ parameters.registryUrl }}
               allowImageOverwrite: ${{ parameters.allowImageOverwrite }}
               setImageImmutable: ${{ parameters.setImageImmutable }}
 

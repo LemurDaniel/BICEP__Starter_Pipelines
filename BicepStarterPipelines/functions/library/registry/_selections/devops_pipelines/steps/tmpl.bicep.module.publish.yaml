@@ -9,6 +9,10 @@ parameters:
 
   - name: registryName
     type: string
+  - name: registryUrl
+    type: string
+    default: ""
+
   - name: imageName
     type: string
   - name: imageTag
@@ -56,9 +60,12 @@ steps:
       targetType: "inline"
       script: |
 
-        $registryUrl = "${{ parameters.registryName }}.azurecr.io"
-
         $localPath = "${{ parameters.folderPrefix }}/${{ parameters.modulePath }}"
+
+        $customRegistryUrl = "${{ parameters.registryUrl }}"
+        $defaultRegistryUrl = "${{ parameters.registryName }}.azurecr.io"
+        $registryUrl = [System.String]::IsNullOrEmpty($customRegistryUrl) ? $defaultRegistryUrl : $customRegistryUrl
+
         $acrImageTag = "${{ parameters.imageTag }}"
 
         $acrImageName = "${{ parameters.imagePrefix }}${{ parameters.imageName }}"
