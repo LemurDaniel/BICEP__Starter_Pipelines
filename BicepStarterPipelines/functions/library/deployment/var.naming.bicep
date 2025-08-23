@@ -11,11 +11,16 @@
 
 */
 
+//
+// NOTE:
+// You may want to reference these from a registry and not local files
+// See: BicepStartPipelines => PS> bicep-init registry
+
 import { defaultAbbreviations } from './modules/utility/naming/schema/var.abbr.bicep'
 import { defaultLocations } from './modules/utility/naming/schema/var.location.bicep'
 
 @export()
-var schemaReference = {
+var schema = {
   abbreviations: defaultAbbreviations
   locations: defaultLocations
 
@@ -49,7 +54,8 @@ var schemaReference = {
     - <KEY>             : points to the current key in an iteration. Needs to be set when calling genName()
     - <KIND>            : points to the current kind or id
     - <ID>              : points specifically to the id when provided
-    - <LOCATION>        : points to the location of the resource.
+    - <TYPE>            : sets the shortname for the type. (Shortname for schema.abbreviations)
+    - <LOCATION>        : sets the shortname for the location. (Shortname for schema.locations)
     - <UNIQUE_STRING_N> : is a unique id based on the resource group name. (N can be any number between 0 and 9)
   */
 
@@ -87,18 +93,20 @@ var schemaReference = {
     //   like this: 'No pattern found for resourceType: INLINE::Microsoft.Web/serverfarms and kind: default'
     default: '<TYPE><?PREFIX;-{0}>-<LOCATION>-<ENVIRONMENT>-<NAME><?INDEX;-{0:00}>'
 
+    'Microsoft.ManagedIdentity/userAssignedIdentities': '<TYPE><?PREFIX;-{0}>-<ID>-<LOCATION>-<ENVIRONMENT>-<NAME><?INDEX;-{0:00}>'
+
     ////////////////////////////////////////////////
     ///// Microsoft.KeyVault & Microsoft.Storage
 
-    'INLINE::Microsoft.KeyVault/vaults': 'kv<?PREFIX;-{0}>-<LOCATION>-<ENVIRONMENT>-<UNIQUE_STRING_5>'
-    'INLINE::Microsoft.Storage/storageAccounts': 'st<?PREFIX><LOCATION><ENVIRONMENT><NAME>'
+    'INLINE::Microsoft.KeyVault/vaults': '<TYPE><?PREFIX;-{0}>-<LOCATION>-<ENVIRONMENT>-<UNIQUE_STRING_5>'
+    'INLINE::Microsoft.Storage/storageAccounts': '<TYPE><?PREFIX><LOCATION><ENVIRONMENT><NAME>'
 
     ////////////////////////////////////////////////
     ///// Microsoft.Compute Disks
 
     'Microsoft.Compute/disks': {
-      data: '<TYPE><INDEX;{0:00}>-<NAME>-<ENVIRONMENT>'
-      os: '<TYPE>-<NAME>-<ENVIRONMENT>'
+      data: '<TYPE><INDEX;{0:00}>-<LOCATION>-<ENVIRONMENT>-<NAME>'
+      os: '<TYPE>-<LOCATION>-<ENVIRONMENT>-<NAME>'
     }
 
     ////////////////////////////////////////////////
@@ -107,22 +115,12 @@ var schemaReference = {
     'INLINE::Microsoft.ContainerRegistry/registries': 'acr<?PREFIX;-{0}>-<LOCATION>-<ENVIRONMENT>-<NAME>'
 
     ////////////////////////////////////////////////
-    ///// Microsoft.Network Virtual Network Peerings
-
-    'INLINE::Microsoft.Network/virtualNetworks/virtualNetworkPeerings': 'vnet<?PREFIX;-{0}>-<LOCATION>-<ENVIRONMENT>-<NAME>'
-
-    ////////////////////////////////////////////////
     ///// Microsoft.Cdn Profiles & Related Resources
 
     'INLINE::Microsoft.Cdn/profiles': 'afd<?PREFIX;-{0}>-<LOCATION>-<ENVIRONMENT>-<NAME>'
     'INLINE::Microsoft.Cdn/profiles/afdEndpoints': 'fde<?PREFIX;-{0}>-<LOCATION>-<ENVIRONMENT>-<NAME>'
     'INLINE::Microsoft.Cdn/profiles/originGroups': 'ogrp<?PREFIX;-{0}>-<LOCATION>-<ENVIRONMENT>-<NAME>'
     'INLINE::Microsoft.Cdn/profiles/ruleSets': 'rset<?PREFIX><LOCATION><ENVIRONMENT><NAME>'
-
-    ////////////////////////////////////////////////
-    ///// Microsoft.Subscription Alias
-
-    'INLINE::Microsoft.Subscription/alias': '<COMPANY>-<NAME>-<ENVIRONMENT>-subs-<IDENTIFIER;{0:0000}>'
   }
 
   validate: {

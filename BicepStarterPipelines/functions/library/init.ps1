@@ -95,7 +95,7 @@ $targetPipelineFolder.Create()
 # Where all template files are located.
 $templateFiles = Get-Item -Path "$StagingDir/_selections"
 
-if ($template -EQ 'deployment') {
+if ($Template -EQ 'deployment') {
   $bicepMainTemplate = Get-Item -Path "$templateFiles/bicep/*.$selectedScope"
   $deployScriptTemplate = Get-Item -Path "$templateFiles/deploy/*.$selectedScope.$selectedMethod"
 
@@ -130,8 +130,9 @@ foreach ($tmpl in $pipelineTemplates) {
 
   $pipelineFilePath = "$targetPipelineFolder/$relativePath"
   $directory = [System.IO.FileInfo]::new($pipelineFilePath).Directory
+
   if (-NOT $directory.Exists) {
-    $directory.Create()
+    $null = New-Item -ItemType Directory -Path $directory.FullName -ErrorAction SilentlyContinue
   }
 
   $null = $tmpl.CopyTo($pipelineFilePath)
@@ -156,9 +157,22 @@ else {
   $moduleDir = Get-Item -Path "$StagingDir/modules"
 
   if ($Template -EQ 'deployment') {
-    Get-ChildItem -Path $moduleDir.FullName -Directory -Recurse -Filter "*example*"
+    $childItems = Get-ChildItem -Path $moduleDir.FullName -File -Recurse
 
-    Get-ChildItem -Path $moduleDir.FullName -Recurse -Filter "version.json"
+    $childItems | Where-Object -Property FullName -LIKE "*version.json"
+    | Remove-Item -Recurse -Force -ErrorAction Continue
+
+    $childItems | Where-Object -Property FullName -LIKE "*schema*module.bicep"
+    | Remove-Item -Recurse -Force -ErrorAction Continue
+
+    
+    $childItems = Get-ChildItem -Path $moduleDir.FullName -Directory -Recurse
+
+    $childItems | Where-Object -Property FullName -LIKE "*schema*defaults*"
+    | Remove-Item -Recurse -Force -ErrorAction Continue
+
+    $childItems | Where-Object -Property FullName -LIKE "*example*"
+    | Remove-Item -Recurse -Force -ErrorAction Continue
   }
 
 }

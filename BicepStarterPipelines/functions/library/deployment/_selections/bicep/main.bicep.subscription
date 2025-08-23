@@ -1,56 +1,53 @@
 targetScope = 'subscription'
 
-import { schemaReference } from 'var.naming.bicep'
+param subDeploymentPrefix string = length(deployment().name) > 50 ? uniqueString(deployment().name) : deployment().name
 
-output testName string = genName('Microsoft.Web/site', schemaReference, 'westeurope', {
-  environment: 'development'
-  name: 'test'
-})
+////////////////////////////////////////////////
+//// Main Parameters - Naming, Location and Tags
 
-/*
+import { schema } from 'var.naming.bicep'
 
-  #################################################
-  #### Imports
+param location string = deployment().location
+param tags object = {}
 
-*/
-import {
-  demoExportedVariable
-  demoTypeDefinition
-} from './modules/utility/demo.bicep'
+param naming object
 
-/*
+var varNaming = {
+  schema: schema
+  params: naming
+}
 
-  #################################################
-  #### Parameters
-
-*/
-param subDeploymentName string = substring(uniqueString(deployment().name), 0, 8)
-param config demoTypeDefinition
-
-/*
-
-  #################################################
-  #### Resources and Modules
-
-*/
+////////////////////////////////////////////////
+//// Main Deployment - Virtual Network
 
 resource resGroup 'Microsoft.Resources/resourceGroups@2024-11-01' = {
   location: deployment().location
   name: 'rg-bicep-demo-001'
 }
 
-module demoModule 'infra/demo.bicep' = {
+module modInfraVnet 'infra/demo.bicep' = {
   scope: resGroup
-  name: '${subDeploymentName}.module.demo'
+  name: format('{0}.vnet', subDeploymentPrefix)
   params: {
-    config: config
+    tags: tags
+    location: location
+    naming: varNaming
+
+    addressPrefix: '10.0.0.0/22'
+    subnets: [
+      {
+        name: 'default'
+        addressPrefix: '10.0.0.0/24'
+      }
+      {
+        name: 'additional'
+        addressPrefix: '10.0.1.0/24'
+      }
+    ]
   }
 }
 
-/*
+////////////////////////////////////////////////
+//// Main Outputs
 
-  #################################################
-  #### Outputs
-
-*/
-output config demoTypeDefinition = demoModule.outputs.ref
+output identity object = modInfraVnet.outputs.identity

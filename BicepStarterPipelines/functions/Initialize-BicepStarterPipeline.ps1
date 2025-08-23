@@ -10,8 +10,15 @@ function Initialize-BicepStarterPipeline {
     None.
     
     #>
-    [Alias('bicep-init', 'bicep-deployment', 'bicep-registry')]
+    [Alias('bicep-init', 'bicep-init-deployment', 'bicep-init-registry')]
     param (
+        [Parameter(
+            Position = 0
+        )]
+        [ValidateSet('deployment', 'registry')]
+        [System.String]
+        $Template = 'deployment',
+
         [Parameter(
             Position = 1,
             Mandatory = $false
@@ -22,11 +29,6 @@ function Initialize-BicepStarterPipeline {
         [Parameter()]
         [switch]
         $PipelineOnly,
-
-        [Parameter()]
-        [ValidateSet('deployment', 'registry')] # registry # In Development
-        [System.String]
-        $Template = 'deployment',
 
         [Parameter()]
         [ValidateSet('Normal Deployment', 'Deployment Stack')]
@@ -65,5 +67,6 @@ function Initialize-BicepStarterPipeline {
         ) | Select-UtilsUserOption
     }
 
+    $PSBoundParameters['Template'] = $Template
     Initialize-BicepTemplate -Template $Template -Target $Target -InitParameter $PSBoundParameters 
 }

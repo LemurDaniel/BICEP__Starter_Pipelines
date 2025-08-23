@@ -1,49 +1,47 @@
 targetScope = 'resourceGroup'
 
-import { schemaReference } from 'var.naming.bicep'
+param subDeploymentPrefix string = length(deployment().name) > 50 ? uniqueString(deployment().name) : deployment().name
 
-output testName string = genName('Microsoft.Web/site', schemaReference, 'westeurope', {
-  environment: 'development'
-  name: 'test'
-})
+////////////////////////////////////////////////
+//// Main Parameters - Naming, Location and Tags
 
-/*
+import { schema } from 'var.naming.bicep'
 
-  #################################################
-  #### Imports
+param location string = resourceGroup().location
+param tags object = {}
 
-*/
-import {
-  demoExportedVariable
-  demoTypeDefinition
-} from './modules/utility/demo.bicep'
+param naming object
 
-/*
+var varNaming = {
+  schema: schema
+  params: naming
+}
 
-  #################################################
-  #### Parameters
+////////////////////////////////////////////////
+//// Main Deployment - Virtual Network
 
-*/
-param subDeploymentName string = substring(uniqueString(deployment().name), 0, 8)
-param config demoTypeDefinition
-
-/*
-
-  #################################################
-  #### Resources and Modules
-
-*/
-module demoModule 'infra/demo.bicep' = {
-  name: '${subDeploymentName}.module.demo'
+module modInfraVnet 'infra/demo.bicep' = {
+  name: format('{0}.vnet', subDeploymentPrefix)
   params: {
-    config: config
+    tags: tags
+    location: location
+    naming: varNaming
+
+    addressPrefix: '10.0.0.0/22'
+    subnets: [
+      {
+        name: 'default'
+        addressPrefix: '10.0.0.0/24'
+      }
+      {
+        name: 'additional'
+        addressPrefix: '10.0.1.0/24'
+      }
+    ]
   }
 }
 
-/*
+////////////////////////////////////////////////
+//// Main Outputs
 
-  #################################################
-  #### Outputs
-
-*/
-output config demoTypeDefinition = demoModule.outputs.ref
+output identity object = modInfraVnet.outputs.identity
