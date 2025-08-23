@@ -1,61 +1,87 @@
 # BICEP Starter Pipelines  
 
-Welcome to my **BICEP Starter Pipelines** repository! 😊  
+Welcome to my **BICEP Starter Pipelines** repository! 😺  
 
-This is for quickly setting up a bicep project with pipelines
-
-Looks may differ based on which terminal you use.
+Quickly set up a **Bicep project with pipelines**.  
+> ⚠️ Note: Looks may differ depending on your terminal.
 
 ![Example](./.assets/init.deployment.png)
 
-## ⚠️ Attention  
+---
+## ⚠️ Prototype Notice  
 
-> This repository is currently a **prototype** and is not fully tested.
+> This repository is currently a **prototype** and is not fully tested.  
 >
-> I may improve on it in the future. Meanwhile I hope you find it helpful in its current state. 😊
+> It contains two main components:  
+> 1. **Deployment Templates** – A repo for deploying Bicep infrastructure locally or via pipeline.  
+> 2. **Registry Template** – A setup for a custom Bicep registry, including a module publishing pipeline.  
 >
-> I also included [bicep tests](https://github.com/Azure/bicep/issues/11967), which is currently still in development.
+> I also included [Bicep tests](https://github.com/Azure/bicep/issues/11967), which are still in development.  
 >
-> Please, don't hate me all again. I just want to share if it helps someone else. 😅🦖
->
->
+> Please be gentle 😅🦖 — I may improve it in the future. Meanwhile, I hope it’s helpful. 😊  
+---
 
-## ☑️ Platforms  
-No guarantee that it will work on other than Windows, though I tested it on my Ubuntu desktop:
-- Windows  
-- Linux  
-- macOS
+## ☑️ Supported Platforms  
 
+Tested mostly on **Windows**, but it should also work on **Linux** and **macOS**:
 
-## 🚀 Usage
-
-### Method 1: Install from [PowerShell Gallery](https://www.powershellgallery.com/packages/BicepStarterPipelines)
-
-1. Install the module from the PowerShell Gallery:
-    ```PowerShell
-    PS> Install-Module -Name BicepStarterPipelines -Scope CurrentUser
-    ```
-2. Use the `bicep-init` from terminal:
-    ```PowerShell
-    PS> bicep-init
-    ```
+- ✅ Windows  
+- ⚠️ Linux (tested on Ubuntu desktop)  
+- ⚠️ macOS  
 
 ---
 
-### Method 2: Try out without installation
+## 🚀 Usage  
 
-#### VS Code launch task
+### Method 1: Install from [PowerShell Gallery](https://www.powershellgallery.com/packages/BicepStarterPipelines)
 
-1. Download an open repository in VSCode
-2. Press `F5` to start a Launch Task.
-```PowerShell
+1. Install the module:
+```powershell
+PS> Install-Module -Name BicepStarterPipelines -Scope CurrentUser
+````
+
+2. Run the initialization command:
+
+```powershell
+PS> bicep-init
+```
+
+---
+
+### Method 2: Try Without Installation
+
+#### 🔹 VS Code Launch Task
+
+1. Open the repository in VS Code.
+2. Press `F5` to start the Launch Task:
+
+```powershell
 PS> bicep-init ./destinationFolder
 ```
---- 
-#### PowerShell launch script
 
-1. Download an open repository in any terminal
-2. Call the ./bicep-init script
-```PowerShell
+---
+
+#### 🔹 PowerShell Script
+
+1. Open terminal in the repository folder.
+2. Run the script:
+
+```powershell
 PS> ./bicep-init ./destinationFolder
 ```
+
+---
+
+## 📖 Notes & Tips
+
+* You can adjust the **destination folder** in both methods.
+* This repo is meant as a **starter template**, so feel free to fork and adapt it.
+* Contributions or feedback are welcome — just keep it friendly 😸.
+
+---
+
+## 💡 Future Ideas
+
+* Add more **platform testing** for Linux/macOS.
+* Include **optional CI/CD pipeline examples**.
+* Expand the **Bicep tests** section when official support is ready.
