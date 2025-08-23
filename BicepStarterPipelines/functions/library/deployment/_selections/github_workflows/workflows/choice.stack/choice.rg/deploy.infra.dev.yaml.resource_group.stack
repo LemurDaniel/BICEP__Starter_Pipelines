@@ -26,19 +26,21 @@ on:
           - detachAll
           - deleteResources
   
-  push:
-    branches:
-      - dev
-    paths:
-      - 'main.bicep'
-      - './params/main.dev.bicepparam'
-
-  pull_request:
-    branches:
-      - dev
-    paths:
-      - 'main.bicep'
-      - './params/main.dev.bicepparam'
+#  Execution only on workflow dispatch
+# 
+#  push:
+#    branches:
+#      - feature/*
+#    paths:
+#      - 'main.bicep'
+#      - 'params/main.dev.bicepparam'
+#
+#  pull_request:
+#    branches:
+#      - feature/*
+#    paths:
+#      - 'main.bicep'
+#      - 'params/main.dev.bicepparam'
    
 jobs:
   deploy:
@@ -60,7 +62,7 @@ jobs:
     secrets: inherit
     with:
       scope: resource_group
-      resource_group: 'sample-test'
+      resource_group: 'rg-sample-test'
 
       deployment_name: 'sample-dev'
       template_file: ./main.bicep

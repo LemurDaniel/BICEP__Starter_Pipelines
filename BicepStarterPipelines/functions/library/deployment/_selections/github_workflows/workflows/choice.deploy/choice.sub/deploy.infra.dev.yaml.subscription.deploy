@@ -16,14 +16,14 @@ on:
 #      - feature/*
 #    paths:
 #      - 'main.bicep'
-#      - './params/main.dev.bicepparam'
+#      - 'params/main.dev.bicepparam'
 #
 #  pull_request:
 #    branches:
 #      - feature/*
 #    paths:
 #      - 'main.bicep'
-#      - './params/main.dev.bicepparam'
+#      - 'params/main.dev.bicepparam'
    
 jobs:
   deploy_dev:

@@ -31,14 +31,14 @@ on:
       - master
     paths:
       - 'main.bicep'
-      - './params/main.prod.bicepparam'
+      - 'params/main.prod.bicepparam'
 
   pull_request:
     branches:
       - master
     paths:
       - 'main.bicep'
-      - './params/main.prod.bicepparam'
+      - 'params/main.prod.bicepparam'
    
 jobs:
   deploy_prod:

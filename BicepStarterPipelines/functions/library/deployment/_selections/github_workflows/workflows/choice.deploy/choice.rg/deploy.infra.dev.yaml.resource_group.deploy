@@ -16,14 +16,14 @@ on:
 #      - feature/*
 #    paths:
 #      - 'main.bicep'
-#      - './params/main.dev.bicepparam'
+#      - 'params/main.dev.bicepparam'
 #
 #  pull_request:
 #    branches:
 #      - feature/*
 #    paths:
 #      - 'main.bicep'
-#      - './params/main.dev.bicepparam'
+#      - 'params/main.dev.bicepparam'
    
 jobs:
   deploy_dev:
@@ -45,7 +45,7 @@ jobs:
     secrets: inherit
     with:
       scope: resource_group
-      resource_group: 'sample-dev'
+      resource_group: 'rg-sample-dev'
 
       deployment_name: 'sample-dev'
       template_file: ./main.bicep

@@ -84,7 +84,7 @@ runs:
               }
 
               $Deployment.Add('location', '${{ inputs.location }}')
-              New-AzSubscriptionDeployment @Deployment
+              New-AzSubscriptionDeployment @Deployment -Verbose
             } 
             elseif('${{ inputs.scope }}' -EQ 'resource_group') {
               if([System.String]::IsNullOrEmpty('${{ inputs.resource_group }}')) {
@@ -92,7 +92,7 @@ runs:
               }
 
               $Deployment.Add('ResourceGroupName', '${{ inputs.resource_group }}')
-              New-AzResourceGroupDeployment @Deployment
+              New-AzResourceGroupDeployment @Deployment -Verbose
             } else {
               throw "Invalid Scope ${{ inputs.scope }}!"
             }
