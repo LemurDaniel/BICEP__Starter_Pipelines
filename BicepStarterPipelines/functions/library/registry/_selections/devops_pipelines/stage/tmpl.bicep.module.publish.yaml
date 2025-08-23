@@ -4,6 +4,10 @@ parameters:
     default: true
   - name: stage
     type: string
+  - name: dependsOn
+    type: object
+    default: []
+
   - name: displayName
     type: string
     default: ""
@@ -68,7 +72,8 @@ stages:
   #////////////////////////////////////////////////////////////
   #////// detect changes
   - stage: detect_change_${{ parameters.stage }}
-    condition: ${{ parameters.condition }}
+    dependsOn: ${{ parameters.dependsOn }}
+    condition: and(succeeded(), ${{ parameters.condition }})
     displayName: Detect Changes ${{ parameters.stage }}
 
     jobs:
@@ -175,7 +180,7 @@ stages:
 
   #////////////////////////////////////////////////////////////
   #////// Test and Publish Modules
-  - stage: publish_bicep_${{ parameters.stage }}
+  - stage: ${{ parameters.stage }}
     condition: and(${{ parameters.condition }}, in(stageDependencies.detect_change_${{ parameters.stage }}.result, 'Succeeded'), ne(stageDependencies.detect_change_${{ parameters.stage }}.detect_${{ parameters.stage }}.outputs['detect.module_changes'], '{}'))
     dependsOn: detect_change_${{ parameters.stage }}
     ${{ if eq(parameters.displayName, '') }}:

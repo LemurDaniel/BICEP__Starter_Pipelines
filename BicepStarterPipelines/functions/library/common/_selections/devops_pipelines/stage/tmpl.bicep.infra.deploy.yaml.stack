@@ -4,6 +4,10 @@ parameters:
     default: true
   - name: stage
     type: string
+  - name: dependsOn
+    type: object
+    default: []
+
   - name: displayName
     type: string
     default: ''
@@ -107,7 +111,8 @@ parameters:
 
 stages:
   - stage: ${{ parameters.stage }}
-    condition: ${{ parameters.condition }}
+    dependsOn: ${{ parameters.dependsOn }}
+    condition: and(succeeded(), ${{ parameters.condition }})
     displayName: Deploy ${{ parameters.stage }}
     variables:
       - ${{ if ne(parameters.variableGroup, '') }}:

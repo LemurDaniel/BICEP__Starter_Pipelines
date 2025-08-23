@@ -5,6 +5,7 @@
 | ✅ | Test IP-Rules auf neuer Registry | Temporäre IP-Rules korrekt setzen und wieder entfernen. Sicherstellen, dass Deploys auch bei restriktiven Netzen funktionieren. |
 | ✅ | Marker-Logik portieren | Marker für letzte erfolgreiche Deploys aus DevOps übernehmen. Prüfen, dass Marker nur bei echten Deploys gesetzt werden. |
 | ✅ | Exclusions: Add Test exclusions for specific modules | Maybe disable it in the version.json and handle logic in detect changes script |
+| ✅ | Test: Azure DevOps Verify Depends on | Die stage depends on stage logic über parameter testen in Azure DevOps |
 | ✅ | Test: GitHub Deployment init + testen | Normale Deployment pipelines init auf GitHub und testen (neues Demo Deployment testen) |
 | ✅ | Test: GitHub Registry Deployment Pipeline testen | Deploy Scripts auf GitHub Actions laufen lassen. Prüfen, dass Module korrekt deployed werden, inklusive Zugriff auf Registry. |
 | ⬜ | Test: GitHub Update Marker | Letzte erfolgreiche Deploys auch in GitHub markieren. Logik testen, dass nur geänderte Module bei zukünftigen Runs erkannt werden. |

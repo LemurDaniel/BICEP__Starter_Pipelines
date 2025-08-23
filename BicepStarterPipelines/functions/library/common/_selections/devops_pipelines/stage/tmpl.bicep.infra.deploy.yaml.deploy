@@ -4,6 +4,10 @@ parameters:
     default: true
   - name: stage
     type: string
+  - name: dependsOn
+    type: object
+    default: []
+
   - name: displayName
     type: string
     default: ''
@@ -100,7 +104,8 @@ parameters:
 
 stages:
   - stage: ${{ parameters.stage }}
-    condition: ${{ parameters.condition }}
+    dependsOn: ${{ parameters.dependsOn }}
+    condition: and(succeeded(), ${{ parameters.condition }})
     ${{ if eq(parameters.displayName, '') }}:
       displayName: Deploy Bicep ${{ parameters.stage }}
     ${{ if ne(parameters.displayName, '') }}:
