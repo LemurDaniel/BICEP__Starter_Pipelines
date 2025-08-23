@@ -1,4 +1,3 @@
-    
 name: Test | Detect and Publish Module Changes
 
 # Define variables in github actions
@@ -24,22 +23,58 @@ on:
     branches:
       - dev
     paths:
-      - 'modules/**'
-      - '!modules/**/example/**'
-      - '!modules/**/README.md'
+      - "modules/**"
+      - "!modules/**/example/**"
+      - "!modules/**/README.md"
 
-          
 env:
   FOLDER_PREFIX: modules/
   CONCURRENCY_LIMIT: 5
 
+  # The github environment where to pull secrets and vars from
+  # If left empty will use repository scoped secrets and vars
+  # GIT_ENVIRONMENT: test
+
+  DEFAULT_LOCATION: ${{ vars.DEFAULT_LOCATION || 'westeurope' }}
+  REGISTRY_NAME: ${{ vars.REGISTRY_NAME || 'acr-sample-prod' }}
+  # use this when your registry url differs from the default
+  # CUSTOM_REGISTRY_URL: ${{ vars.CUSTOM_REGISTRY_URL || '' }}
+
+  # Condition when to test deploy and publish a module
+  # The following behavor is:
+  # - Test Deployments on Pull Requests
+  # - Publish Module on Pull Merge (push event)
+  #
+  #  You can also enter a value like (true, false) to enable or disable always
+  DEPLOY_MODULE_IF: ${{ github.event_name == 'pull_request' }}
+  PUBLISH_MODULE_IF: ${{ github.event_name == 'push' }}
+
+  # Temporarly allows the github agents ip on the registry
+  # Use this when your registry is not publicly accessible
+  # SET_IP_RULES: |
+  #   ${{ vars.REGISTRY_NAME }}
+
+  # Allows overwriting published bicep module versions
+  ALLOW_IMAGE_OVERWRITE: true
+  # Makes a published bicep module image immutable
+  SET_IMAGE_IMMUTABLE: false
+
+  # This adds a prefix to images
+  # - When Push or Merge: <image>:<tag>
+  # - When Pull Request: unreleased/<image>:<tag>
+  #
+  # You may use this when you want to publish images also on Pull Request but with a different name
+  IMAGE_PREFIX: ${{ github.event_name == 'push' && '' || 'unreleased/' }}
+
 jobs:
   detect_changes:
     name: Detect changes
-    runs-on: 'ubuntu-latest'
+    runs-on: "ubuntu-latest"
     outputs:
       module_changes: ${{ steps.get_diff.outputs.module_changes }}
-      module_folder: ${{ steps.get_diff.outputs.module_folder }}
+      publish_module: ${{ steps.get_env.outputs.publish_module }}
+      deploy_module: ${{ steps.get_env.outputs.deploy_module }}
+      configuration: ${{ steps.get_env.outputs.configuration }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -54,14 +89,45 @@ jobs:
           concurrency_limit: ${{ inputs.concurrency_limit || env.CONCURRENCY_LIMIT }}
           folder_prefix: ${{ env.FOLDER_PREFIX }}
 
+      - name: Set Outputs
+        id: get_env
+        shell: pwsh
+        run: |
+
+          publishModule = [System.Boolean]::Parse("${{ env.PUBLISH_MODULE_IF || 'false' }}")
+          deployModule = [System.Boolean]::Parse("${{ env.DEPLOY_MODULE_IF || 'false' }}")
+
+          $configuration = [PSCustomObject]@{
+            "set_ip_rules" = "${{ vars.SET_IP_RULES || '' }}"
+            "image_prefix" = "${{ env.IMAGE_PREFIX || '' }}"
+            "registry_name" = "${{ env.REGISTRY_NAME || '' }}"
+            "registry_url" = "${{ env.CUSTOM_REGISTRY_URL || '' }}"
+            "default_location" = "${{ env.DEFAULT_LOCATION || '' }}" 
+            "git_environment" = "${{ env.GIT_ENVIRONMENT || '' }}"
+            "allowImageOverwrite" = [System.Boolean]::Parse("${{ env.ALLOW_IMAGE_OVERWRITE || 'true' }}")
+            "setImageImmutable" = [System.Boolean]::Parse("${{ env.SET_IMAGE_IMMUTABLE || 'false' }}")
+          }
+
+          if([System.String]::IsNullOrEmpty($configuration.registry_name)) {
+            throw "REGISTRY_NAME is not set"
+          }
+
+          if([System.String]::IsNullOrEmpty($configuration.default_location)) {
+            throw "DEFAULT_LOCATION is not set"
+          }
+
+          "publish_module=$publishModule" >> $env:GITHUB_OUTPUT
+          "deploy_module=$deployModule" >> $env:GITHUB_OUTPUT
+          "configuration=$($configuration | ConvertTo-Json -Compress)" >> $env:GITHUB_OUTPUT
+
   verify_solution:
-    needs: 
-    - detect_changes
-    if: github.event_name == 'pull_request'
+    needs:
+      - detect_changes
+    if: needs.detect_changes.outputs.deploy_module == 'true'
     strategy:
       matrix:
         module: ${{ fromJson(needs.detect_changes.outputs.module_changes) }}
-    
+
     uses: ./.github/workflows/tmpl.bicep.module.verify.pwsh.yaml
     name: ${{ matrix.module.module_path }}
     secrets: inherit
@@ -79,50 +145,47 @@ jobs:
     #   "tenantId": "00000000-0000-0000-0000-000000000000"
     # }
     with:
-      # environment: prod
+      environment: ${{ fromJson(needs.detect_changes.outputs.configuration).git_environment }}
+      default_location: ${{ fromJson(needs.detect_changes.outputs.configuration).default_location }}
+      # set_temporary_ip_rules: ${{ fromJson(needs.detect_changes.outputs.configuration).set_ip_rules }}
 
-      default_location: ${{ inputs.default_location }}
       folder_prefix: ${{ matrix.module.folder_prefix }}
       module_path: ${{ matrix.module.module_path }}
 
-      # set_temporary_ip_rules: |
-      #   acr-sample-test
-
-
   publish_solution:
-    needs: 
-    - detect_changes
-    - verify_solution
-    if: ${{ github.event_name == 'push' && !failure() && !cancelled() }}
+    needs:
+      - detect_changes
+      - verify_solution
+    if: ${{ !failure() && !cancelled() && needs.detect_changes.outputs.publish_module == 'true' }}
     strategy:
       matrix:
         module: ${{ fromJson(needs.detect_changes.outputs.module_changes) }}
-    
+
     uses: ./.github/workflows/tmpl.bicep.module.publish.pwsh.yaml
     name: ${{ matrix.module.module_path }}
     secrets: inherit
     with:
-      # environment: test
+      environment: ${{ fromJson(needs.detect_changes.outputs.configuration).git_environment }}
+
       folder_prefix: ${{ matrix.module.folder_prefix }}
       module_path: ${{ matrix.module.module_path }}
-      registry_name: ${{ vars.REGISTRY_NAME }}
+      registry_name: ${{ fromJson(needs.detect_changes.outputs.configuration).registry_name }}
+      registry_url: ${{ fromJson(needs.detect_changes.outputs.configuration).registry_url }}
 
       image_tag: ${{ matrix.module.version }}
       image_name: ${{ matrix.module.module_path }}
-      image_prefix: ${{ github.event_name == 'push' && '' || 'unreleased/' }}    
-      
-      allow_image_overwrite: true
-      set_image_immutable: false
+      image_prefix: ${{ fromJson(needs.detect_changes.outputs.configuration).image_prefix }}
 
-      # set_temporary_ip_rules: |
-      #   acr-sample-test
+      allow_image_overwrite: ${{ fromJson(needs.detect_changes.outputs.configuration).allowImageOverwrite }}
+      set_image_immutable: ${{ fromJson(needs.detect_changes.outputs.configuration).setImageImmutable }}
 
+      set_temporary_ip_rules: ${{ fromJson(needs.detect_changes.outputs.configuration).set_ip_rules }}
 
   update_tags:
-    runs-on: 'ubuntu-latest'
+    runs-on: "ubuntu-latest"
     if: ${{ github.event_name == 'push' && success() }}
     needs:
-    - publish_solution
+      - publish_solution
     steps:
       - name: Set Change Marker Tag
         uses: ./.github/actions/tmpl.bicep.setChangeMarker

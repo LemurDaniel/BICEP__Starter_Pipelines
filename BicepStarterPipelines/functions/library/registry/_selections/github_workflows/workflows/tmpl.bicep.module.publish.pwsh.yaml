@@ -85,7 +85,7 @@ on:
 jobs:
   publish_module:
     name: Publish ${{ inputs.image_name }}
-    environment: ${{ inputs.environment }}
+    environment: ${{ inputs.environment != '' && inputs.environment || null }}
     runs-on: ${{ inputs.runs-on }}
     env:
       LOCAL_PATH: ''
