@@ -1,5 +1,5 @@
-name: "Manage ACR Access Restrictions"
-description: "Manages ACR access restrictions using PowerShell"
+name: Detect Changes
+description: "Detects changes in Bicep modules"
 inputs:
   folder_prefix:
     description: "The folder prefix to use"
@@ -82,12 +82,14 @@ runs:
         | ForEach-Object {
             $versionJson = Get-Content -Path "$FolderPrefix/$_/version.json" 
             | ConvertFrom-Json -AsHashtable
-            $null = $versionJson.Add("modulePath", $_)
-            $null = $versionJson.Add("folderPrefix", $FolderPrefix)
+            $null = $versionJson.Add("module_path", $_)
+            $null = $versionJson.Add("folder_prefix", $FolderPrefix)
             return $versionJson
         }
 
-        $concurrencyLimit = [System.Int32]::Parse("${{ inputs.concurrency_limit }}")
+        $concurrencyLimit = "${{ inputs.concurrency_limit }}"
+        $concurrencyLimit = [System.String]::IsNullOrEmpty($concurrencyLimit) ? 5 : $concurrencyLimit
+        $concurrencyLimit = [System.Int32]::Parse("$concurrencyLimit")
         if($changedVersions.Count -GT $concurrencyLimit) {
             throw [System.Exception]"Concurrency limit of $concurrencyLimit exceeded.`nIncrease the `Concurrency` parameter or reduce the number of changed modules."
             exit -1;

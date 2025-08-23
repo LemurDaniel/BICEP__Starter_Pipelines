@@ -8,16 +8,16 @@ name: (Template) PWSH - Publish to Bicep Registry
 on:
   workflow_call:
     inputs:
-      folder:
+      folder_prefix:
         type: string
         description: This is prefix to the module path and left out from the automatic image name
         required: false
         default: .
-      module:
+      module_path:
         type: string
         description: Path to the Bicep-File to publish
         required: true
-      registry:
+      registry_name:
         type: string
         description: Name of the Azure Registry to publish into
         required: true
@@ -26,12 +26,26 @@ on:
         description: The github environment with the credentials
         required: false
 
-      prefix:
+      image_tag:
+        type: string
+        description: Tag of the image to publish
+        required: true
+      image_name:
+        type: string
+        description: Name of the image to publish
+        required: true
+      image_prefix:
         type: string
         description: A prefix before the image name
         required: false
         default: ''
-      immutable:
+
+      allow_image_overwrite:
+        type: boolean
+        description: Allow overwriting of existing images
+        required: false
+        default: true
+      set_image_immutable:
         type: boolean
         description: Define if the tagged-version should be read-only
         required: false
@@ -65,13 +79,15 @@ on:
 
 jobs:
   publish_module:
-    name: Publish ${{ inputs.module }}
+    name: Publish ${{ inputs.image_name }}
     environment: ${{ inputs.environment }}
     runs-on: ${{ inputs.runs-on }}
     env:
-      MODULE_PATH: ''
+      LOCAL_PATH: ''
+      ACR_REGISTRY_URL: ''
       ACR_IMAGE_NAME: ''
       ACR_IMAGE_TAG: ''
+      ACR_IMAGE_FULL: ''
 
     steps:
         - name: Checkout code
@@ -81,25 +97,24 @@ jobs:
           id: read_version
           shell: pwsh
           run: |
-            # Replace duplicate // and the / at then end
-            # This is the local path to the main.bicep
-            $ModulePath = "${{ inputs.folder }}/${{ inputs.module }}" -replace "/+", "/" -replace "/+$", ""
+
+            $registryUrl = "${{ inputs.registry_name }}.azurecr.io"
+            $localPath = "${{ inputs.folder_prefix }}/${{ inputs.module_path }}"
 
             # This is the full path in the registry
-            $acrImageName = "${{ inputs.prefix }}${{ inputs.module }}" -replace "/+", "/" -replace "/+$", ""
+            $acrImageName = "${{ inputs.image_prefix }}${{ inputs.image_name }}" 
+            $acrImageName = $acrImageName -replace "/+", "/" -replace "/+$", ""
 
-            $VersionJson = Join-Path $ModulePath 'version.json'
-            $VersionJson = Get-Content $VersionJson | ConvertFrom-Json
+            $acrImageTag = "${{ inputs.image_tag }}"
+            $acrImageFull = "br:$acrImageName`:$acrImageTag"
 
-            $acrVersion = $VersionJson.version
 
-            if(-NOT [System.String]::IsNullOrEmpty($VersionJson.imageName)) {
-              $acrImageName = $VersionJson.imageName
-            }
+            "LOCAL_PATH=$localPath" >> $env:GITHUB_ENV
 
             "ACR_IMAGE_TAG=$acrVersion" >> $env:GITHUB_ENV
             "ACR_IMAGE_NAME=$acrImageName" >> $env:GITHUB_ENV
-            "MODULE_PATH=$ModulePath" >> $env:GITHUB_ENV
+            "ACR_IMAGE_FULL=$acrImageFull" >> $env:GITHUB_ENV
+            "ACR_REGISTRY_URL=$registryUrl" >> $env:GITHUB_ENV
 
         - name: Azure Login
           uses: azure/login@v1
@@ -124,23 +139,59 @@ jobs:
             azPSVersion: ${{ inputs.azps_version }}
             inlineScript: |
 
+              $allowImageOverwrite = [System.Boolean]::Parse("${{ inputs.allow_image_overwrite }}")
+
+              $registryUrl = "${{ env.ACR_REGISTRY_URL }}"
+              $acrImageName = "${{ env.ACR_IMAGE_NAME }}"
+              $acrImageTag = "${{ env.ACR_IMAGE_TAG }}"
+              $acrFullImage = "${{ env.ACR_IMAGE_FULL }}"
+              $localPath = "${{ env.LOCAL_PATH }}"
+
+              Write-Host "Local Path: $localPath"
+              Write-Host "Registry URL: $registryUrl"
+              Write-Host "ACR Image Tag: $acrImageTag"
+              Write-Host "ACR Image Name: $acrImageName"
+              Write-Host "ACR Full Image: $acrFullImage"
+
               az bicep install
 
-              az bicep publish `
-                --file "${{ env.MODULE_PATH }}/module.bicep" `
-                --target "br:${{ inputs.registry }}.azurecr.io/${{ env.ACR_IMAGE_NAME }}:${{ env.ACR_IMAGE_TAG }}"
+              $result = $null
+              if($allowImageOverwrite) {
+                $result = az bicep publish --force `
+                  --file "$localPath/module.bicep" `
+                  --target "$acrFullImage" `
+                  2>&1
+              } else {
+                $result = az bicep publish `
+                  --file "$localPath/module.bicep" `
+                  --target "$acrFullImage" `
+                  2>&1
+              }
+
+              # Prevent null result to avoid error with .startsWith
+              $result = $result ?? ''
+
+              if($LASTEXITCODE -NE 0 -OR $result.startsWith('ERROR:')) {
+                Write-Error "$result"
+                exit -1
+              }
 
         - name: Lock Image ${{ env.ACR_IMAGE_NAME }}:${{ env.ACR_IMAGE_TAG }}
-          if: inputs.immutable == true
+          if: inputs.set_image_immutable == true
           uses: azure/powershell@v2
           with:
             azPSVersion: ${{ inputs.azps_version }}
             inlineScript: |
 
+              $registryName = "${{ inputs.registry_name }}"
+              $acrImageName = "${{ env.ACR_IMAGE_NAME }}"
+              $acrImageTag = "${{ env.ACR_IMAGE_TAG }}"
+              $localPath = "${{ env.LOCAL_PATH }}"
+
               Update-AzContainerRegistryTag `
-                -RegistryName "${{ inputs.registry }}" `
-                -RepositoryName "${{ env.ACR_IMAGE_NAME }}" `
-                -Name "${{ env.ACR_IMAGE_TAG }}" `
+                -RegistryName "$registryName" `
+                -RepositoryName "$acrImageName" `
+                -Name "$acrImageTag" `
                 -WriteEnabled $false `
                 -DeleteEnabled $false
 

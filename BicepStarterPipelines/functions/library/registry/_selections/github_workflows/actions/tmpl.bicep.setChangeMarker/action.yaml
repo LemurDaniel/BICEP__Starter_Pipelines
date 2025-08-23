@@ -1,0 +1,28 @@
+name: Set Change Marker Tag
+description: Sets a Git tag to mark the last commit for detecting module changes
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: true
+    - name: Update Tags
+      shell: pwsh
+      run: |
+        $branch   = "${{ github.ref_name }}" # git branch --show-current
+        $tagName  = "meta-last-publish-marker-$branch"
+        $message  = "DO NOT DELETE | Tracks when commit for detecting module changes
+
+        git config user.name "GitHubActions"
+        git config user.email "actions@github.com"
+
+        # Make sure we're on the branch and up-to-date
+        git fetch origin $branch
+        git checkout $branch
+        git reset --hard origin/$branch
+
+        # Create or update the tag
+        git tag $tagName -m "$message" --force
+        git push origin $tagName --force

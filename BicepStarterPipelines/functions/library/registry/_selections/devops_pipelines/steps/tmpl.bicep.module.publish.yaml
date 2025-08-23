@@ -79,6 +79,8 @@ steps:
       pwsh: true
       inline: |
 
+        $allowImageOverwrite = [System.Boolean]::Parse("${{ parameters.allowImageOverwrite }}")
+
         $registryUrl = "$(set_vars.registryUrl)"
         $acrImageName = "$(set_vars.acrImageName)"
         $acrImageTag = "$(set_vars.acrImageTag)"
@@ -94,7 +96,7 @@ steps:
         az bicep install
 
         $result = $null
-        if([System.Boolean]::Parse("${{ parameters.allowImageOverwrite }}")) {
+        if($allowImageOverwrite) {
           $result = az bicep publish --force `
             --file "$localPath/module.bicep" `
             --target "$acrFullImage" `

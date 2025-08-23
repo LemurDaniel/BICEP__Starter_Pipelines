@@ -65,7 +65,7 @@ on:
 
 jobs:
   publish_module:
-    name: Verify ${{ inputs.module }}
+    name: Verify ${{ inputs.module_path }}
     environment: ${{ inputs.environment }}
     runs-on: ${{ inputs.runs-on }}
 

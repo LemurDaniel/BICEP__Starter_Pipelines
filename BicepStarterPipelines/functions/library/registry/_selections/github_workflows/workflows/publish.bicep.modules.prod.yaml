@@ -1,5 +1,9 @@
     
-name: Detect and Publish Module Changes
+name: Prod | Detect and Publish Module Changes
+
+# Define variables in github actions
+# REGISTRY_NAME: The name of the container registry to use for publishing images.
+# DEFAULT_LOCATION: The default location to use for resources.
 
 on:
   workflow_dispatch:
@@ -7,7 +11,7 @@ on:
       concurrency_limit:
         description: Will fail when too many modules are deployed at once. Increase to confirm your intent.
         type: number
-        required: true
+        required: false
         default: 5
 
   push:
@@ -27,7 +31,6 @@ on:
           
 env:
   FOLDER_PREFIX: modules/
-  DEFAULT_LOCATION: westeurope
 
 jobs:
   detect_changes:
@@ -59,7 +62,7 @@ jobs:
         module: ${{ fromJson(needs.detect_changes.outputs.module_changes) }}
     
     uses: ./.github/workflows/tmpl.bicep.module.verify.pwsh.yaml
-    name: ${{ matrix.module }}
+    name: ${{ matrix.module.module_path }}
     secrets: inherit
     #
     # Set a secret named AZURE_CICDSPN either:
@@ -77,10 +80,9 @@ jobs:
     with:
       # environment: prod
 
-      folder_prefix: ${{ needs.detect_changes.outputs.module_folder }}
-      module_path: ${{ matrix.module }}
-
-      default_location: ${{ env.DEFAULT_LOCATION }}
+      default_location: ${{ inputs.default_location }}
+      folder_prefix: ${{ matrix.module.folder_prefix }}
+      module_path: ${{ matrix.module.module_path }}
 
       # set_temporary_ip_rules: |
       #   acr-sample-prod
@@ -96,16 +98,20 @@ jobs:
         module: ${{ fromJson(needs.detect_changes.outputs.module_changes) }}
     
     uses: ./.github/workflows/tmpl.bicep.module.publish.pwsh.yaml
-    name: ${{ matrix.module }}
+    name: ${{ matrix.module.module_path }}
     secrets: inherit
     with:
       # environment: prod
-      folder_prefix: ${{ needs.detect_changes.outputs.module_folder }}
-      module_path: ${{ matrix.module }}
-      registry: ${{ vars.REGISTRY_NAME }}
+      folder_prefix: ${{ matrix.module.folder_prefix }}
+      module_path: ${{ matrix.module.module_path }}
+      registry_name: ${{ vars.REGISTRY_NAME }}
 
-      image_prefix: ${{ github.event_name == 'push' && '' || 'unreleased/' }}     
-      set_immutable: ${{ github.event_name == 'push' }}
+      image_tag: ${{ matrix.module.version }}
+      image_name: ${{ matrix.module.module_path }}
+      image_prefix: ${{ github.event_name == 'push' && '' || 'unreleased/' }}    
+      
+      allow_image_overwrite: false
+      set_image_immutable: false
 
       # set_temporary_ip_rules: |
       #   acr-sample-prod
@@ -117,25 +123,5 @@ jobs:
     needs:
     - publish_solution
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: true
-      - name: Update Tags
-        shell: pwsh
-        run: |
-          $branch   = "${{ github.ref_name }}" # git branch --show-current
-          $tagName  = "meta-last-publish-marker-$branch"
-          $message  = "DO NOT DELETE | Tracks when commit for detecting module changes
-
-          git config user.name "GitHubActions"
-          git config user.email "actions@github.com"
-
-          # Make sure we're on the branch and up-to-date
-          git fetch origin $branch
-          git checkout $branch
-          git reset --hard origin/$branch
-
-          # Create or update the tag
-          git tag $tagName -m "$message" --force
-          git push origin $tagName --force
+      - name: Set Change Marker Tag
+        uses: ./.github/actions/tmpl.bicep.setChangeMarker

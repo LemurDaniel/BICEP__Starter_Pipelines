@@ -30,9 +30,7 @@ param(
     [Required]
     The location to use for Azure resources.
     #>
-    [Parameter(
-        Mandatory = $true 
-    )]
+    [Parameter()]
     [System.String]
     $location,
 
@@ -43,6 +41,8 @@ param(
 
 . $PSScriptRoot/Invoke-ResourceGroupDeployment.ps1
 . $PSScriptRoot/Invoke-SubscriptionDeployment.ps1
+
+$location = [System.String]::IsNullOrEmpty($location) ? "westeurope" : $location
 
 $examples = Get-ChildItem -Path "$folderPrefix/$ModulePath" -Filter "example*" -Directory
 $versionJson = Get-Content -Path "$folderPrefix/$ModulePath/version.json" | ConvertFrom-Json
