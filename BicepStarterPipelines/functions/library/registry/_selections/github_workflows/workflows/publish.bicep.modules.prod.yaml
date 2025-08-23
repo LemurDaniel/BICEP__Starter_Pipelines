@@ -31,6 +31,7 @@ on:
           
 env:
   FOLDER_PREFIX: modules/
+  CONCURRENCY_LIMIT: 5
 
 jobs:
   detect_changes:
@@ -50,7 +51,7 @@ jobs:
         id: get_diff
         uses: ./.github/actions/tmpl.bicep.detectChanges
         with:
-          concurrency_limit: ${{ inputs.concurrency_limit }}
+          concurrency_limit: ${{ inputs.concurrency_limit || env.CONCURRENCY_LIMIT }}
           folder_prefix: ${{ env.FOLDER_PREFIX }}
 
   verify_solution:

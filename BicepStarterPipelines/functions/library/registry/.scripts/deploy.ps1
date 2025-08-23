@@ -44,22 +44,31 @@ param(
 
 $location = [System.String]::IsNullOrEmpty($location) ? "westeurope" : $location
 
-$examples = Get-ChildItem -Path "$folderPrefix/$ModulePath" -Filter "example*" -Directory
 $versionJson = Get-Content -Path "$folderPrefix/$ModulePath/version.json" | ConvertFrom-Json
 
-$exclusions = $versionJson.exclude_from.deployment ?? @()
+$relativeBasePath = "$folderPrefix/$ModulePath/$basePath"
+$basePath = $versionJson.deployment_tests.base_path ?? "."
+$inclusions = $versionJson.deployment_tests.include ?? @()
+
+$examples = Get-ChildItem -Path $relativeBasePath -Directory
+| Where-Object {
+    $relativePath = Resolve-Path -Path $_.FullName -Relative -RelativeBasePath $relativeBasePath
+    $relativePath = $relativePath.Replace('\', '/').TrimStart('./')
+
+    if (($inclusions.pattern | Where-Object { $relativePath -MATCH $_ -OR $relativePath -LIKE $_ }).Count -EQ 0) {
+        Write-Host -ForegroundColor Magenta "Not Included | Skipping folder $relativePath"
+        return $false
+    } else {
+        Write-Host -ForegroundColor Magenta "Included     | Processing folder $relativePath"
+        return $true
+    }
+}
 
 for ($index = 0; $index -lt $examples.Count; $index++) {
 
     Write-Host -ForegroundColor Magenta "------------------------------------------------------"
+    Write-Host -ForegroundColor Magenta "Deploying folder $relativePath"
 
-    if (($exclusions | Where-Object { $examples[$index].Name -LIKE $_ }).Count -GT 0) {
-        Write-Host -ForegroundColor Magenta "Skipping example due to exclusion: $($examples[$index].Name)"
-        continue
-    }
-    else {
-        Write-Host -ForegroundColor Magenta "Deploying example $index for module $ModulePath"
-    }
 
     $formatString = "module.{0}.{1}"
     $adjustedPath = $ModulePath

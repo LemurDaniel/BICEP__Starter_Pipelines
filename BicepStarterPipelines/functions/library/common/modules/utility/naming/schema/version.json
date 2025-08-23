@@ -1,9 +1,13 @@
 {
-    "description": "Naming module schemas.",
     "version": "1.0.0",
-    "exclude_from": {
-        "deployment": [
-            "example*"
+    "description": "Naming module schemas.",
+    "deployment_tests": {
+        "base_path": ".",
+        "include": [
+            {
+                "description": "Include all example folders in the test deployment",
+                "pattern": "example*"
+            }
         ]
     }
 }
