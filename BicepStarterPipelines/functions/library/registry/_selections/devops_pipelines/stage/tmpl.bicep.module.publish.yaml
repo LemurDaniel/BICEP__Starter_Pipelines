@@ -29,7 +29,11 @@ parameters:
   # Prefix to add to the image name
   - name: imagePrefix
     type: string
-  # Set image immutable
+    default: ""
+
+  - name: allowImageOverwrite
+    type: boolean
+    default: true
   - name: setImageImmutable
     type: boolean
     default: false
@@ -64,7 +68,7 @@ stages:
     displayName: Detect Changes ${{ parameters.stage }}
 
     jobs:
-      - job: detect_change_${{ parameters.stage }}_job
+      - job: detect_${{ parameters.stage }}
         displayName: Detect Bicep Module Changes
         steps:
           - checkout: self
@@ -92,7 +96,7 @@ stages:
                     $changes = git --no-pager diff --name-only $filter
                 } else {
                     $branch = "$(Build.SourceBranchName)" # git branch --show-current"
-                    $tagName = "meta-$branch-last-successful-publish"
+                    $tagName = "meta-last-publish-marker-$branch"
 
                     Write-Host "Detecting changes in branch"
                     Write-Host "Branch: $branch"
@@ -130,6 +134,17 @@ stages:
                 | ForEach-Object { 
                     Resolve-Path -Path $_ -Relative -RelativeBase $FolderPrefix
                 }
+                | ForEach-Object { 
+                    $_.Replace('//', '/').TrimStart('./')
+                }
+                | ForEach-Object {
+                    $versionJson = Get-Content -Path "$FolderPrefix/$_/version.json" | ConvertFrom-Json
+                    return @{
+                      modulePath = $_
+                      folderPrefix = $FolderPrefix
+                      version  = $versionJson.version
+                    }
+                }
 
                 $concurrencyLimit = [System.Int32]::Parse("${{ parameters.concurrencyLimit }}")
                 if($changedVersions.Count -GT $concurrencyLimit) {
@@ -137,22 +152,19 @@ stages:
                     exit -1;
                 }
 
+
                 # Debug output
                 Write-Host "Module Folder: $FolderPrefix"
                 Write-Host "Version.json changes: $($changedVersions | ConvertTo-Json -Compress -AsArray)"
 
                 # Matrix in Azure DevOps needs a MAP
                 $changedVersionsMap = [System.Collections.Hashtable]::new()
-                foreach($path in $changedVersions) {
-                    $changedVersionsMap.Add($path, 
-                      @{
-                        folderPrefix = $FolderPrefix
-                        modulePath = $path
-                      }
-                    )
+                foreach($item in $changedVersions) {
+                    $changedVersionsMap.Add($item.modulePath, $item)
                 }
 
-                $changedVersionsJson = $changedVersionsMap | ConvertTo-Json -Compress
+                $changedVersionsJson = $changedVersionsMap 
+                | ConvertTo-Json -Compress
 
                 Write-Host "Json: $changedVersionsJson"
 
@@ -161,7 +173,7 @@ stages:
   #////////////////////////////////////////////////////////////
   #////// Test and Publish Modules
   - stage: publish_bicep_${{ parameters.stage }}
-    condition: and(${{ parameters.condition }}, in(stageDependencies.detect_change_${{ parameters.stage }}.result, 'Succeeded'))
+    condition: and(${{ parameters.condition }}, in(stageDependencies.detect_change_${{ parameters.stage }}.result, 'Succeeded'), ne(stageDependencies.detect_change_${{ parameters.stage }}.detect_${{ parameters.stage }}.outputs['detect.module_changes'], '{}'))
     dependsOn: detect_change_${{ parameters.stage }}
     ${{ if eq(parameters.displayName, '') }}:
       displayName: Publish Bicep ${{ parameters.stage }}
@@ -172,7 +184,7 @@ stages:
         displayName: Deploy Bicep Modules
         condition: and(${{ parameters.testDeployCondition }}, ne(variables['Agent.JobStatus'], 'Canceled'))
         strategy:
-          matrix: $[ stageDependencies.detect_change_${{ parameters.stage }}.detect_change_${{ parameters.stage }}_job.outputs['detect.module_changes'] ]
+          matrix: $[ stageDependencies.detect_change_${{ parameters.stage }}.detect_${{ parameters.stage }}.outputs['detect.module_changes'] ]
         steps:
           - checkout: self
           - template: /.devops/steps/tmpl.bicep.module.verify.yaml
@@ -190,21 +202,24 @@ stages:
       - job: publish_modules_${{ parameters.stage }}
         displayName: Publish Bicep Modules
         dependsOn: deploy_modules_${{ parameters.stage }}
-        condition: and(and(${{ parameters.publishModuleCondition }}, ne(variables['Agent.JobStatus'], 'Canceled')), in(dependencies.deploy_modules_${{ parameters.stage }}.result, 'Succeeded', 'Skipped'))
+        condition: and(and(${{ parameters.publishModuleCondition }}, in(dependencies.deploy_modules_${{ parameters.stage }}.result, 'Succeeded', 'Skipped')), ne(variables['Agent.JobStatus'], 'Canceled'))
         strategy:
-          matrix: $[ stageDependencies.detect_change_${{ parameters.stage }}.detect_change_${{ parameters.stage }}_job.outputs['detect.module_changes'] ]
+          matrix: $[ stageDependencies.detect_change_${{ parameters.stage }}.detect_${{ parameters.stage }}.outputs['detect.module_changes'] ]
         steps:
           - checkout: self
-          - template: /.devops/steps/tmpl.bicep.module.verify.yaml
+          - template: /.devops/steps/tmpl.bicep.module.publish.yaml
             parameters:
               serviceConnection: ${{ parameters.serviceConnection }}
               azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
 
               folderPrefix: $(folderPrefix)
               modulePath: $(modulePath)
+              imageName: $(modulePath)
+              imageTag: $(version)
 
               imagePrefix: ${{ parameters.imagePrefix }}
               registryName: ${{ parameters.registryName }}
+              allowImageOverwrite: ${{ parameters.allowImageOverwrite }}
               setImageImmutable: ${{ parameters.setImageImmutable }}
 
               registries: ${{ parameters.setTemporaryIpRules }}
@@ -214,11 +229,10 @@ stages:
       - job: update_change_${{ parameters.stage }}
         displayName: Set Tag Marker ${{ parameters.stage }}
         dependsOn: publish_modules_${{ parameters.stage }}
-        condition: and(ne(variables['Agent.JobStatus'], 'Canceled'), in(dependencies.publish_modules_${{ parameters.stage }}.result, 'Succeeded'))
+        condition: and(in(dependencies.publish_modules_${{ parameters.stage }}.result, 'Succeeded'), ne(variables['Agent.JobStatus'], 'Canceled'))
         steps:
-          # Checkout with credential to fix the error- AFTER everything is tested!!
-          # - checkout: self
-          #   persistCredentials: true
+          - checkout: self
+            persistCredentials: true
           - task: PowerShell@2
             displayName: Tag last successful publish
             inputs:
@@ -231,7 +245,7 @@ stages:
                 }
 
                 $branch   = "$(Build.SourceBranchName)"
-                $tagName  = "meta-$branch-last-successful-publish"
+                $tagName  = "meta-last-publish-marker-$branch"
                 $message  = "DO NOT DELETE | Tracks when commit for detecting module changes."
 
                 git config user.name "AzureDevOps"
@@ -240,8 +254,31 @@ stages:
                 # Make sure we're on the branch and up-to-date
                 git fetch origin $branch
                 git checkout $branch
-                git reset --hard origin/$branch
 
                 # Create or update the tag
-                git tag $tagName -m "$message" --force
-                git push origin $tagName --force
+                Write-Host "Setting tag $tagName"
+                git tag -a $tagName -m "$message" --force
+                git push origin $tagName --force 2>$null
+                git reset --hard origin/$branch
+
+                if ($LASTEXITCODE -EQ 0) {
+                    Write-Host "✅ Git Tag '$tagName' erfolgreich auf Remote gepusht."
+                    return
+                }
+
+
+                Write-Host "❌ Git tag '$tagName' could not be pushed to the remote repository."
+                Write-Host ""
+                Write-Host "👉 Possible cause: The Build Service account does not have 'Contribute' permissions on the repository."
+                Write-Host "   Without this permission, the pipeline agent cannot create or update Git tags."
+                Write-Host ""
+                Write-Host "🔧 Solution:"
+                Write-Host "  1. Go to Azure DevOps: Project Settings → Repos → Repositories → [Your Repo] → Security"
+                Write-Host "  2. Set 'Contribute' to 'Allow' for one of the build services:"
+                Write-Host "     - '<Repository Name> Build Service'"
+                Write-Host "     - 'Project Collection Build Service <project>'"
+                Write-Host "     - 'Project Collection Build Services Account'"
+                Write-Host ""
+                Write-Host "📖 More info:"
+                Write-Host "https://learn.microsoft.com/en-us/azure/devops/repos/git/set-git-repository-permissions?view=azure-devops#open-security-for-a-repository"
+                exit -1

@@ -38,7 +38,7 @@ runs:
             $changes = git --no-pager diff --name-only $filter
         } else {
             $branch = "${{ github.ref_name }}" # git branch --show-current"
-            $tagName = "meta-$branch-last-successful-publish"
+            $tagName = "meta-last-publish-marker-$branch"
 
             Write-Host "Detecting changes in branch"
             Write-Host "Branch: $branch"
@@ -76,6 +76,17 @@ runs:
         | ForEach-Object { 
             Resolve-Path -Path $_ -Relative -RelativeBase $FolderPrefix
         }
+        | ForEach-Object { 
+            $_.Replace('//', '/').TrimStart('./')
+        }
+        | ForEach-Object {
+            $versionJson = Get-Content -Path "$FolderPrefix/$_/version.json" | ConvertFrom-Json
+            return @{
+              modulePath = $_
+              folderPrefix = $FolderPrefix
+              version  = $versionJson.version
+            }
+        }
 
         $concurrencyLimit = [System.Int32]::Parse("${{ inputs.concurrency_limit }}")
         if($changedVersions.Count -GT $concurrencyLimit) {
@@ -83,11 +94,13 @@ runs:
             exit -1;
         }
 
+
+        $changedVersionsJson = $changedVersions 
+        | ConvertTo-Json -Compress -AsArray
+
         # Debug output
         Write-Host "Module Folder: $FolderPrefix"
-        Write-Host "Version.json changes: $($changedVersions | ConvertTo-Json -Compress -AsArray)"
-
-        $changedVersionsJson = $changedVersions | ConvertTo-Json -Compress -AsArray
+        Write-Host "Version.json changes: $changedVersionsJson"
 
         "module_changes=$changedVersionsJson" >> $env:GITHUB_OUTPUT
         "module_folder=$FolderPrefix" >> $env:GITHUB_OUTPUT

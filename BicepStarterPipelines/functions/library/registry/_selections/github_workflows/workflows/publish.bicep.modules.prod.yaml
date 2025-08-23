@@ -125,7 +125,7 @@ jobs:
         shell: pwsh
         run: |
           $branch   = "${{ github.ref_name }}" # git branch --show-current
-          $tagName  = "meta-$branch-last-successful-publish"
+          $tagName  = "meta-last-publish-marker-$branch"
           $message  = "DO NOT DELETE | Tracks when commit for detecting module changes
 
           git config user.name "GitHubActions"

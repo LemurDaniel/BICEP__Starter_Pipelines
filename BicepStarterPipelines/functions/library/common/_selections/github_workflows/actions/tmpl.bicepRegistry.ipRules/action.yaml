@@ -60,12 +60,12 @@ runs:
             Write-Error "Container Registry not found: $name"
           }
 
-          Write-Output "Public IP of agent: $agentHostPublicIp"
-          Write-Output ""
-          Write-Output "############################################"
+          Write-Host "Public IP of agent: $agentHostPublicIp"
+          Write-Host ""
 
           foreach($registry in $registries) {
-            Write-Output "Removing access restriction from Container Registry: $($registry.Name)"
+            Write-Host "############################################"
+            Write-Host "#### Removing access restriction from Container Registry: $($registry.Name)"
 
             $rules = $null
             $rules = $registry.NetworkRuleSetIPRule 
@@ -92,19 +92,23 @@ runs:
             return
           }
 
+
+          Write-Host "############################################"
+
           foreach($registry in $registries) {
-            Write-Output "Adding access restriction to Container Registry: $($registry.Name)"
+            Write-Host "############################################"
+            Write-Host "#### Adding access restriction to Container Registry: $($registry.Name)"
 
             $rules = $null
             $rules = $registry.NetworkRuleSetIPRule
 
             if($registry.NetworkRuleSetDefaultAction -EQ 'Allow') {
-              Write-Output "Default action is Allow, skipping Adding of IP rules."
+              Write-Host "Default action is Allow, skipping Adding of IP rules."
               continue
             }
 
             if($agentHostPublicIp -IN $rules.IPAddressOrRange) {
-              Write-Output "IP already exists in rules, skipping..."
+              Write-Host "IP already exists in rules, skipping..."
               continue
             }
 

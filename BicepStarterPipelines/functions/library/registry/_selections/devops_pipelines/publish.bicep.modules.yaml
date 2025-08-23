@@ -19,8 +19,8 @@ trigger:
       - modules/**
 
 parameters:
-  - description: Will fail as a precautionwhen too many modules are being deployed at once. Increase to confirm your intend.
-    name: concurrencyLimit
+  # Will fail as a precaution when too many modules are being deployed at once. Increase to confirm your intent.
+  - name: concurrencyLimit
     type: number
     default: 5
 
@@ -52,7 +52,12 @@ stages:
 
       registryName: acr-sample-dev
 
-      # Set the registry image to be immutable
+      # Allow overwriting existing image tags. Defaults to true
+      # allowImageOverwrite: false
+      
+      # Set the registry image to be immutable. 
+      # Prevents any changes to the image in the ACR.
+      # When this is true, even allowImageOverwrite can NOT overwrite the image
       setImageImmutable: false
 
       # Sets a image prefix to the generated image name
@@ -87,7 +92,12 @@ stages:
 
       registryName: acr-sample-prod
 
-      # Set the registry image to be immutable
+      # Allow overwriting existing image tags. Defaults to true
+      allowImageOverwrite: false
+
+      # Set the registry image to be immutable. 
+      # Prevents any changes to the image in the ACR.
+      # When this is true, even allowImageOverwrite can NOT overwrite the image
       setImageImmutable: false
 
       # Sets a image prefix to the generated image name

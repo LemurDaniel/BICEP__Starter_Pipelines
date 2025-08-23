@@ -1,0 +1,145 @@
+parameters:
+  - name: serviceConnection
+    type: string
+
+  - name: folderPrefix
+    type: string
+  - name: modulePath
+    type: string
+
+  - name: registryName
+    type: string
+  - name: imageName
+    type: string
+  - name: imageTag
+    type: string
+  - name: imagePrefix
+    type: string
+    default: ""
+
+  - name: allowImageOverwrite
+    type: boolean
+    default: true
+  - name: setImageImmutable
+    type: boolean
+    default: false
+
+  # Name or Id of the registries
+  # Single mode
+  #  - registries: acr-bla-dev-001
+  # Multi mode
+  #  - registries: |
+  #     acr-bla-dev-001
+  #     acr-bla-dev-002
+  - name: registries
+    type: string
+    default: ""
+
+  # others
+  - name: azurePowerShellVersion
+    type: string
+    default: LatestVersion
+
+steps:
+  - template: ./tmpl.bicepRegistry.ipRules.yaml
+    parameters:
+      condition: and(ne('${{ parameters.registries }}', ''), succeeded())
+      restrictionMode: AllowAccess
+      serviceConnection: ${{ parameters.serviceConnection }}
+      azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
+      registries: ${{ parameters.registries }}
+
+  - task: PowerShell@2
+    displayName: Read ${{ parameters.imageName }}
+    name: set_vars
+    inputs:
+      targetType: "inline"
+      script: |
+
+        $registryUrl = "${{ parameters.registryName }}.azurecr.io"
+
+        $localPath = "${{ parameters.folderPrefix }}/${{ parameters.modulePath }}"
+        $acrImageTag = "${{ parameters.imageTag }}"
+
+        $acrImageName = "${{ parameters.imagePrefix }}${{ parameters.imageName }}"
+        $acrFullImage = "br:$registryUrl/$acrImageName`:$acrImageTag"
+
+        Write-Host "##vso[task.setvariable variable=registryUrl;isOutput=true]$registryUrl"
+        Write-Host "##vso[task.setvariable variable=acrImageName;isOutput=true]$acrImageName"
+        Write-Host "##vso[task.setvariable variable=acrImageTag;isOutput=true]$acrImageTag"
+        Write-Host "##vso[task.setvariable variable=acrFullImage;isOutput=true]$acrFullImage"
+        Write-Host "##vso[task.setvariable variable=localPath;isOutput=true]$localPath"
+
+  - task: AzurePowerShell@5
+    displayName: Publish ${{ parameters.imageName }}
+    inputs:
+      azureSubscription: ${{ parameters.serviceConnection }}
+      azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
+      ScriptType: inlineScript
+      pwsh: true
+      inline: |
+
+        $registryUrl = "$(set_vars.registryUrl)"
+        $acrImageName = "$(set_vars.acrImageName)"
+        $acrImageTag = "$(set_vars.acrImageTag)"
+        $acrFullImage = "$(set_vars.acrFullImage)"
+        $localPath = "$(set_vars.localPath)"
+
+        Write-Host "Local Path: $localPath"
+        Write-Host "Registry URL: $registryUrl"
+        Write-Host "ACR Image Tag: $acrImageTag"
+        Write-Host "ACR Image Name: $acrImageName"
+        Write-Host "ACR Full Image: $acrFullImage"
+
+        az bicep install
+
+        $result = $null
+        if([System.Boolean]::Parse("${{ parameters.allowImageOverwrite }}")) {
+          $result = az bicep publish --force `
+            --file "$localPath/module.bicep" `
+            --target "$acrFullImage" `
+            2>&1
+        } else {
+          $result = az bicep publish `
+            --file "$localPath/module.bicep" `
+            --target "$acrFullImage" `
+            2>&1
+        }
+
+        # Prevent null result to avoid error with .startsWith
+        $result = $result ?? ''
+
+        if($LASTEXITCODE -NE 0 -OR $result.startsWith('ERROR:')) {
+          Write-Error "$result"
+          exit -1
+        }
+
+  - task: AzurePowerShell@5
+    displayName: Lock ${{ parameters.imageName }}
+    condition: eq(${{ parameters.setImageImmutable }}, true)
+    inputs:
+      azureSubscription: ${{ parameters.serviceConnection }}
+      azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
+      ScriptType: inlineScript
+      pwsh: true
+      inline: |
+
+        $registryName = "${{ parameters.registryName }}"
+        $acrImageName = "$(set_vars.acrImageName)"
+        $acrImageTag = "$(set_vars.acrImageTag)"
+        $localPath = "$(set_vars.localPath)"
+
+        Update-AzContainerRegistryTag `
+          -RegistryName "$registryName" `
+          -RepositoryName "$acrImageName" `
+          -Name "$acrImageTag" `
+          -WriteEnabled $false `
+          -DeleteEnabled $false
+
+  - template: ./tmpl.bicepRegistry.ipRules.yaml
+    parameters:
+      condition: ne('${{ parameters.registries }}', '')
+      restrictionMode: RemoveAccess
+      serviceConnection: ${{ parameters.serviceConnection }}
+      azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
+      registries: ${{ parameters.registries }}
