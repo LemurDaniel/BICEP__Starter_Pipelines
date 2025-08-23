@@ -6,7 +6,7 @@ This is for quickly setting up a bicep project with pipelines
 
 Looks may differ based on which terminal you use.
 
-![Example](./.assets/example.png)
+![Example](./.assets/init.deployment.png)
 
 ## ⚠️ Attention  
 
