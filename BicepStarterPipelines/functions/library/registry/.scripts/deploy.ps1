@@ -44,12 +44,22 @@ param(
 . $PSScriptRoot/Invoke-ResourceGroupDeployment.ps1
 . $PSScriptRoot/Invoke-SubscriptionDeployment.ps1
 
-$examples = Get-ChildItem -Path "$folderPrefix/$ModulePath" -Filter "example*"
+$examples = Get-ChildItem -Path "$folderPrefix/$ModulePath" -Filter "example*" -Directory
+$versionJson = Get-Content -Path "$folderPrefix/$ModulePath/version.json" | ConvertFrom-Json
+
+$exclusions = $versionJson.exclude_from.deployment ?? @()
 
 for ($index = 0; $index -lt $examples.Count; $index++) {
 
     Write-Host -ForegroundColor Magenta "------------------------------------------------------"
-    Write-Host -ForegroundColor Magenta "Deploying example $index for module $ModulePath"
+
+    if (($exclusions | Where-Object { $examples[$index].Name -LIKE $_ }).Count -GT 0) {
+        Write-Host -ForegroundColor Magenta "Skipping example due to exclusion: $($examples[$index].Name)"
+        continue
+    }
+    else {
+        Write-Host -ForegroundColor Magenta "Deploying example $index for module $ModulePath"
+    }
 
     $formatString = "module.{0}.{1}"
     $adjustedPath = $ModulePath
