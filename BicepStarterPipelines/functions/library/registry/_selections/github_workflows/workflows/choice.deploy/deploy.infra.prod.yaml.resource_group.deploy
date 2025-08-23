@@ -13,19 +13,19 @@ on:
     branches:
       - master
     paths:
-      - './infra/*.bicep'
-      - './infra/params/*.prod.bicepparam'
+      - 'infra/*.bicep'
+      - 'infra/params/*.prod.bicepparam'
 
   pull_request:
     branches:
       - master
     paths:
-      - './infra/*.bicep'
-      - './infra/params/*.prod.bicepparam'
+      - 'infra/*.bicep'
+      - 'infra/params/*.prod.bicepparam'
    
 jobs:
   deploy_prod:
-    uses: ./.github/workflows/tmpl.bicep.infra.yaml
+    uses: ./.github/workflows/tmpl.bicep.infra.deploy.yaml
     #
     # Set a secret named AZURE_CICDSPN either:
     # - in the environment
@@ -39,17 +39,18 @@ jobs:
     #   "subscriptionId": "00000000-0000-0000-0000-000000000000",
     #   "tenantId": "00000000-0000-0000-0000-000000000000"
     # }
+    secrets: inherit
     with:
       # NOTE:
       # You can add an approval gate via the environment deployment protection rule for approvers
       # environment: prod
 
       scope: resource_group
-      resource_group: 'sample-prod'
+      resource_group: 'rg-sample-prod'
       
       deployment_name: 'sample-prod'
-      template_file: ./infrastructure/registry.bicep
-      parameter_file: ./infrastructure/params/registry.prod.bicepparam
+      template_file: ./infra/registry.scope.resource_group.bicep
+      parameter_file: ./infra/params/registry.prod.bicepparam
       
       what_if_only: ${{ github.EVENT_NAME  == 'pull_request' || inputs.what_if_only == true }}
 

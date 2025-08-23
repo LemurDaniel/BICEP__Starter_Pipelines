@@ -15,7 +15,7 @@ param name = {
 // NOTE:
 // Required User Access Permissions
 // Disable if you want to set role assignments yourself
-param deployRoleAssignments = true 
+param deployRoleAssignments = false  
 
 // NOTE:
 // This disables admin access and password. Prefer:

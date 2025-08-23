@@ -30,20 +30,20 @@ on:
     branches:
       - dev
     paths:
-      - './infra/*.bicep'
-      - './infra/params/*.test.bicepparam'
+      - 'infra/*.bicep'
+      - 'infra/params/*.test.bicepparam'
 
   pull_request:
     branches:
       - dev
     paths:
-      - './infra/*.bicep'
-      - './infra/params/*.test.bicepparam'
+      - 'infra/*.bicep'
+      - 'infra/params/*.test.bicepparam'
    
 jobs:
   deploy_test:
     name: Deploy Infrastructure Test
-    uses: ./.github/workflows/tmpl.bicep.infra.yaml
+    uses: ./.github/workflows/tmpl.bicep.infra.deploy.yaml
     #
     # Set a secret named AZURE_CICDSPN either:
     # - in the environment
@@ -57,15 +57,16 @@ jobs:
     #   "subscriptionId": "00000000-0000-0000-0000-000000000000",
     #   "tenantId": "00000000-0000-0000-0000-000000000000"
     # }
+    secrets: inherit
     with:
       environment: test
 
-      scope: resource_group
-      resource_group: 'sample-test'
+      scope: subscription
+      location: germanywestcentral
       
       deployment_name: 'sample-test'
-      template_file: ./infrastructure/registry.bicep
-      parameter_file: ./infrastructure/params/registry.test.bicepparam
+      template_file: ./infra/registry.scope.subscription.bicep
+      parameter_file: ./infra/params/registry.test.bicepparam
 
       action_on_unmanage: ${{ inputs.action_on_unmanage }}
       deny_settings_mode: ${{ inputs.deny_settings_mode }}

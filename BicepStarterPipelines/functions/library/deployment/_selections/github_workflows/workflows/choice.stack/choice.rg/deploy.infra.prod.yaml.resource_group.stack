@@ -42,7 +42,7 @@ on:
    
 jobs:
   deploy_prod:
-    uses: ./.github/workflows/tmpl.bicep.infra.yaml
+    uses: ./.github/workflows/tmpl.bicep.infra.deploy.yaml
     #
     # Set a secret named AZURE_CICDSPN either:
     # - in the environment
@@ -56,6 +56,7 @@ jobs:
     #   "subscriptionId": "00000000-0000-0000-0000-000000000000",
     #   "tenantId": "00000000-0000-0000-0000-000000000000"
     # }
+    secrets: inherit
     secrets: inherit
     with:
       # NOTE:

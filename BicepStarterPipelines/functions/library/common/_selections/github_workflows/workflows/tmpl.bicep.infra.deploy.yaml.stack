@@ -1,19 +1,31 @@
-name: (Template) Bicep Deployment - Resource Group - PWSH
+name: (Template) Bicep Deployment Stack - Resource Group - PWSH
 
 #
 # This is a template for deploying a Bicep file to a resource group using Powershell.
 #
+# This workflow uses deployment stacks: https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/deployment-stacks?tabs=azure-powershell
+#
 # Below is an example of how to use this template in a workflow.
 #
 #  name: Deploy Infrastructure
-#  uses: ./.github/workflows/sample.github.pwsh.group.deploy.yaml
-#  secrets:
-#    AZURE_DEPLOYMENT_SPN: ${{ secrets.AZURE_CICDSPN }}
+#  uses: ./.github/workflows/sample.github.pwsh.group.stack.yaml
+#  secrets: inherit
 #  with:
-#    deployment_name: 'sample-${{ inputs.module }}'
-#    resource_group: 'sample-${{ inputs.module }}'
-#    template_file: ${{ inputs.module }}/example/module.bicep
-#    parameter_file: ${{ inputs.module }}/example/module.bicepparam
+#     environment: test
+#     # NOTE:
+#     # You can add an approval gate via the environment deployment protection rule for approvers
+#     # environment: test
+#     scope: resource_group
+#     resource_group: 'rg-sample-test'
+#     
+#     deployment_name: 'sample-test'
+#     template_file: ./main.bicep
+#     parameter_file: ./params/main.test.bicepparam
+#     
+#     what_if_only: ${{ github.EVENT_NAME  == 'pull_request' || inputs.what_if_only == true }}
+#
+#     # set_temporary_ip_rules: |
+#     #   acr-sample-test
 #
 
 on:
@@ -38,16 +50,16 @@ on:
         type: string
         description: path to the bicep parameter file
         required: true
-
-      environment:
+      deny_settings_mode:
         type: string
-        description: The github environment to use
+        description: The deny settings mode
         required: false
-      run_bicep_tests:
-        type: boolean
-        description: Run Bicep tests before deployment
+        default: none # none, denyWriteAndDelete, denyDelete
+      action_on_unmanage:
+        type: string
+        description: Allow deletion of all resources
         required: false
-        default: false
+        default: detachAll # deleteAll, deleteResources, detachAll
 
 
       scope:
@@ -62,6 +74,17 @@ on:
         type: string
         description: Set on deployment scope subscription
         required: false
+
+
+      environment:
+        type: string
+        description: The github environment to use
+        required: false
+      run_bicep_tests:
+        type: boolean
+        description: Run Bicep tests before deployment
+        required: false
+        default: false
 
 
       what_if_only:
@@ -112,19 +135,12 @@ on:
 
 jobs:
   what_if:
-    name: Whatif ${{ inputs.template_file }}
-    environment: ${{ inputs.environment }}
+    name: WhatIf ${{ inputs.template_file }}
     runs-on: ${{ inputs.runs-on }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CICDSPN }}
-          enable-AzPSSession: true
 
       - name: Run Bicep Tests
         uses: azure/powershell@v2
@@ -136,6 +152,12 @@ jobs:
             foreach($file in $testFiles) {
               bicep test $file.FullName
             }
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CICDSPN }}
+          enable-AzPSSession: true
 
       - name: Add ACR IP Rule
         uses: ./.github/actions/tmpl.bicepRegistry.ipRules
@@ -153,12 +175,14 @@ jobs:
           deployment_name: ${{ inputs.deployment_name }}
           template_file: ${{ inputs.template_file }}
           parameter_file: ${{ inputs.parameter_file }}
+          deny_settings_mode: ${{ inputs.deny_settings_mode }}
+          action_on_unmanage: ${{ inputs.action_on_unmanage }}
 
           scope: ${{ inputs.scope }}
           resource_group: ${{ inputs.resource_group }}
           location: ${{ inputs.location }}
 
-          what_if: true
+          what_if: false
           what_if_result_format: ${{ inputs.what_if_result_format }}
           what_if_exclude_change: ${{ inputs.what_if_exclude_change }}
 
@@ -212,6 +236,8 @@ jobs:
           deployment_name: ${{ inputs.deployment_name }}
           template_file: ${{ inputs.template_file }}
           parameter_file: ${{ inputs.parameter_file }}
+          deny_settings_mode: ${{ inputs.deny_settings_mode }}
+          action_on_unmanage: ${{ inputs.action_on_unmanage }}
 
           scope: ${{ inputs.scope }}
           resource_group: ${{ inputs.resource_group }}

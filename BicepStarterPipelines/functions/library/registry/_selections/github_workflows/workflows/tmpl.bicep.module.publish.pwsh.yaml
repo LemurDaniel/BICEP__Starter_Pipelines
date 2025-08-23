@@ -1,4 +1,4 @@
-name: (Template) PWSH - Publish to Bicep Registry
+name: (Template) Publish to Bicep Registry
 
 #
 # This workflow is a template for publishing a module.bicep to an Azure Container Registry.

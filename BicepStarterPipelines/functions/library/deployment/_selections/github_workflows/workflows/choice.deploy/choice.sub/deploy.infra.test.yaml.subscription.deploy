@@ -26,7 +26,7 @@ on:
 jobs:
   deploy_test:
     name: Deploy Infrastructure Test
-    uses: ./.github/workflows/tmpl.bicep.infra.yaml
+    uses: ./.github/workflows/tmpl.bicep.infra.deploy.yaml
     #
     # Set a secret named AZURE_CICDSPN either:
     # - in the environment
