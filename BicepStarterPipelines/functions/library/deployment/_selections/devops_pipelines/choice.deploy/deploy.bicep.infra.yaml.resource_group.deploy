@@ -39,6 +39,14 @@ variables:
   - name: DEPLOYMENT_SCOPE
     value: resourceGroup # subscription | resourceGroup
 
+  - name: DEPLOY_PROD_WHEN
+    value: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
+  - name: DEPLOY_TEST_WHEN
+    value: $[startsWith(variables['Build.SourceBranch'], 'refs/heads/release')]
+  - name: DEPLOY_DEV_WHEN
+    value: isDevelop: $[and(ne(variables['isProduction'], True), ne(variables['isTest'], True))]
+
+
 parameters:
   - name: WhatIfOnly
     type: boolean
@@ -58,7 +66,7 @@ stages:
   - template: stage/tmpl.bicep.infra.deploy.yaml
     parameters:
       stage: dev
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/feature')
+      eq(variables['DEPLOY_DEV_WHEN'], True)
       serviceConnection: project-connection-dev
       # variableGroup: bicep-deploy-dev
 
@@ -97,7 +105,7 @@ stages:
       # - dev
       stage: test
 
-      condition: eq(variables['Build.SourceBranch'], 'refs/heads/dev')
+      condition: eq(variables['DEPLOY_TEST_WHEN'], True)
       serviceConnection: project-connection-test
       # variableGroup: bicep-deploy-test
 
@@ -136,7 +144,7 @@ stages:
       # - test
       stage: prod
 
-      condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
+      condition: eq(variables['DEPLOY_PROD_WHEN'], True)
       serviceConnection: project-connection-prod
       # variableGroup: bicep-deploy-prod
 
