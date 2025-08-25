@@ -19,6 +19,12 @@ trigger:
       - infra/*.bicep
       - infra/params/*.bicepparam
 
+variables:
+  - name: DEPLOY_PROD_WHEN
+    value: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
+  - name: DEPLOY_DEV_WHEN
+    value: $[eq(variables['Build.SourceBranch'], 'refs/heads/dev')]
+
 parameters:
   - name: WhatIfOnly
     type: boolean
@@ -37,9 +43,9 @@ parameters:
 stages:
   - template: stage/tmpl.bicep.infra.deploy.yaml
     parameters:
-      stage: test
+      stage: dev
 
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/dev')
+      condition: eq(variables['DEPLOY_DEV_WHEN'], True)
       serviceConnection: project-connection
       # variableGroup: bicep-deploy-test
 
@@ -77,10 +83,10 @@ stages:
       # Optionally depend on other stages
       # Will not execute if the dependent stage was skipped!!!
       # dependsOn:
-      # - test
+      # - dev
       stage: prod
 
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/master')
+      condition: eq(variables['DEPLOY_PROD_WHEN'], True)
       serviceConnection: project-connection
       # variableGroup: bicep-deploy-prod
 

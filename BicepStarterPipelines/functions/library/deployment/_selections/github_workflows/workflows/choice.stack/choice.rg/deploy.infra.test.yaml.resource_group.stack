@@ -26,19 +26,21 @@ on:
           - detachAll
           - deleteResources
 
-  push:
-    branches:
-      - dev
-    paths:
-      - 'main.bicep'
-      - 'params/main.test.bicep'
-
-  pull_request:
-    branches:
-      - dev
-    paths:
-      - 'main.bicep'
-      - 'params/main.test.bicep'
+#  Execution only on workflow dispatch
+# 
+#  push:
+#    branches:
+#      - feature/*
+#    paths:
+#      - 'main.bicep'
+#      - 'params/main.dev.bicepparam'
+#
+#  pull_request:
+#    branches:
+#      - feature/*
+#    paths:
+#      - 'main.bicep'
+#      - 'params/main.dev.bicepparam'
    
 jobs:
   deploy_test:

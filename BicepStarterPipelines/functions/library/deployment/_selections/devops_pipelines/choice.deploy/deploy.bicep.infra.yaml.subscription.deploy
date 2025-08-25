@@ -46,7 +46,7 @@ variables:
   - name: DEPLOY_TEST_WHEN
     value: $[startsWith(variables['Build.SourceBranch'], 'refs/heads/release')]
   - name: DEPLOY_DEV_WHEN
-    value: isDevelop: $[and(ne(variables['isProduction'], True), ne(variables['isTest'], True))]
+    value: $[and(ne(variables['isProduction'], True), ne(variables['isTest'], True))]
 
 
 parameters:

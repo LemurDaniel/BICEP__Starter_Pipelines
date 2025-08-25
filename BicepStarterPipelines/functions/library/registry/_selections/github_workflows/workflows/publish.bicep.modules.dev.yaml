@@ -1,4 +1,4 @@
-name: Test | Detect and Publish Module Changes
+name: Dev | Detect and Publish Module Changes
 
 # Define variables in github actions
 # REGISTRY_NAME: The name of the container registry to use for publishing images.
@@ -33,16 +33,16 @@ env:
 
   # The github environment where to pull secrets and vars from
   # If left empty will use repository scoped secrets and vars
-  # GIT_ENVIRONMENT: test
+  # GIT_ENVIRONMENT: dev
 
   DEFAULT_LOCATION: ${{ vars.DEFAULT_LOCATION || 'westeurope' }}
-  REGISTRY_NAME: ${{ vars.REGISTRY_NAME || 'acr-sample-prod' }}
+  REGISTRY_NAME: ${{ vars.REGISTRY_NAME || 'acr-sample-dev' }}
   # use this when your registry url differs from the default
   # CUSTOM_REGISTRY_URL: ${{ vars.CUSTOM_REGISTRY_URL || '' }}
 
-  # Condition when to test deploy and publish a module
+  # Condition when to dev deploy and publish a module
   # The following behavor is:
-  # - Test Deployments on Pull Requests
+  # - Dev Deployments on Pull Requests
   # - Publish Module on Pull Merge (push event)
   #
   #  You can also enter a value like (true, false) to enable or disable always

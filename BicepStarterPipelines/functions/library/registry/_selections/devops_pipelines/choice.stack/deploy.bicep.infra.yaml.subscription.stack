@@ -55,9 +55,9 @@ parameters:
 stages:
   - template: stage/tmpl.bicep.infra.deploy.yaml
     parameters:
-      stage: test
+      stage: dev
 
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/dev')
+      condition: eq(variables['DEPLOY_DEV_WHEN'], True)
       serviceConnection: project-connection-test
       # variableGroup: bicep-deploy-test
 
@@ -97,10 +97,10 @@ stages:
       # Optionally depend on other stages
       # Will not execute if the dependent stage was skipped!!!
       # dependsOn:
-      # - test
+      # - dev
       stage: prod
 
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/master')
+      condition: eq(variables['DEPLOY_PROD_WHEN'], True)
       serviceConnection: project-connection-prod
       # variableGroup: bicep-deploy-prod
 
