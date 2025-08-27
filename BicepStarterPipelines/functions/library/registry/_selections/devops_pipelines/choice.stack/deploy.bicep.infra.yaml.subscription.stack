@@ -58,7 +58,8 @@ stages:
       stage: dev
       environment: develop
 
-      eq(variables['DEPLOY_DEV_WHEN'], True)
+      condition: eq(variables['DEPLOY_DEV_WHEN'], True)
+      
       serviceConnection: project-connection-test
       # variableGroup: bicep-deploy-test
 
@@ -96,7 +97,8 @@ stages:
       stage: prod
       environment: production
 
-      eq(variables['DEPLOY_PROD_WHEN'], True)
+      condition: eq(variables['DEPLOY_PROD_WHEN'], True)
+      
       serviceConnection: project-connection-prod
       # variableGroup: bicep-deploy-prod
 

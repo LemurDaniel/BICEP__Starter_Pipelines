@@ -10,7 +10,7 @@
 | ✅ | Test: GitHub Registry Deployment Pipeline testen | Deploy Scripts auf GitHub Actions laufen lassen. Prüfen, dass Module korrekt deployed werden, inklusive Zugriff auf Registry. |
 | ⬜ | Test: GitHub Update Marker | Letzte erfolgreiche Deploys auch in GitHub markieren. Logik testen, dass nur geänderte Module bei zukünftigen Runs erkannt werden. |
 | ⬜ | Test: GitHub Final Check / Init | Init über PowerShell Starter Pipeline Repo. Alle funktionierenden Changes aus dem Modul drin. Sicherstellen, dass alles direkt wiederverwendbar ist. |
-| ⬜ | Test: Azure DevOps init + testen | Normale Deployment pipelines init auf Azure DevOps und testen (neues Demo Deployment testen) |
+| ✅ | Test: Azure DevOps init + testen | Normale Deployment pipelines init auf Azure DevOps und testen (neues Demo Deployment testen) |
 | ⬜ | Test: Azure DevOps init + testen | Registry Pipelines init auf Azure DevOps und testen (pipeline environmen testen) |
 | ⬜ | README: Deployment Template – Azure DevOps | Overview, Prerequisites (Azure Subscription, DevOps Project, Bicep CLI), Usage (Pipeline Trigger, Parameters), Marker Logic, Testing/Debug, References/Links |
 | ⬜ | README: Deployment Template – GitHub Actions | Overview, Prerequisites (GitHub Repo access, Actions enabled), Usage (Workflow triggers, Secrets, Parameters), Marker Logic, IP-Rules, Testing, References |

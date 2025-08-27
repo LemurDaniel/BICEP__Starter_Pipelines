@@ -42,9 +42,9 @@ variables:
     value: resourceGroup # subscription | resourceGroup
 
   - name: DEPLOY_PROD_WHEN
-    value: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
+    value: $[in(variables['Build.SourceBranchName'], 'main', 'master')]
   - name: DEPLOY_TEST_WHEN
-    value: $[startsWith(variables['Build.SourceBranch'], 'refs/heads/release')]
+    value: $[startsWith(variables['Build.SourceBranchName'], 'release')]
   - name: DEPLOY_DEV_WHEN
     value: $[and(ne(variables['isProduction'], True), ne(variables['isTest'], True))]
 
@@ -70,7 +70,8 @@ stages:
       stage: dev
       environment: develop
 
-      eq(variables['DEPLOY_DEV_WHEN'], True)
+      condition: eq(variables['DEPLOY_DEV_WHEN'], True)
+
       serviceConnection: project-connection-dev
       # variableGroup: bicep-deploy-dev
 
@@ -104,8 +105,9 @@ stages:
       stage: test
       environment: testing
 
-      eq(variables['DEPLOY_TEST_WHEN'], True)
+      condition: eq(variables['DEPLOY_TEST_WHEN'], True)
       serviceConnection: project-connection-test
+
       # variableGroup: bicep-deploy-test
 
       whatIfOnly: ${{ parameters.whatIfOnly }}
@@ -138,7 +140,8 @@ stages:
       stage: prod
       environment: production
 
-      eq(variables['DEPLOY_PROD_WHEN'], True)
+      condition: eq(variables['DEPLOY_PROD_WHEN'], True)
+      
       serviceConnection: project-connection-prod
       # variableGroup: bicep-deploy-prod
 

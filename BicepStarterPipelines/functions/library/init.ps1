@@ -192,6 +192,7 @@ elseif ($selectedScope -IEQ 'resource_group') {
 # Provide instructions for Azure DevOps and Github pipelines
 if ($Pipeline -IEQ 'Azure DevOps') {
   Write-Host -ForegroundColor Magenta "Service Connection in .devops/deploy.infrastructure.yaml"
+  Write-Host -ForegroundColor Magenta "Create the necessary Azure DevOps environments and optionally add approvals to them"
 }
 
 if ($Pipeline -EQ 'Github') {

@@ -21,7 +21,7 @@ trigger:
 
 variables:
   - name: DEPLOY_PROD_WHEN
-    value: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
+    value: $[in(variables['Build.SourceBranchName'], 'main', 'master')]
   - name: DEPLOY_DEV_WHEN
     value: $[eq(variables['Build.SourceBranch'], 'refs/heads/dev')]
 
@@ -46,7 +46,8 @@ stages:
       stage: dev
       environment: develop
 
-      eq(variables['DEPLOY_DEV_WHEN'], True)
+      condition: eq(variables['DEPLOY_DEV_WHEN'], True)
+      
       serviceConnection: project-connection
       # variableGroup: bicep-deploy-test
 
@@ -82,7 +83,8 @@ stages:
       stage: prod
       environment: production
 
-      eq(variables['DEPLOY_PROD_WHEN'], True)
+      condition: eq(variables['DEPLOY_PROD_WHEN'], True)
+      
       serviceConnection: project-connection
       # variableGroup: bicep-deploy-prod
 
