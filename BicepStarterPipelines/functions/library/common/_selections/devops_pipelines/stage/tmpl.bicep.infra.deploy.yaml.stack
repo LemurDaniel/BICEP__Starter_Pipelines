@@ -4,18 +4,20 @@ parameters:
     default: true
   - name: stage
     type: string
+  - name: environment
+    type: string
   - name: dependsOn
     type: object
     default: []
 
   - name: displayName
     type: string
-    default: ''
+    default: ""
   - name: serviceConnection
     type: string
   - name: variableGroup
     type: string
-    default: ''
+    default: ""
 
   # General deployment parameter
   - name: deploymentName
@@ -24,23 +26,23 @@ parameters:
     type: string
   - name: parametersFile
     type: string
-    
+
   - name: denySettingsMode
     type: string
     default: denyDelete
   - name: actionOnUnmanage
     type: string
     default: DetachAll
-    
+
   - name: WhatIfOnly
     type: string
     default: true
   - name: WhatIfResultFormat
     type: string
-    default: 'FullResourcePayloads' # ResourceIdOnly | FullResourcePayloads
+    default: "FullResourcePayloads" # ResourceIdOnly | FullResourcePayloads
   - name: WhatIfExcludeChange
     type: string
-    default: '' # Ignore | NoChange | Deploy | Create | Modify | Delete
+    default: "" # Ignore | NoChange | Deploy | Create | Modify | Delete
 
   # deployment scope
   - name: scope
@@ -50,18 +52,18 @@ parameters:
   # deployment specific parameters
   - name: subscriptionId
     type: string
-    default: ''
+    default: ""
   - name: location
     type: string
-    default: ''
+    default: ""
   - name: resourceGroup
     type: string
-    default: ''
+    default: ""
 
   # others
   - name: showTree
     type: boolean
-    default: false
+    default: true
   - name: runBicepTests
     type: boolean
     default: false
@@ -77,7 +79,7 @@ parameters:
   #     acr-bla-dev-002
   - name: setTemporaryIpRules
     type: string
-    default: ''
+    default: ""
 
   # Checkout repositories to a path
   # checkoutSubModules:
@@ -95,20 +97,6 @@ parameters:
     type: object
     default: {}
 
-  #
-  # Specify a comma separated list of users/groups/project teams to act on a manual validation. 
-  # In absence of input, users with queue build permission will be able to take action.
-  - name: deploymentApprovers
-    type: string
-    default: ''
-  - name: skipApproval
-    type: boolean
-    default: false
-  - name: allowApproversToApproveTheirOwnRuns
-    type: boolean
-    default: true
-
-
 stages:
   - stage: ${{ parameters.stage }}
     dependsOn: ${{ parameters.dependsOn }}
@@ -120,7 +108,7 @@ stages:
     jobs:
       #////////////////////////////////////////////////////////////
       #////// WhatIf
-      - job: what_if_${{ parameters.stage }}
+      - deployment: what_if_${{ parameters.stage }}
         displayName: WhatIf Bicep ${{ parameters.stage }}
         steps:
           - checkout: self
@@ -186,50 +174,39 @@ stages:
               targetPath: "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
               artifactName: "bicep_whatif_${{ parameters.stage }}"
 
-      - job: approve_${{ parameters.stage }}
-        condition: condition: and(and(succeeded(), eq(${{ parameters.skipApproval }}, false)), eq(${{ parameters.WhatIfOnly }}, false))
-        dependsOn: what_if_${{ parameters.stage }}
-        displayName: Approve Bicep ${{ parameters.stage }}
-        pool: server
-        steps:
-          - task: ManualValidation@0
-            displayName: Manual Validation
-            timeoutInMinutes: 1440
-            inputs:
-              onTimeout: 'reject'
-              instructions: Approve or reject the Bicep Deployment for ${{ parameters.stage }}
-              approvers: ${{ parameters.deploymentApprovers }}
-              allowApproversToApproveTheirOwnRuns: ${{ parameters.allowApproversToApproveTheirOwnRuns }}
-
       #////////////////////////////////////////////////////////////
       #////// Deploy
       - job: deployment_${{ parameters.stage }}
         condition: and(in(dependencies.approve_${{ parameters.stage }}.result, 'Succeeded', 'Skipped'), eq(${{ parameters.WhatIfOnly }}, false))
         dependsOn: approve_${{ parameters.stage }}
         displayName: Deploy Bicep ${{ parameters.stage }}
-        steps:
-          - checkout: self
-          - ${{ each subModule in parameters.checkoutSubModules }}:
-              - checkout: ${{ subModule.alias }}
-                path: s/$(Build.Repository.Name)/${{ subModule.path }}
+        environment: ${{ parameters.environment }}
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - ${{ each subModule in parameters.checkoutSubModules }}:
+                    - checkout: ${{ subModule.alias }}
+                      path: s/$(Build.Repository.Name)/${{ subModule.path }}
 
-          - template: /.devops/steps/tmpl.bicep.infra.deploy.yaml
-            parameters:
-              displayName: Deploy Bicep ${{ parameters.stage }}
+                - template: /.devops/steps/tmpl.bicep.infra.deploy.yaml
+                  parameters:
+                    displayName: Deploy Bicep ${{ parameters.stage }}
 
-              subscriptionId: ${{ parameters.subscriptionId }}
-              serviceConnection: ${{ parameters.serviceConnection }}
-              azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
+                    subscriptionId: ${{ parameters.subscriptionId }}
+                    serviceConnection: ${{ parameters.serviceConnection }}
+                    azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
 
-              scope: ${{ parameters.scope }}
-              location: ${{ parameters.location }}
-              resourceGroup: ${{ parameters.resourceGroup }}
+                    scope: ${{ parameters.scope }}
+                    location: ${{ parameters.location }}
+                    resourceGroup: ${{ parameters.resourceGroup }}
 
-              deploymentName: ${{ parameters.deploymentName }}
-              templateFile: ${{ parameters.templateFile }}
-              parametersFile: ${{ parameters.parametersFile }}
+                    deploymentName: ${{ parameters.deploymentName }}
+                    templateFile: ${{ parameters.templateFile }}
+                    parametersFile: ${{ parameters.parametersFile }}
 
-              denySettingsMode: ${{ parameters.denySettingsMode }}
-              actionOnUnmanage: ${{ parameters.actionOnUnmanage }}
+                    denySettingsMode: ${{ parameters.denySettingsMode }}
+                    actionOnUnmanage: ${{ parameters.actionOnUnmanage }}
 
-              registries: ${{ parameters.setTemporaryIpRules }}
+                    registries: ${{ parameters.setTemporaryIpRules }}

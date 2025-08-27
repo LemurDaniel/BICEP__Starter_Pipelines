@@ -44,13 +44,11 @@ stages:
   - template: stage/tmpl.bicep.infra.deploy.yaml
     parameters:
       stage: dev
+      environment: develop
 
-      condition: eq(variables['DEPLOY_DEV_WHEN'], True)
+      eq(variables['DEPLOY_DEV_WHEN'], True)
       serviceConnection: project-connection
       # variableGroup: bicep-deploy-test
-
-      # Show a tree structure of the folder
-      # showTree: true
 
       whatIfOnly: ${{ parameters.whatIfOnly }}
 
@@ -72,9 +70,6 @@ stages:
       # setTemporaryIpRules: |
       #   acr-sample-test
 
-      # skipApproval: true
-      # deploymentApprovers: 
-      # allowApproversToApproveTheirOwnRuns: false
 
 
   - template: stage/tmpl.bicep.infra.deploy.yaml
@@ -84,13 +79,11 @@ stages:
       # dependsOn:
       # - dev
       stage: prod
+      environment: production
 
-      condition: eq(variables['DEPLOY_PROD_WHEN'], True)
+      eq(variables['DEPLOY_PROD_WHEN'], True)
       serviceConnection: project-connection
       # variableGroup: bicep-deploy-prod
-
-      # Show a tree structure of the folder
-      # showTree: true
 
       whatIfOnly: ${{ parameters.whatIfOnly }}
 
@@ -112,7 +105,3 @@ stages:
       # Use this when the ACR network is restricted
       # setTemporaryIpRules: |
       #   acr-sample-prod
-
-      # skipApproval: true
-      # deploymentApprovers: 
-      # allowApproversToApproveTheirOwnRuns: false

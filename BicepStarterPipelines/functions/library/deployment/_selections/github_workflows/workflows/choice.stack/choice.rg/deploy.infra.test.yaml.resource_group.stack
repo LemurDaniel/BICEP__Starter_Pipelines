@@ -61,10 +61,10 @@ jobs:
     # }
     secrets: inherit
     with:
-      environment: test
       # NOTE:
       # You can add an approval gate via the environment deployment protection rule for approvers
       # environment: test
+      
       scope: resource_group
       resource_group: 'rg-sample-test'
       
