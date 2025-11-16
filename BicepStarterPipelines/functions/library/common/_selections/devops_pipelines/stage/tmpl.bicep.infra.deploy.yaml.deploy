@@ -63,6 +63,17 @@ parameters:
   - name: azurePowerShellVersion
     type: string
     default: LatestVersion
+
+  - name: approvers
+    type: string
+    default: ""
+  - name: allowSelfApprove
+    type: boolean
+    default: false
+  - name: skipApprove
+    type: boolean
+    default: false
+
   # Name or Id of the registries
   # Single mode
   #  - setTemporaryIpRules: acr-bla-dev-001
@@ -91,16 +102,14 @@ parameters:
     default: {}
 
 stages:
-  #////////////////////////////////////////////////////////////
-  #////// WhatIf
-  - stage: ${{ parameters.stage }}_what_if
+  - stage: ${{ parameters.stage }}
     dependsOn: ${{ parameters.dependsOn }}
     condition: and(succeeded(), ${{ parameters.condition }})
 
     ${{ if eq(parameters.displayName, '') }}:
-      displayName: What If Bicep ${{ parameters.stage }}
+      displayName: ${{ parameters.stage }} | Bicep Deployment
     ${{ if ne(parameters.displayName, '') }}:
-      displayName: (What If) ${{ parameters.displayName }}
+      displayName: ${{ parameters.displayName }}
 
     variables:
       - ${{ if ne(parameters.variableGroup, '') }}:
@@ -109,7 +118,7 @@ stages:
       #////////////////////////////////////////////////////////////
       #////// WhatIf
       - job: what_if_${{ parameters.stage }}
-        displayName: WhatIf Bicep ${{ parameters.stage }}
+        displayName: WhatIf Bicep
         steps:
           - checkout: self
           - ${{ each subModule in parameters.checkoutSubModules }}:
@@ -130,7 +139,7 @@ stages:
           #////// Bicep Tests
           - task: AzurePowerShell@5
             condition: eq(${{ parameters.runBicepTests }}, true)
-            displayName: Bicep Test ${{ parameters.stage }}
+            displayName: Bicep Test
             inputs:
               azureSubscription: ${{ parameters.serviceConnection }}
               azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
@@ -145,7 +154,7 @@ stages:
           #////// WhatIf
           - template: /.devops/steps/tmpl.bicep.infra.deploy.yaml
             parameters:
-              displayName: WhatIf Bicep ${{ parameters.stage }}
+              displayName: WhatIf Bicep
 
               subscriptionId: ${{ parameters.subscriptionId }}
               serviceConnection: ${{ parameters.serviceConnection }}
@@ -171,50 +180,57 @@ stages:
               targetPath: "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
               artifactName: "bicep_whatif_${{ parameters.stage }}"
 
+      #////////////////////////////////////////////////////////////
+      #////// Validation
+      - job: validate_${{ parameters.stage }}
+        displayName: Approve Bicep
+        timeoutInMinutes: 4320
+        pool: server
 
-  #////////////////////////////////////////////////////////////
-  #////// Deploy
-  - stage: ${{ parameters.stage }}
-    dependsOn: ${{ parameters.stage }}_what_if
-    condition: and(in(stageDependencies.${{ parameters.stage }}_what_if.result, 'Succeeded'),eq(${{ parameters.WhatIfOnly }}, false))
+        dependsOn: what_if_${{ parameters.stage }}
+        condition: and(succeeded(), eq('${{ parameters.skipApprove }}', 'false'))
+        steps:
+          - task: ManualValidation@1
+            inputs:
+              ${{ if ne(parameters.approvers, '') }}:
+                notifyUsers: ${{ parameters.approvers }}
+                approvers: ${{ parameters.approvers }}
 
-    ${{ if eq(parameters.displayName, '') }}:
-      displayName: Deploy Bicep ${{ parameters.stage }}
-    ${{ if ne(parameters.displayName, '') }}:
-      displayName: ${{ parameters.displayName }}
+              allowApproversToApproveTheirOwnRuns: ${{ parameters.allowSelfApprove }}
 
-    variables:
-      - ${{ if ne(parameters.variableGroup, '') }}:
-          - group: ${{ parameters.variableGroup }}
-    jobs:
+              instructions: Approve Bicep Deployment
+              onTimeout: "reject"
+
       #////////////////////////////////////////////////////////////
       #////// Deploy
-      - deployment: deployment_${{ parameters.stage }}
-        displayName: Deploy Bicep ${{ parameters.stage }}
-        environment: ${{ parameters.environment }}
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - checkout: self
-                - ${{ each subModule in parameters.checkoutSubModules }}:
-                    - checkout: ${{ subModule.alias }}
-                      path: s/$(Build.Repository.Name)/${{ subModule.path }}
+      - job: deploy_${{ parameters.stage }}
+        displayName: Deploy Bicep
 
-                - template: /.devops/steps/tmpl.bicep.infra.deploy.yaml
-                  parameters:
-                    displayName: Deploy Bicep ${{ parameters.stage }}
+        dependsOn: validate_${{ parameters.stage }}
+        condition: and(succeeded(), or(eq('${{ parameters.skipApprove }}', 'true'), succeeded('validate_${{ parameters.stage }}')))
 
-                    subscriptionId: ${{ parameters.subscriptionId }}
-                    serviceConnection: ${{ parameters.serviceConnection }}
-                    azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
+        steps:
+          - checkout: self
+          - ${{ each subModule in parameters.checkoutSubModules }}:
+              - checkout: ${{ subModule.alias }}
+                path: s/$(Build.Repository.Name)/${{ subModule.path }}
 
-                    scope: ${{ parameters.scope }}
-                    location: ${{ parameters.location }}
-                    resourceGroup: ${{ parameters.resourceGroup }}
+          #////////////////////////////////////////////////////////////
+          #////// Deploy
+          - template: /.devops/steps/tmpl.bicep.infra.deploy.yaml
+            parameters:
+              displayName: Deploy Bicep ${{ parameters.stage }}
 
-                    deploymentName: ${{ parameters.deploymentName }}
-                    templateFile: ${{ parameters.templateFile }}
-                    parametersFile: ${{ parameters.parametersFile }}
+              subscriptionId: ${{ parameters.subscriptionId }}
+              serviceConnection: ${{ parameters.serviceConnection }}
+              azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
 
-                    registries: ${{ parameters.setTemporaryIpRules }}
+              scope: ${{ parameters.scope }}
+              location: ${{ parameters.location }}
+              resourceGroup: ${{ parameters.resourceGroup }}
+
+              deploymentName: ${{ parameters.deploymentName }}
+              templateFile: ${{ parameters.templateFile }}
+              parametersFile: ${{ parameters.parametersFile }}
+
+              registries: ${{ parameters.setTemporaryIpRules }}

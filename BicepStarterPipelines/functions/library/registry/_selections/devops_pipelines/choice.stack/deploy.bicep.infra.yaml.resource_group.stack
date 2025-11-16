@@ -87,10 +87,28 @@ stages:
       resourceGroup: rg-sample-prod
       templateFile: ./infra/registry.scope.resource_group.bicep
 
-      # Sets temporary IP rules on the ACR
+      # --- (Optional) Sets temporary IP rules on the ACR
       # Use this when the ACR network is restricted
       # setTemporaryIpRules: |
       #   acr-sample-test
+
+      # --- (Optional) Change approval settings and users here
+      # approvers: |
+      #   user.name@organization.com
+      # allowSelfApprove: false
+      # skipApprove: false
+
+      # --- (Optional) Change approval settings and users here
+      # approvers: |
+      #   user.name@organization.com
+      # allowSelfApprove: false
+      # skipApprove: false
+
+      # --- (Optional) Change approval settings and users here
+      # approvers: |
+      #   user.name@organization.com
+      # allowSelfApprove: false
+      # skipApprove: false
 
 
 
@@ -126,7 +144,13 @@ stages:
       resourceGroup: rg-sample-prod
       templateFile: ./infra/registry.scope.resource_group.bicep
 
-      # Sets temporary IP rules on the ACR
+      # --- (Optional) Sets temporary IP rules on the ACR
       # Use this when the ACR network is restricted
       # setTemporaryIpRules: |
       #   acr-sample-prod
+
+      # --- (Optional) Change approval settings and users here
+      # approvers: |
+      #   user.name@organization.com
+      # allowSelfApprove: false
+      # skipApprove: false

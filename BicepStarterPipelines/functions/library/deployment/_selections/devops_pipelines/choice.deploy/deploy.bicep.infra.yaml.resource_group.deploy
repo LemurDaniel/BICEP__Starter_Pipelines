@@ -89,10 +89,16 @@ stages:
       # --- on resource group scope
       resourceGroup: rg-sample-dev
 
-      # Sets temporary IP rules on the ACR
+      # --- (Optional) Sets temporary IP rules on the ACR
       # Use this when the ACR network is restricted
       # setTemporaryIpRules: |
       #   acr-sample-dev
+
+      # --- (Optional) Change approval settings and users here
+      # approvers: |
+      #   user.name@organization.com
+      # allowSelfApprove: false
+      # skipApprove: false
 
 
 
@@ -124,10 +130,16 @@ stages:
       # --- on resource group scope
       resourceGroup: rg-sample-test
 
-      # Sets temporary IP rules on the ACR
+      # --- (Optional) Sets temporary IP rules on the ACR
       # Use this when the ACR network is restricted
       # setTemporaryIpRules: |
       #   acr-sample-test
+
+      # --- (Optional) Change approval settings and users here
+      # approvers: |
+      #   user.name@organization.com
+      # allowSelfApprove: false
+      # skipApprove: false
 
 
 
@@ -159,7 +171,13 @@ stages:
       # --- on resource group scope
       resourceGroup: rg-sample-prod
 
-      # Sets temporary IP rules on the ACR
+      # --- (Optional) Sets temporary IP rules on the ACR
       # Use this when the ACR network is restricted
       # setTemporaryIpRules: |
       #   acr-sample-prod
+
+      # --- (Optional) Change approval settings and users here
+      # approvers: |
+      #   user.name@organization.com
+      # allowSelfApprove: false
+      # skipApprove: false
