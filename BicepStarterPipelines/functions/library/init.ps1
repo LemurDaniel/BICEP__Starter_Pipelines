@@ -8,8 +8,9 @@ param(
 )
 
 <#
-    #############################
-    #### Deployment Method
+////////////////////////////////////////////////////////////////////////////////
+//// Deploy Method
+
 #>
 
 $deploymentMethods = [ordered]@{
@@ -25,8 +26,9 @@ if ([System.String]::IsNullOrEmpty($Method)) {
 $selectedMethod = $deploymentMethods[$Method]
 
 <#
-    #############################
-    #### Select Deployment Scope
+////////////////////////////////////////////////////////////////////////////////
+//// Select Deployment Scope
+
 #>
 
 $deploymentScopes = [ordered]@{
@@ -44,8 +46,9 @@ if ([System.String]::IsNullOrEmpty($Scope)) {
 $selectedScope = $deploymentScopes[$Scope]
 
 <#
-    #############################
-    #### Select Deployment Script
+////////////////////////////////////////////////////////////////////////////////
+//// Select Deployment Script
+
 #>
 
 # $deploymentScripts = [ordered]@{
@@ -61,8 +64,9 @@ $selectedScope = $deploymentScopes[$Scope]
 $selectedScript = 'pwsh'  # $deploymentScripts[$Script]
 
 <#
-    #############################
-    #### Select Deployment Pipeline
+////////////////////////////////////////////////////////////////////////////////
+//// Select Deployment Pipeline
+
 #>
 
 $deploymentPipelines = [ordered]@{
@@ -88,8 +92,9 @@ $targetPipelineFolder = [System.IO.DirectoryInfo]::new("$StagingDir/$($selectedP
 $targetPipelineFolder.Create()
 
 <#
-    #############################
-    #### Write to file
+////////////////////////////////////////////////////////////////////////////////
+//// Write to Write File
+
 #>
 
 # Where all template files are located.
