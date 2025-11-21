@@ -61,8 +61,7 @@ parameters:
 stages:
   - template: stage/tmpl.bicep.infra.deploy.yaml
     parameters:
-      stage: dev
-      environment: develop
+      stage: Dev
 
       condition: eq(variables['DEPLOY_DEV_WHEN'], True)
       
@@ -117,9 +116,8 @@ stages:
       # Optionally depend on other stages
       # Will not execute if the dependent stage was skipped!!!
       # dependsOn:
-      # - dev
-      stage: prod
-      environment: production
+      # - Dev
+      stage: Prod
 
       condition: eq(variables['DEPLOY_PROD_WHEN'], True)
       

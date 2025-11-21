@@ -32,7 +32,7 @@ variables:
 stages:
   - template: stage/tmpl.bicep.module.publish.yaml
     parameters:
-      stage: test
+      stage: Test
 
       condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/dev')
       serviceConnection: project-connection
@@ -76,8 +76,8 @@ stages:
       # Optionally depend on other stages
       # Will not execute if the dependent stage was skipped!!!
       # dependsOn:
-      # - test
-      stage: prod
+      # - Test
+      stage: Prod
 
       condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/master')
       serviceConnection: project-connection

@@ -67,8 +67,7 @@ parameters:
 stages:
   - template: stage/tmpl.bicep.infra.deploy.yaml
     parameters:
-      stage: dev
-      environment: develop
+      stage: Dev
 
       condition: eq(variables['DEPLOY_DEV_WHEN'], True)
 
@@ -107,9 +106,8 @@ stages:
       # Optionally depend on other stages
       # Will not execute if the dependent stage was skipped!!!
       # dependsOn:
-      # - dev
-      stage: test
-      environment: testing
+      # - Dev
+      stage: Test
 
       condition: eq(variables['DEPLOY_TEST_WHEN'], True)
       serviceConnection: project-connection-test
@@ -148,9 +146,8 @@ stages:
       # Optionally depend on other stages
       # Will not execute if the dependent stage was skipped!!!
       # dependsOn:
-      # - test
-      stage: prod
-      environment: production
+      # - Test
+      stage: Prod
 
       condition: eq(variables['DEPLOY_PROD_WHEN'], True)
       

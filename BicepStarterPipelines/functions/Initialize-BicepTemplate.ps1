@@ -25,7 +25,43 @@ function Initialize-BicepTemplate {
     )
 
     BEGIN {
+
         <#
+        ////////////////////////////////////////////////////////////////////////////////
+        
+        Helper Script for getting all choice folders recursively.
+
+        #>
+
+        function Get-AllFolders {
+            param (
+                [System.Int32]$Depth = 5,
+                [System.IO.DirectoryInfo] $path
+            )
+
+            if ($Depth -LE 0) {
+                Write-Verbose "[Get-AllFolders] Max Depth reached at $($path.FullName)"
+                return @()
+            }
+
+            $searchFolders = @()
+
+            $searchFolders += Get-ChildItem -Path $path -Directory
+
+            if ($IsLinux) {
+                # On Linux hidden folders need to be searched separately
+                $searchFolders += Get-ChildItem -Path $path -Directory -Hidden
+            }
+
+            foreach ($folder in $searchFolders) {
+                $searchFolders += Get-AllFolders -path $folder -Depth ($Depth - 1)
+            }
+
+            return $searchFolders
+        }
+        
+        <#
+        ////////////////////////////////////////////////////////////////////////////////
 
         Helper script for copying files.
 
@@ -37,35 +73,45 @@ function Initialize-BicepTemplate {
 
             param(
                 [System.IO.DirectoryInfo] $sourceDir,
-                [System.IO.DirectoryInfo] $targetDir
+                [System.IO.DirectoryInfo] $targetDir,
+                [switch] $overwrite,
+                [switch] $onlyWarn
             )
         
-            $sourceDirs = Get-ChildItem -Recurse -Directory -Path $sourceDir
+            $sourceDirs = Get-AllFolders -path $sourceDir
+
             foreach ($dir in $sourceDirs) {
                 $relativePath = Resolve-Path -Relative -Path $dir.FullName -RelativeBasePath $sourceDir
                 $templateDir = [System.IO.DirectoryInfo]::new("$targetDir/$relativePath")
     
+                Write-Verbose "[Copy-Helper] Ensuring directory $($templateDir.FullName) exists"
                 if (-NOT $templateDir.Exists) {
                     $null = $templateDir.Create()
                 }
-            }
 
-            $sourceFiles = Get-ChildItem -Recurse -File -Path $sourceDir
-            foreach ($file in $sourceFiles) {
-                $relativePath = Resolve-Path -Relative -Path $file.FullName -RelativeBasePath $sourceDir
-                $templateFile = [System.IO.FileInfo]::new("$targetDir/$relativePath")
+                $sourceFiles = Get-ChildItem -Path $dir.FullName -File
+                foreach ($file in $sourceFiles) {
+                    $relativePath = Resolve-Path -Relative -Path $file.FullName -RelativeBasePath $sourceDir
+                    $templateFile = [System.IO.FileInfo]::new("$targetDir/$relativePath")
     
-                if ($templateFile.Exists) {
-                    throw [System.InvalidOperationException]::new("$relativePath already exists!")
-                }
-                else {
-                    $null = $file.CopyTo($templateFile.FullName)
+                    if ($onlyWarn.IsPresent -AND -NOT $overwrite.IsPresent -AND $templateFile.Exists) {
+                        Write-Warning "SKIPPING | File Exists: $($relativePath)"
+                    }
+                    elseif (-NOT $overwrite.IsPresent -AND $templateFile.Exists) {
+                        Write-Error "ERROR | File Exists: $($relativePath)"
+                    }
+                    else {
+                        Write-Verbose "[Copy-Helper] Copying file $($relativePath) to $($templateFile.FullName)"
+                        Copy-Item -Path $file.FullName -Destination $templateFile.FullName
+                    }
                 }
             }
 
         }
 
+
         <#
+        ////////////////////////////////////////////////////////////////////////////////
 
         Initialize all relevant variables:
         - targetDir where to copy files
@@ -87,7 +133,8 @@ function Initialize-BicepTemplate {
 
     END {
 
-        <#    
+        <#
+        ////////////////////////////////////////////////////////////////////////////////    
         
         All files are copied to the staging directory,
         where they are modified and then copied to the target directory.
@@ -107,7 +154,8 @@ function Initialize-BicepTemplate {
         $choiceFolders = $null
         $maxLoops = 1000
         do {
-            $choiceFolders = Get-ChildItem -Path $tempDir -Recurse -Directory -Filter "choice.*"
+            $choiceFolders = Get-AllFolders -path $tempDir
+            | Where-Object -Property Name -Like 'choice.*'
 
             # We can break early when no choice folders are found.
             if ($choiceFolders.Count -EQ 0) {
@@ -115,12 +163,14 @@ function Initialize-BicepTemplate {
             }
 
             # This will move all items in the choice folder to the parent folder
+
             # We do only one choice folder per iteration, 
-            # because some choice folders are nested in others and moving will change the paths of some nested choice folders.
-            # Removing one layer at each iteration reduces the complexity of taking this into account
+            # - Some choice folders are nested in others and moving will change the paths of some nested choice folders.
+            # - Removing one layer at each iteration reduces the complexity of taking this into account
             $folder = $choiceFolders | Select-Object -First 1
             $items = Get-ChildItem -Path $folder.FullName
             foreach ($item in $items) {
+                Write-Verbose "[Initialize-BicepTemplate] Moving item $($item.FullName) to $($folder.Parent.FullName)"
                 Move-Item -Path $item.FullName -Destination $folder.Parent.FullName
             }
 
@@ -136,6 +186,7 @@ function Initialize-BicepTemplate {
         } while ($maxLoops-- -GT 0)
 
         <#
+        ////////////////////////////////////////////////////////////////////////////////
 
         This is the final copy operation from staging to the user directory
         Uses the copy dialog for Windows and the shell copy for Linux.
@@ -154,21 +205,14 @@ function Initialize-BicepTemplate {
         }
 
         try {
-            Copy-Item -Path "$tempDir/*" -Recurse -Destination $Target
-            Get-ChildItem -Path $tempDir -Hidden | Copy-Item -Recurse -Destination $Target -ErrorAction SilentlyContinue
+            Copy-Helper -sourceDir $tempDir -targetDir $Target
         }
         catch {
             Write-Host -ForegroundColor RED "`n`nTarget: $Target"
             Write-Host -ForegroundColor RED "`Files already exist in the target directory."
-            $overwrite = Select-UtilsUserOption -Prompt "Overwrite?"
+            $overwrite = Select-UtilsUserOption -Prompt "Overwrite? (Yes/No) "
 
-            if ($overwrite) {
-                Copy-Item -Path "$tempDir/*" -Recurse -Force -Destination $Target
-                Get-ChildItem -Path $tempDir -Hidden | Copy-Item -Recurse -Force -Destination $Target -ErrorAction SilentlyContinue
-            }
-            else {
-                Write-Host -ForegroundColor RED "`n`nAborting the operation."
-            }
+            Copy-Helper -sourceDir $tempDir -targetDir $Target -overwrite:$($overwrite) -onlyWarn
         }
     }
 

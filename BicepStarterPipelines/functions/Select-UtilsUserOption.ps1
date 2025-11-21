@@ -69,7 +69,8 @@ function Select-UtilsUserOption {
 
 
         <#
-          The Options to display for selection
+        ////////////////////////////////////////////////////////////////////////////////
+        ////   The Options to display for selection
 
           Input as Strings:
           @("Yes", "No")
@@ -144,7 +145,8 @@ function Select-UtilsUserOption {
 
 
         <#
-            Custom colors for the prompt and options.
+        ////////////////////////////////////////////////////////////////////////////////
+        ////     Custom colors for the prompt and options.
 
             Provide a hashtable with the following keys.
             Each key is optional and $null will be replaced with the default value.
@@ -253,7 +255,8 @@ function Select-UtilsUserOption {
         }
         
         <#
-            Setting up the colors for the prompt and options.
+        ////////////////////////////////////////////////////////////////////////////////
+        ////     Setting up the colors for the prompt and options.
         #>
         $_LineBreak_ = [System.Environment]::NewLine
 
@@ -264,7 +267,8 @@ function Select-UtilsUserOption {
 
 
         <#
-            Setting up user prompt and displayed options.
+        ////////////////////////////////////////////////////////////////////////////////
+        ////     Setting up user prompt and displayed options.
             - PromptLineBreaks: The number of line after the prompt, so only the prompt is colored.
                                 If you want multiple colored lines, just use Write-Host with the color you want.
 
@@ -300,12 +304,14 @@ function Select-UtilsUserOption {
     PROCESS {
 
         <#
-            If the user provided the obect as a parameter,
+        ////////////////////////////////////////////////////////////////////////////////
+        ////     If the user provided the obect as a parameter,
             we pipe it to a new instance of the function.
         #>
         if (-NOT $PSCmdlet.MyInvocation.ExpectingInput) {
             <#
-                When no option were provided at all, we define the default options.
+        ////////////////////////////////////////////////////////////////////////////////
+        ////         When no option were provided at all, we define the default options.
             #>
             if ($Options.Count -EQ 0) {
                 $null = $PSBoundParameters['Return'] = 'return'
@@ -329,7 +335,8 @@ function Select-UtilsUserOption {
 
 
         <#
-            Convert all provided entries to a list of object:
+        ////////////////////////////////////////////////////////////////////////////////
+        ////     Convert all provided entries to a list of object:
             - Strings and ValueTypes: String or Value is displayed on screen as is.
             - Powershell Objects:     A property from the object is display on screen, to identify the object.
         #>
@@ -417,7 +424,8 @@ function Select-UtilsUserOption {
         do {
 
             <#
-                Sets the cursor position to the start of the line.
+        ////////////////////////////////////////////////////////////////////////////////
+        ////         Sets the cursor position to the start of the line.
 
                 Then draws all options in a single line.
             #>
@@ -449,7 +457,8 @@ function Select-UtilsUserOption {
 
 
             <#
-            
+        ////////////////////////////////////////////////////////////////////////////////
+        ////     
                 ////////////////////////////////////////
                 /// Handle Key Inputs from User.
 
@@ -458,7 +467,8 @@ function Select-UtilsUserOption {
             $e = [System.Console]::ReadKey($true)
 
             <#
-                Cancel the operation if the user presses ESC or CTRL+C.
+        ////////////////////////////////////////////////////////////////////////////////
+        ////         Cancel the operation if the user presses ESC or CTRL+C.
             #>
             if (
                 $e.Key -EQ [System.ConsoleKey]::Escape -OR
@@ -483,7 +493,8 @@ function Select-UtilsUserOption {
 
 
             <#
-                When a number is entered, select the corresponding option at the index.
+        ////////////////////////////////////////////////////////////////////////////////
+        ////         When a number is entered, select the corresponding option at the index.
             #>
             if (
                 [System.Char]::IsDigit($e.KeyChar)
@@ -497,7 +508,8 @@ function Select-UtilsUserOption {
             }
 
             <#
-                Return the selected value if the user presses ENTER.
+        ////////////////////////////////////////////////////////////////////////////////
+        ////         Return the selected value if the user presses ENTER.
             #>
             elseif (
                 $e.Key -EQ [System.ConsoleKey]::Enter

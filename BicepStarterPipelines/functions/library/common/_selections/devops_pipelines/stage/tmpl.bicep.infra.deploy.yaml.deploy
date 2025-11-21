@@ -4,8 +4,6 @@ parameters:
     default: true
   - name: stage
     type: string
-  - name: environment
-    type: string
   - name: dependsOn
     type: object
     default: []
