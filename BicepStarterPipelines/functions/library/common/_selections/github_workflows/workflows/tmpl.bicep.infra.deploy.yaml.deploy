@@ -28,7 +28,18 @@ name: (Template) Bicep Deployment - Resource Group - PWSH
 
 on:
   workflow_call:
+    secrets:
+      AZURE_AUTH:
+        description: The Azure credentials for the deployment service principal.
+        required: false
+
     inputs:
+      use_oidc:
+        type: string
+        description: Use oidc for authentication
+        required: false
+        default: ''
+
       azps_version:
         type: string
         description: The Azure PowerShell version to use
@@ -129,12 +140,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Azure Login
-        uses: azure/login@v1
+      - uses: ./.github/actions/tmpl.azureLogin
+        name: Azure Login
         with:
-          creds: ${{ secrets.AZURE_CICDSPN }}
-          enable-AzPSSession: true
+          AZURE_AUTH: ${{ secrets.AZURE_AUTH }}
 
       - name: Run Bicep Tests
         uses: azure/powershell@v2
@@ -199,12 +208,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Azure Login
-        uses: azure/login@v1
+      - uses: ./.github/actions/tmpl.azureLogin
+        name: Azure Login
         with:
-          creds: ${{ secrets.AZURE_CICDSPN }}
-          enable-AzPSSession: true
+          AZURE_AUTH: ${{ secrets.AZURE_AUTH }}
 
       - name: Add ACR IP Rule
         uses: ./.github/actions/tmpl.bicepRegistry.ipRules

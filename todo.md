@@ -16,7 +16,7 @@
 | ⬜ | README: Deployment Template – GitHub Actions | Overview, Prerequisites (GitHub Repo access, Actions enabled), Usage (Workflow triggers, Secrets, Parameters), Marker Logic, IP-Rules, Testing, References |
 | ⬜ | README: Registry Template – Azure DevOps | Overview (what the registry template does), Prerequisites (Azure Subscription, DevOps Project), Usage (how to publish modules, parameters), Marker Logic, Versioning, Testing, References |
 | ⬜ | README: Registry Template – GitHub Actions | Overview, Prerequisites (GitHub Repo, Actions), Usage (publish modules workflow, parameters, secrets), Marker Logic, Versioning, Testing, References |
-| ⬜ | IDENTITY: Add Workload Identity Federation | Authenticate via Workload Identity Federation for Github, instead of normal SPN |
+| ✅ | IDENTITY: Add Workload Identity Federation | Authenticate via Workload Identity Federation for Github, instead of normal SPN |
 
 
 ---

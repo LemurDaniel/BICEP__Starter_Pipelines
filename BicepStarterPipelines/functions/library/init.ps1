@@ -197,15 +197,32 @@ if ($Pipeline -IEQ 'Azure DevOps') {
 
 if ($Pipeline -EQ 'Github') {
   Write-Host -ForegroundColor Magenta "`n"
-  Write-Host -ForegroundColor Magenta "Provide a secret named AZURE_CICDSPN:"
-  Write-Host -ForegroundColor Magenta "Set this Secret via GitHub Environments"
   Write-Host -ForegroundColor Magenta @"
-  {
-      "clientId": "00000000-0000-0000-0000-000000000000",
-      "objectId": "00000000-0000-0000-0000-000000000000",
-      "clientSecret": "00000000-0000-0000-0000-000000000000",
-      "subscriptionId": "00000000-0000-0000-0000-000000000000",
-      "tenantId": "00000000-0000-0000-0000-000000000000"
-  }
+
+      Define following Secrets either:
+      - in the environment
+      - or repository scoped
+     
+      When Auth_type: OIDC (Workload Identity Federation)
+      AZURE_AUTH = {
+        "auth_type": "OIDC",
+        "tenantId": "00000000-0000-0000-0000-000000000000",
+        "subscriptionId": "00000000-0000-0000-0000-000000000000",
+        "clientId": "00000000-0000-0000-0000-000000000000"
+      }
+      Either:
+      - Federated Credential on User Managed Identity: https://learn.microsoft.com/en-us/entra/workload-id/workload-identity-federation-create-trust-user-assigned-managed-identity?pivots=identity-wif-mi-methods-azp#configure-a-federated-identity-credential-on-a-user-assigned-managed-identity
+      - Federated Credential on App Registration: https://learn.microsoft.com/en-us/entra/workload-id/workload-identity-federation-create-trust?pivots=identity-wif-apps-methods-azp#github-actions
+    
+     
+      When Auth_type: ClientSecret
+      AZURE_AUTH = {
+        "auth_type": "ClientSecret",
+        "tenantId": "00000000-0000-0000-0000-000000000000",
+        "subscriptionId": "00000000-0000-0000-0000-000000000000",
+        "clientId": "00000000-0000-0000-0000-000000000000",
+        "objectId": "00000000-0000-0000-0000-000000000000",
+        "clientSecret": "00000000-0000-0000-0000-000000000000"
+     }
 "@
 }

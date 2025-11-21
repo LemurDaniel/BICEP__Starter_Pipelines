@@ -132,17 +132,25 @@ jobs:
     name: ${{ matrix.module.module_path }}
     secrets: inherit
     #
-    # Set a secret named AZURE_CICDSPN either:
+    # Define following Secrets either:
     # - in the environment
     # - or repository scoped
     #
-    # The secret should be jsonencoded like this:
-    # {
-    #   "clientId": "00000000-0000-0000-0000-000000000000",
-    #   "objectId": "00000000-0000-0000-0000-000000000000",
-    #   "clientSecret": "00000000-0000-0000-0000-000000000000",
+    # When Auth_type: OIDC (Workload Identity Federation)
+    # AZURE_AUTH = {
+    #   "auth_type": "OIDC",
+    #   "tenantId": "00000000-0000-0000-0000-000000000000",
     #   "subscriptionId": "00000000-0000-0000-0000-000000000000",
-    #   "tenantId": "00000000-0000-0000-0000-000000000000"
+    #   "clientId": "00000000-0000-0000-0000-000000000000"
+    # }
+    #
+    # When Auth_type: ClientSecret
+    # AZURE_AUTH = {
+    #   "auth_type": "ClientSecret",
+    #   "tenantId": "00000000-0000-0000-0000-000000000000",
+    #   "subscriptionId": "00000000-0000-0000-0000-000000000000",
+    #   "clientId": "00000000-0000-0000-0000-000000000000",
+    #   "clientSecret": "00000000-0000-0000-0000-000000000000"
     # }
     with:
       environment: ${{ fromJson(needs.detect_changes.outputs.configuration).git_environment }}
