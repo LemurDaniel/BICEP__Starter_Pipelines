@@ -17,3 +17,13 @@
 | ⬜ | README: Registry Template – Azure DevOps | Overview (what the registry template does), Prerequisites (Azure Subscription, DevOps Project), Usage (how to publish modules, parameters), Marker Logic, Versioning, Testing, References |
 | ⬜ | README: Registry Template – GitHub Actions | Overview, Prerequisites (GitHub Repo, Actions), Usage (publish modules workflow, parameters, secrets), Marker Logic, Versioning, Testing, References |
 | ⬜ | IDENTITY: Add Workload Identity Federation | Authenticate via Workload Identity Federation for Github, instead of normal SPN |
+
+
+---
+
+Terraform Starter Pipelines and then use:
+          - task: InstallSSHKey@0
+            inputs:
+              sshKeySecureFile: 'mcp_ssh_private_key'
+              knownHostsEntry: 'ssh.dev.azure.com SHA256:Sp0qdub8jJ3+ET7VAPQucsUmhImLtG63Cet3m+rWBcw ssh.dev.azure.com'
+            displayName: Install SSH Key
