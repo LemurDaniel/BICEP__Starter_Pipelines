@@ -43,14 +43,17 @@ steps:
       inline: |
 
         $agentHostPublicIp = Invoke-RestMethod -Uri "https://api.ipify.org"
-        $allowAgentIp = '${{ parameters.restrictionMode }}' -EQ 'AllowAccess'
 
         $contexts = @()
         $defaultContext = Get-AzContext
         foreach($subscription in (Get-AzSubscription)) {
           $contexts += Set-AzContext -SubscriptionId $subscription.Id
         }
+
         Set-AzContext -Context $defaultContext
+
+        #/////////////////////////////////////////////////////////////////////////////////////
+        #///// Search available Contexts for registries
 
         $registries = "${{ parameters.registries }}" -replace "`r`n", "," -replace "`n", "," -split ','
         | Where-Object { -NOT [System.String]::IsNullOrEmpty($_) } 
@@ -71,16 +74,16 @@ steps:
           Write-Error "Container Registry not found: $name"
         }
 
-        Write-Host "Public IP of agent to add: $agentHostPublicIp"
-        Write-Host ""
+
+        #/////////////////////////////////////////////////////////////////////////////////////
+        #///// Remove previously set access restriction
 
         foreach($registry in $registries) {
           Write-Host "############################################"
           Write-Host "#### Removing access restriction from Container Registry: $($registry.Name)"
 
-          $rules = $null
-          $rules = $registry.NetworkRuleSetIPRule 
-          | Where-Object -Property IPAddressOrRange -NE $agentHostPublicIp
+          $rules = $registry.NetworkRuleSetIPRule ?? @()
+          $rules = $rules | Where-Object -Property IPAddressOrRange -NE $agentHostPublicIp
 
           Write-Host "$($rules | ConvertTo-Json)"
 
@@ -97,21 +100,21 @@ steps:
           $result | Select-Object -Property Name, Location, NetworkRuleSetDefaultAction, NetworkRuleSetIPRule
         }
 
-        # Check if we should add the access restriction
-        # If AllowAgentIp is true, we skip adding the access restriction
-        if(-NOT $allowAgentIp) {
+
+        #/////////////////////////////////////////////////////////////////////////////////////
+        #///// Add the new access restriction 
+        if('${{ parameters.restrictionMode }}' -NE 'AllowAccess') {
           return
         }
 
-
-        Write-Host "############################################"
-
+        Write-Host "/////////////////////////////////////////////////////////////////////////////////////"
+        Write-Host "Public IP of agent to add: $agentHostPublicIp"
+  
         foreach($registry in $registries) {
-            Write-Host "############################################"
-            Write-Host "#### Adding access restriction Adding access restriction to Container Registry: $($registry.Name)"
+            Write-Host "/////////////////////////////////////////////////////////////////////////////////////"
+            Write-Host "//// Adding access restriction Adding access restriction to Container Registry: $($registry.Name)"
 
-            $rules = $null
-            $rules = $registry.NetworkRuleSetIPRule
+            $rules = $registry.NetworkRuleSetIPRule ?? @()
 
             if($registry.NetworkRuleSetDefaultAction -EQ 'Allow') {
               Write-Host "Default action is Allow, skipping Adding of IP rules."
