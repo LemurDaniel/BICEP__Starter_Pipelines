@@ -34,13 +34,6 @@ trigger: none
 #       - params/**
 
 variables:
-  - name: DEPLOYMENT_FILE
-    value: ./main.bicep
-  - name: DEPLOYMENT_NAME
-    value: demo
-  - name: DEPLOYMENT_SCOPE
-    value: subscription # subscription | resourceGroup
-
   - name: DEPLOY_PROD_WHEN
     value: $[in(variables['Build.SourceBranchName'], 'main', 'master')]
   - name: DEPLOY_TEST_WHEN
@@ -97,10 +90,12 @@ stages:
       actionOnUnmanage: ${{ parameters.actionOnUnmanage }}
 
       # env parameters
-      scope: ${{ variables.DEPLOYMENT_SCOPE }}
-      deploymentName: ${{ variables.DEPLOYMENT_NAME }} 
-      templateFile: ${{ variables.DEPLOYMENT_FILE }}
+      deploymentName: deployment-dev
+
+      templateFile: ./main.bicep
       parametersFile: ./params/main.dev.bicepparam
+
+      scope: subscription # subscription | resourceGroup
 
       # --- on subscription scope
       location: germanywestcentral
@@ -114,8 +109,6 @@ stages:
       #   acr-sample-dev
 
       # --- (Optional) Change approval settings and users here
-      # approvers: |
-      #   user.name@organization.com
       # allowSelfApprove: false
       # skipApprove: false
 
@@ -139,10 +132,12 @@ stages:
       actionOnUnmanage: ${{ parameters.actionOnUnmanage }}
 
       # env parameters
-      scope: ${{ variables.DEPLOYMENT_SCOPE }}
-      deploymentName: ${{ variables.DEPLOYMENT_NAME }} 
-      templateFile: ${{ variables.DEPLOYMENT_FILE }}
+      deploymentName: deployment-test
+
+      templateFile: ./main.bicep
       parametersFile: ./params/main.test.bicepparam
+
+      scope: subscription # subscription | resourceGroup
 
       # --- on subscription scope
       location: germanywestcentral
@@ -156,8 +151,6 @@ stages:
       #   acr-sample-test
 
       # --- (Optional) Change approval settings and users here
-      # approvers: |
-      #   user.name@organization.com
       # allowSelfApprove: false
       # skipApprove: false
 
@@ -181,10 +174,12 @@ stages:
       actionOnUnmanage: ${{ parameters.actionOnUnmanage }}
 
       # env parameters
-      scope: ${{ variables.DEPLOYMENT_SCOPE }}
-      deploymentName: ${{ variables.DEPLOYMENT_NAME }} 
-      templateFile: ${{ variables.DEPLOYMENT_FILE }}
+      deploymentName: deployment-prod
+      
+      templateFile: ./main.bicep
       parametersFile: ./params/main.prod.bicepparam
+
+      scope: subscription # subscription | resourceGroup
 
       # --- on subscription scope
       location: germanywestcentral
@@ -198,7 +193,5 @@ stages:
       #   acr-sample-prod
 
       # --- (Optional) Change approval settings and users here
-      # approvers: |
-      #   user.name@organization.com
       # allowSelfApprove: false
       # skipApprove: false

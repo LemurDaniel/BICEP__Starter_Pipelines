@@ -69,12 +69,14 @@ parameters:
     type: string
     default: LatestVersion
 
-  - name: approvers
-    type: string
-    default: ""
+  # There is a bug in the ManualValidation task
+  # https://github.com/microsoft/azure-pipelines-tasks/issues/21179
+  # - name: approvers
+  #   type: string
+  #   default: ""
   - name: allowSelfApprove
     type: boolean
-    default: false
+    default: true
   - name: skipApprove
     type: boolean
     default: false
@@ -200,14 +202,17 @@ stages:
         steps:
           - task: ManualValidation@1
             inputs:
-              ${{ if ne(parameters.approvers, '') }}:
-                notifyUsers: ${{ parameters.approvers }}
-                approvers: ${{ parameters.approvers }}
+              # There is a bug in the ManualValidation task
+              # https://github.com/microsoft/azure-pipelines-tasks/issues/21179
+              # ${{ if ne(parameters.approvers, '') }}:
+              #   notifyUsers: ${{ parameters.approvers }}
+              #   approvers: ${{ parameters.approvers }}
 
-              allowApproversToApproveTheirOwnRuns: ${{ parameters.allowSelfApprove }}
-
+              notifyUsers: ''
               instructions: Approve Bicep Deployment
               onTimeout: "reject"
+
+              allowApproversToApproveTheirOwnRuns: ${{ parameters.allowSelfApprove }}
 
       #////////////////////////////////////////////////////////////
       #////// Deploy

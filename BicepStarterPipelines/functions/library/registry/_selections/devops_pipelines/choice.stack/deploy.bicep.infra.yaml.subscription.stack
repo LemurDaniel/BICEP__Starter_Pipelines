@@ -86,8 +86,6 @@ stages:
       #   acr-sample-test
 
       # --- (Optional) Change approval settings and users here
-      # approvers: |
-      #   user.name@organization.com
       # allowSelfApprove: false
       # skipApprove: false
 
@@ -130,7 +128,5 @@ stages:
       #   acr-sample-prod
 
       # --- (Optional) Change approval settings and users here
-      # approvers: |
-      #   user.name@organization.com
       # allowSelfApprove: false
       # skipApprove: false
