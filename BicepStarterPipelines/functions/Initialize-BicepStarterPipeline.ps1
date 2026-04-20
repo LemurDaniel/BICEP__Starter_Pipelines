@@ -17,13 +17,13 @@ function Initialize-BicepStarterPipeline {
         )]
         [ValidateSet('deployment', 'registry')]
         [System.String]
-        $Template = 'deployment',
+        $Template,
 
         [Parameter(
             Position = 1,
             Mandatory = $false
         )]
-        [System.IO.DirectoryInfo]
+        [System.String]
         $Target = '.',
 
         [Parameter()]
@@ -64,9 +64,11 @@ function Initialize-BicepStarterPipeline {
                 Display = 'Bicep Registry'
                 Value   = 'registry'
             }
-        ) | Select-UtilsUserOption
+        ) | Select-UtilsUserOption -Return Value
     }
 
+    $Target = Resolve-Path -Path $Target
+    | Select-Object -ExpandProperty Path
     $PSBoundParameters['Template'] = $Template
     Initialize-BicepTemplate -Template $Template -Target $Target -InitParameter $PSBoundParameters 
 }
