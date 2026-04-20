@@ -69,15 +69,15 @@ Describe 'Initialize-BicepStartPipeline' {
             Test-Path -Path "$destination/.github" | Should -Be $githubMatch
             Test-Path -Path "$destination/.github/workflows" | Should -Be $githubMatch
  
-            Test-Path -Path "$destination/.github/workflows/deploy.infrastructure.dev.yaml" | Should -Be $githubMatch
-            Test-Path -Path "$destination/.github/workflows/deploy.infrastructure.test.yaml" | Should -Be $githubMatch
-            Test-Path -Path "$destination/.github/workflows/deploy.infrastructure.prod.yaml" | Should -Be $githubMatch
-            Test-Path -Path "$destination/.github/workflows/tmpl.deploy.infrastructure.yaml" | Should -Be $githubMatch
+            Test-Path -Path "$destination/.github/workflows/deploy.infra.dev.yaml" | Should -Be $githubMatch
+            Test-Path -Path "$destination/.github/workflows/deploy.infra.test.yaml" | Should -Be $githubMatch
+            Test-Path -Path "$destination/.github/workflows/deploy.infra.prod.yaml" | Should -Be $githubMatch
+            Test-Path -Path "$destination/.github/workflows/tmpl.deploy.infra.yaml" | Should -Be $githubMatch
  
 
             Test-Path -Path "$destination/.devops" | Should -Be $azdoMatch
             Test-Path -Path "$destination/.devops/stage" | Should -Be $azdoMatch
-            Test-Path -Path "$destination/.devops/deploy.infrastructure.yaml" | Should -Be $azdoMatch
+            Test-Path -Path "$destination/.devops/deploy.infra.yaml" | Should -Be $azdoMatch
             Test-Path -Path "$destination/.devops/stage/tmpl.bicep.infra.variables.yaml" | Should -Be $azdoMatch
             Test-Path -Path "$destination/.devops/stage/tmpl.bicep.infra.deploy.yaml" | Should -Be $azdoMatch
         }
