@@ -101,7 +101,7 @@ $targetPipelineFolder.Create()
 $templateFiles = Get-Item -Path "$StagingDir/_selections"
 
 if ($Template -EQ 'deployment') {
-  $bicepMainTemplate = Get-Item -Path "$templateFiles/bicep/*.$selectedScope"
+  $bicepMainTemplate = Get-Item -Path "$templateFiles/bicep/*.bicep.$selectedScope"
   $deployScriptTemplate = Get-Item -Path "$templateFiles/deploy/*.$selectedScope.$selectedMethod"
 
   $bicepMainFilePath = "$StagingDir/$($bicepMainTemplate.Name)".Replace(".$selectedScope", "")
@@ -110,7 +110,6 @@ if ($Template -EQ 'deployment') {
   $null = $deployScriptTemplate.CopyTo($deployScriptFilePath)
   $null = $bicepMainTemplate.CopyTo($bicepMainFilePath)
 }
-
 
 # Pipeline files
 

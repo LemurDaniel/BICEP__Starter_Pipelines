@@ -33,31 +33,33 @@ function Initialize-BicepTemplate {
 
         #>
 
-        function Get-AllFolders {
+        function Get-AllFiles{
             param (
                 [System.Int32]$Depth = 5,
                 [System.IO.DirectoryInfo] $path
             )
 
             if ($Depth -LE 0) {
-                Write-Verbose "[Get-AllFolders] Max Depth reached at $($path.FullName)"
+                Write-Verbose "[Get-AllFiles] Max Depth reached at $($path.FullName)"
                 return @()
             }
 
+            $files = @()
+
+            $files += Get-ChildItem -Path $path -File
+
             $searchFolders = @()
-
             $searchFolders += Get-ChildItem -Path $path -Directory
-
             if ($IsLinux) {
                 # On Linux hidden folders need to be searched separately
                 $searchFolders += Get-ChildItem -Path $path -Directory -Hidden
             }
 
             foreach ($folder in $searchFolders) {
-                $searchFolders += Get-AllFolders -path $folder -Depth ($Depth - 1)
+                $files += Get-AllFiles -path $folder -Depth ($Depth - 1)
             }
 
-            return $searchFolders
+            return $files
         }
         
         <#
@@ -78,32 +80,29 @@ function Initialize-BicepTemplate {
                 [switch] $onlyWarn
             )
         
-            $sourceDirs = Get-AllFolders -path $sourceDir
+            $sourceFiles = Get-AllFiles -path $sourceDir
 
-            foreach ($dir in $sourceDirs) {
-                $relativePath = Resolve-Path -Relative -Path $dir.FullName -RelativeBasePath $sourceDir
-                $templateDir = [System.IO.DirectoryInfo]::new("$targetDir/$relativePath")
+            foreach ($file in $sourceFiles) {
+                $relativePathDir = Resolve-Path -Relative -Path $file.Directory.FullName -RelativeBasePath $sourceDir
+                $templateDir = [System.IO.DirectoryInfo]::new("$targetDir/$relativePathDir")
     
                 Write-Verbose "[Copy-Helper] Ensuring directory $($templateDir.FullName) exists"
                 if (-NOT $templateDir.Exists) {
                     $null = $templateDir.Create()
                 }
 
-                $sourceFiles = Get-ChildItem -Path $dir.FullName -File
-                foreach ($file in $sourceFiles) {
-                    $relativePath = Resolve-Path -Relative -Path $file.FullName -RelativeBasePath $sourceDir
-                    $templateFile = [System.IO.FileInfo]::new("$targetDir/$relativePath")
+                $relativePathFile = Resolve-Path -Relative -Path $file.FullName -RelativeBasePath $sourceDir
+                $templateFile = [System.IO.FileInfo]::new("$targetDir/$relativePathFile")
     
-                    if ($onlyWarn.IsPresent -AND -NOT $overwrite.IsPresent -AND $templateFile.Exists) {
-                        Write-Warning "SKIPPING | File Exists: $($relativePath)"
-                    }
-                    elseif (-NOT $overwrite.IsPresent -AND $templateFile.Exists) {
-                        Write-Error "ERROR | File Exists: $($relativePath)"
-                    }
-                    else {
-                        Write-Verbose "[Copy-Helper] Copying file $($relativePath) to $($templateFile.FullName)"
-                        Copy-Item -Path $file.FullName -Destination $templateFile.FullName
-                    }
+                if ($onlyWarn.IsPresent -AND -NOT $overwrite.IsPresent -AND $templateFile.Exists) {
+                    Write-Warning "SKIPPING | File Exists: $($relativePathFile)"
+                }
+                elseif (-NOT $overwrite.IsPresent -AND $templateFile.Exists) {
+                    Write-Error "ERROR | File Exists: $($relativePathFile)"
+                }
+                else {
+                    Write-Verbose "[Copy-Helper] Copying file $($relativePathFile) to $($templateFile.FullName)"
+                    Copy-Item -Path $file.FullName -Destination $templateFile.FullName
                 }
             }
 
@@ -154,8 +153,11 @@ function Initialize-BicepTemplate {
         $choiceFolders = $null
         $maxLoops = 1000
         do {
-            $choiceFolders = Get-AllFolders -path $tempDir
+            $choiceFolders = Get-AllFiles -path $tempDir
+            | Select-Object -ExpandProperty Directory
             | Where-Object -Property Name -Like 'choice.*'
+            | Sort-Object -Property FullName -Descending
+            | Select-Object -Unique
 
             # We can break early when no choice folders are found.
             if ($choiceFolders.Count -EQ 0) {
