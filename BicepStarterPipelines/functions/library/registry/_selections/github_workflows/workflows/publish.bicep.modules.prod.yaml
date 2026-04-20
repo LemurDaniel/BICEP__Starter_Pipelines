@@ -51,8 +51,8 @@ env:
 
   # Temporarly allows the github agents ip on the registry
   # Use this when your registry is not publicly accessible
-  # SET_IP_RULES: |
-  #   ${{ vars.REGISTRY_NAME }}
+  SET_IP_RULES: |
+    ${{ vars.REGISTRY_NAME || 'acrsampleprod' }}
 
   # Allows overwriting published bicep module versions
   ALLOW_IMAGE_OVERWRITE: true
