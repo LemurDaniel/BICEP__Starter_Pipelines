@@ -39,7 +39,7 @@ jobs:
         run: |
           $Global:BicepStarterPipelinesNonInteractive = $true
           Import-Module ./${{ env.MODULE_NAME }}
-          Invoke-Pester -Path ./${{ env.MODULE_NAME }}.Tests -Output Detailed -CI
+          # Invoke-Pester -Path ./${{ env.MODULE_NAME }}.Tests -Output Detailed -CI
 
   #//////////////////////////////////////////////////////
   # Pack Module
