@@ -51,7 +51,7 @@ stages:
       folderPrefix: $(FOLDER_PREFIX)
       defaultLocation: $(DEFAULT_LOCATION)
 
-      registryName: acr-sample-dev
+      registryName: acrsampledev
 
       # Allow overwriting existing image tags. Defaults to true
       # allowImageOverwrite: false
@@ -68,7 +68,7 @@ stages:
       # Sets temporary IP rules on the ACR
       # Use this when the ACR network is restricted
       setTemporaryIpRules: |
-        acr-sample-dev
+        acrsampledev
 
 
   - template: stage/tmpl.bicep.module.publish.yaml
@@ -96,7 +96,7 @@ stages:
       folderPrefix: $(FOLDER_PREFIX)
       defaultLocation: $(DEFAULT_LOCATION)
 
-      registryName: acr-sample-prod
+      registryName: acrsampleprod
 
       # Allow overwriting existing image tags. Defaults to true
       allowImageOverwrite: false
@@ -113,4 +113,4 @@ stages:
       # Sets temporary IP rules on the ACR
       # Use this when the ACR network is restricted
       setTemporaryIpRules: |
-        acr-sample-prod
+        acrsampleprod

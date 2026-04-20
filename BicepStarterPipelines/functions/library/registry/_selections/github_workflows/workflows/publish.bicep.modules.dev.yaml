@@ -36,7 +36,7 @@ env:
   # GIT_ENVIRONMENT: dev
 
   DEFAULT_LOCATION: ${{ vars.DEFAULT_LOCATION || 'westeurope' }}
-  REGISTRY_NAME: ${{ vars.REGISTRY_NAME || 'acr-sample-dev' }}
+  REGISTRY_NAME: ${{ vars.REGISTRY_NAME || 'acrsampledev' }}
   # use this when your registry url differs from the default
   # CUSTOM_REGISTRY_URL: ${{ vars.CUSTOM_REGISTRY_URL || '' }}
 

@@ -25,7 +25,7 @@ name: (Template) Bicep Deployment Stack - Resource Group - PWSH
 #     what_if_only: ${{ github.EVENT_NAME  == 'pull_request' || inputs.what_if_only == true }}
 #
 #     # set_temporary_ip_rules: |
-#     #   acr-sample-test
+#     #   acrsampletest
 #
 
 on:

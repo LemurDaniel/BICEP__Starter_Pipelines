@@ -86,7 +86,7 @@ stages:
       # --- (Optional) Sets temporary IP rules on the ACR
       # Use this when the ACR network is restricted
       # setTemporaryIpRules: |
-      #   acr-sample-dev
+      #   acrsampledev
 
       # --- (Optional) Change approval settings and users here
       # allowSelfApprove: false
@@ -126,7 +126,7 @@ stages:
       # --- (Optional) Sets temporary IP rules on the ACR
       # Use this when the ACR network is restricted
       # setTemporaryIpRules: |
-      #   acr-sample-test
+      #   acrsampletest
 
       # --- (Optional) Change approval settings and users here
       # allowSelfApprove: false
@@ -166,7 +166,7 @@ stages:
       # --- (Optional) Sets temporary IP rules on the ACR
       # Use this when the ACR network is restricted
       # setTemporaryIpRules: |
-      #   acr-sample-prod
+      #   acrsampleprod
 
       # --- (Optional) Change approval settings and users here
       # allowSelfApprove: false
