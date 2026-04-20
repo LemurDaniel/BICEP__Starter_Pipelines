@@ -50,7 +50,6 @@ Describe 'Initialize-BicepStartPipeline' {
                 Target   = $destination
                 Method   = $method
                 Scope    = $scope
-                Script   = $script
                 Pipeline = $pipeline
             }
 
