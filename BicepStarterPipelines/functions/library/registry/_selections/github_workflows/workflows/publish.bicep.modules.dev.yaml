@@ -46,8 +46,8 @@ env:
   # - Publish Module on Pull Merge (push event)
   #
   #  You can also enter a value like (true, false) to enable or disable always
-  DEPLOY_MODULE_IF: ${{ github.event_name == 'pull_request' }}
-  PUBLISH_MODULE_IF: ${{ github.event_name == 'push' }}
+  DEPLOY_MODULE_IF: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
+  PUBLISH_MODULE_IF: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
 
   # Temporarly allows the github agents ip on the registry
   # Use this when your registry is not publicly accessible
@@ -155,7 +155,7 @@ jobs:
     with:
       environment: ${{ fromJson(needs.detect_changes.outputs.configuration).git_environment }}
       default_location: ${{ fromJson(needs.detect_changes.outputs.configuration).default_location }}
-      # set_temporary_ip_rules: ${{ fromJson(needs.detect_changes.outputs.configuration).set_ip_rules }}
+      set_temporary_ip_rules: ${{ fromJson(needs.detect_changes.outputs.configuration).set_ip_rules }}
 
       folder_prefix: ${{ matrix.module.folder_prefix }}
       module_path: ${{ matrix.module.module_path }}
