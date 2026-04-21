@@ -199,6 +199,11 @@ jobs:
     needs:
       - publish_solution
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
       - name: Set Change Marker Tag
         uses: ./.github/actions/tmpl.bicep.setChangeMarker
 
