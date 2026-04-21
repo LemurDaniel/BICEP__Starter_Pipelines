@@ -8,4 +8,4 @@
 
 @export()
 var schema_default = import_defaultSchema
-import { schemaReference as import_defaultSchema } from './defaults/schema.default.bicep'
+import { schema as import_defaultSchema } from './schemas/schema.default.bicep'
