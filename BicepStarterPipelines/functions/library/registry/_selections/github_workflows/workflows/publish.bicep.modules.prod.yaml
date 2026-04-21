@@ -195,9 +195,10 @@ jobs:
 
   update_tags:
     runs-on: "ubuntu-latest"
-    if: ${{ github.event_name == 'push' && success() }}
+    if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && success() }}
     needs:
       - publish_solution
     steps:
       - name: Set Change Marker Tag
         uses: ./.github/actions/tmpl.bicep.setChangeMarker
+

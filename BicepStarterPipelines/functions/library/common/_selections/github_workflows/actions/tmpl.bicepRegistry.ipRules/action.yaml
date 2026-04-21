@@ -124,3 +124,5 @@ runs:
 
             $result | Select-Object -Property Name, Location, NetworkRuleSetDefaultAction, NetworkRuleSetIPRule
           }
+
+          Start-Sleep -Seconds 15 # Sleep to allow changes to propagate before any subsequent steps that may depend on this
