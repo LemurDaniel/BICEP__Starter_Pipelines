@@ -153,8 +153,12 @@ AZURE_AUTH = {
 <details>
 <summary><b>GitHub</b></summary>
 
-(TODO)
 * Ensure the workflow can push tags.
+
+![Example](./.assets/git.push-tags.01.png)
+
+
+![Example](./.assets/git.push-tags.02.png)
 
 </details>
 
