@@ -98,7 +98,7 @@ jobs:
           $deployModule = [System.Boolean]::Parse("${{ env.DEPLOY_MODULE_IF || 'false' }}")
 
           $configuration = [PSCustomObject]@{
-            "set_ip_rules" = "${{ vars.SET_IP_RULES || '' }}"
+            "set_ip_rules" = "${{ env.SET_IP_RULES || '' }}"
             "image_prefix" = "${{ env.IMAGE_PREFIX || '' }}"
             "registry_name" = "${{ env.REGISTRY_NAME || '' }}"
             "registry_url" = "${{ env.CUSTOM_REGISTRY_URL || '' }}"
@@ -119,6 +119,10 @@ jobs:
           "publish_module=$publishModule" >> $env:GITHUB_OUTPUT
           "deploy_module=$deployModule" >> $env:GITHUB_OUTPUT
           "configuration=$($configuration | ConvertTo-Json -Compress)" >> $env:GITHUB_OUTPUT
+
+          Write-Host "Publish Module: $publishModule"
+          Write-Host "Deploy Module: $deployModule"
+          Write-Host "Configuration: $($configuration | ConvertTo-Json -Compress)"
 
   verify_solution:
     needs:
