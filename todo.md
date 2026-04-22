@@ -8,7 +8,7 @@
 | ✅ | Test: Azure DevOps Verify Depends on | Die stage depends on stage logic über parameter testen in Azure DevOps |
 | ✅ | Test: GitHub Deployment init + testen | Normale Deployment pipelines init auf GitHub und testen (neues Demo Deployment testen) |
 | ✅ | Test: GitHub Registry Deployment Pipeline testen | Deploy Scripts auf GitHub Actions laufen lassen. Prüfen, dass Module korrekt deployed werden, inklusive Zugriff auf Registry. |
-| ⬜ | Test: GitHub Update Marker | Letzte erfolgreiche Deploys auch in GitHub markieren. Logik testen, dass nur geänderte Module bei zukünftigen Runs erkannt werden. |
+| ✅ | Test: GitHub Update Marker | Letzte erfolgreiche Deploys auch in GitHub markieren. Logik testen, dass nur geänderte Module bei zukünftigen Runs erkannt werden. |
 | ⬜ | Test: GitHub Final Check / Init | Init über PowerShell Starter Pipeline Repo. Alle funktionierenden Changes aus dem Modul drin. Sicherstellen, dass alles direkt wiederverwendbar ist. |
 | ✅ | Test: Azure DevOps init + testen | Normale Deployment pipelines init auf Azure DevOps und testen (neues Demo Deployment testen) |
 | ✅ | Test: Azure DevOps init + testen | Registry Pipelines init auf Azure DevOps und testen (pipeline environmen testen) |

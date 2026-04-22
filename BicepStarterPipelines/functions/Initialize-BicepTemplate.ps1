@@ -34,7 +34,7 @@ function Initialize-BicepTemplate {
 
         function Get-AllFiles{
             param (
-                [System.Int32]$Depth = 5,
+                [System.Int32]$Depth = 10,
                 [System.IO.DirectoryInfo] $path
             )
 
