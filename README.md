@@ -1,76 +1,91 @@
 # BICEP Starter Pipelines
 
-Welcome to **BICEP Starter Pipelines**! 😺
+<div align="center">
 
-Quickly set up a **Bicep project with pipelines**.
+<br><br>
 
-> ⚠️ Note: Looks may differ depending on your terminal.
+![PowerShell](https://img.shields.io/badge/PowerShell-5391FE?style=for-the-badge&logo=powershell&logoColor=white)
+![Azure](https://img.shields.io/badge/Azure-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white)
+![Bicep](https://img.shields.io/badge/Bicep-00B4D8?style=for-the-badge&logo=microsoftazure&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)
+![Azure DevOps](https://img.shields.io/badge/Azure_DevOps-0061FF?style=for-the-badge&logo=azuredevops&logoColor=white)
 
-![Example](./.assets/init.deployment.png)
+A PowerShell module that scaffolds a complete Bicep project — including pipelines, infrastructure files, and module registries — in seconds.
 
-<br>
+</div>
+
+## 🙏 Acknowledgments
+
+- ☁️ **Microsoft** for [Azure Bicep](https://github.com/Azure/bicep) and the amazing IaC tooling
+- 💙 **PowerShell Gallery** for making module distribution so easy
+- 🔧 **GitHub Actions** & **Azure DevOps** teams for their CI/CD platforms
+- 💖 **Open Source** contributors worldwide
+
+
+---
 
 ## ⚠️ Prototype Notice
 
-> This repository is currently a **prototype** and not fully tested.
->
-> Includes [Bicep tests](https://github.com/Azure/bicep/issues/11967) (still in development).
-> 
->Please be gentle 😅🦖 — improvements will come in future updates.
+This repository is currently a **prototype** and not fully tested. Improvements will come in future updates. 😅🦖
 
-Tested mostly on **Windows**, may work differently on **Linux** and **macOS**:
+| Platform | Status |
+|----------|--------|
+| Windows  | ✅ Tested |
+| Linux    | ⚠️ May work |
+| macOS    | ⚠️ May work |
 
-* ✅ Windows
-* ⚠️ Linux
-* ⚠️ macOS
+---
 
-<br>
+## 💡 What does this do?
 
-## ⚡ Version Control & Pipelines
+`bicep-init` is an interactive CLI wizard that sets up a ready-to-use Bicep project in your target folder. It asks you a few questions and then generates:
 
-**Supported Version Control Systems:**
-
-* **GitHub**
-* **Azure DevOps**
-
-<br>
-
-**Choose between either:**
-
-**🚀 Deployment Pipelines** – Deploy a standard Bicep project at:
-
-* Resource group scope
-* Subscription scope
-
-**📦 Registry Template** – Setup a custom private Bicep module registry.
+- **Bicep infrastructure files** (main.bicep, parameters)
+- **CI/CD pipelines** for GitHub Actions or Azure DevOps
+- **Optional: a private Bicep module registry** with versioning and automated publishing
 
 
-<br>
+![](./.assets/init.deployment.png)
+
+---
+
+## 📁 Project Structure
+
+```
+📦 BICEP Starter Pipelines
+├── 📁 BicepStarterPipelines/               # PowerShell module
+│   ├── 📋 BicepStarterPipelines.psd1       # Module manifest
+│   ├── 📋 BicepStarterPipelines.psm1       # Module entrypoint
+│   └── 📁 functions/
+│       ├── ⚡ Initialize-BicepStarterPipeline.ps1  # Main wizard logic
+│       ├── ⚡ Initialize-BicepTemplate.ps1          # Template scaffolding
+│       └── 📁 library/
+│           ├── 📁 common/                   # Shared modules & pipeline steps
+│           ├── 📁 deployment/               # Deployment pipeline templates
+│           └── 📁 registry/                 # Bicep registry pipeline templates
+├── 📁 BicepStarterPipelines.Tests/         # Pester tests
+├── 📋 bicep-init.ps1                        # Standalone script (no install needed)
+└── 📖 README.md
+```
+
+---
 
 ## 🚀 Usage
 
-### Method 1: Install from [PowerShell Gallery](https://www.powershellgallery.com/packages/BicepStarterPipelines)
+### Option 1 — Install from PowerShell Gallery
 
 ```powershell
-PS> Install-Module -Name BicepStarterPipelines -Scope CurrentUser
-PS> bicep-init
+Install-Module -Name BicepStarterPipelines -Scope CurrentUser
+bicep-init
 ```
 
-### Method 2: Try Without Installation
-
-**PowerShell Script**
+### Option 2 — Run without installing
 
 ```powershell
-PS> ./bicep-init ./destinationFolder
+./bicep-init ./destinationFolder
 ```
 
-> You can adjust the **destination folder**; by default, it initializes in the current directory.
-
-<br>
-Here’s a **reworked, concise, clear version** of your prerequisites section including the GitHub secret setup and Azure DevOps notes, keeping the registry block collapsible and well-structured 😺🚀
-
----
-Here’s a **refined version** of your prerequisites section with clearer structure, consistent formatting, and concise wording, while keeping the collapsible details for Azure DevOps and GitHub. 😺🚀
+> The destination folder is optional — by default it initializes in the current directory.
 
 ---
 
@@ -78,27 +93,24 @@ Here’s a **refined version** of your prerequisites section with clearer struct
 
 ### Azure Authentication
 
-**Requirement:** The Pipeline must be able to start deployments in Azure.
+The pipeline needs permission to deploy resources in Azure.
 
 <details>
 <summary><b>Azure DevOps</b></summary>
 
-* Create the **Service Connection** and reference it directly in the `Deploy Bicep` pipeline.
-* Service Connections must be available **before runtime**; using runtime variables may not work.
+Create a **Service Connection** in Azure DevOps and reference it in the generated `Deploy Bicep` pipeline.
 
 </details>
-
----
 
 <details>
 <summary><b>GitHub</b></summary>
 
-Create a **repository- or environment-scoped secret** called `AZURE_AUTH`. Use one of the following formats:
+Create a repository- or environment-scoped secret called `AZURE_AUTH` with one of the following formats:
 
-#### Auth type: OIDC (Workload Identity Federation)
+#### OIDC (Workload Identity Federation) — recommended
 
 ```json
-AZURE_AUTH = {
+{
   "auth_type": "OIDC",
   "tenantId": "00000000-0000-0000-0000-000000000000",
   "subscriptionId": "00000000-0000-0000-0000-000000000000",
@@ -106,15 +118,14 @@ AZURE_AUTH = {
 }
 ```
 
-* Use a **Federated Credential** on either:
+Set up a Federated Credential on either a:
+- [User Managed Identity](https://learn.microsoft.com/en-us/entra/workload-id/workload-identity-federation-create-trust-user-assigned-managed-identity?pivots=identity-wif-mi-methods-azp#configure-a-federated-identity-credential-on-a-user-assigned-managed-identity)
+- [App Registration](https://learn.microsoft.com/en-us/entra/workload-id/workload-identity-federation-create-trust?pivots=identity-wif-apps-methods-azp#github-actions)
 
-  * **User Managed Identity**: [Link](https://learn.microsoft.com/en-us/entra/workload-id/workload-identity-federation-create-trust-user-assigned-managed-identity?pivots=identity-wif-mi-methods-azp#configure-a-federated-identity-credential-on-a-user-assigned-managed-identity)
-  * **App Registration**: [Link](https://learn.microsoft.com/en-us/entra/workload-id/workload-identity-federation-create-trust?pivots=identity-wif-apps-methods-azp#github-actions)
-
-#### Auth type: ClientSecret
+#### Client Secret
 
 ```json
-AZURE_AUTH = {
+{
   "auth_type": "ClientSecret",
   "tenantId": "00000000-0000-0000-0000-000000000000",
   "subscriptionId": "00000000-0000-0000-0000-000000000000",
@@ -128,53 +139,54 @@ AZURE_AUTH = {
 
 ---
 
-### Bicep Registry (Only required when using Bicep Regsitry Pipelines)
+### Bicep Registry *(only required for registry pipelines)*
 
-**Requirement:** The registry must be able to create/update **Git tags**.
+The pipeline needs permission to create and push **Git tags** for versioning.
 
 <details>
 <summary><b>Azure DevOps</b></summary>
 
-* The build service must have **Contribute** permission on the repository:
+Grant the build service **Contribute** permission on the repository:
 
-  1. **Project Settings → Repos → Repositories → [Your Repo] → Security**
-  2. Allow **Contribute** for one of:
+1. Go to **Project Settings → Repos → Repositories → [Your Repo] → Security**
+2. Allow **Contribute** for one of:
+   - `<Repository Name> Build Service`
+   - `Project Collection Build Service <project>`
+   - `Project Collection Build Services Account`
 
-     * `<Repository Name> Build Service`
-     * `Project Collection Build Service <project>`
-     * `Project Collection Build Services Account`
-
-* More info: [Azure DevOps repo permissions](https://learn.microsoft.com/en-us/azure/devops/repos/git/set-git-repository-permissions?view=azure-devops#open-security-for-a-repository)
+More info: [Azure DevOps repo permissions](https://learn.microsoft.com/en-us/azure/devops/repos/git/set-git-repository-permissions?view=azure-devops#open-security-for-a-repository)
 
 </details>
-
----
 
 <details>
 <summary><b>GitHub</b></summary>
 
-* Ensure the workflow can push tags.
+Allow the workflow to push tags in your repository settings:
 
-![Example](./.assets/git.push-tags.01.png)
+![](./.assets/git.push-tags.01.png)
 
-
-![Example](./.assets/git.push-tags.02.png)
+![](./.assets/git.push-tags.02.png)
 
 </details>
 
 ---
 
-<br>
+## 📦 How the Bicep Registry works
 
-## 📦 Notes on the Registry
+Each module lives in its own folder and contains a `version.json` file with:
 
-* Manages multiple modules, each in its own folder with a `version.json` containing:
+```json
+{
+  "version": "1.0.0",
+  "description": "Short description of the module",
+  "deployment_tests": []
+}
+```
 
-  * `version`
-  * `description`
-  * `deployment_tests`
+The pipeline automatically detects which modules need to be published:
 
-* Automatically detects which modules to update:
+- **Pull Request** — compares all changes between the source and target branch
+- **Push to main** — checks the `meta_last_publish_<branch>` Git tag to find what changed since the last successful publish
 
-  * **Pull Request** – all changes between branches
-  * **Push** – checks `meta_last_publish_<branch>` marker after successful publish
+---
+
