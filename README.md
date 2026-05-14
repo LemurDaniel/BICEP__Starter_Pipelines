@@ -31,7 +31,7 @@ This repository is currently a **prototype** and not fully tested. Improvements 
 | Platform | Status |
 |----------|--------|
 | Windows  | ✅ Tested |
-| Linux    | ⚠️ May work |
+| Linux    | ✅ Tested |
 | macOS    | ⚠️ May work |
 
 ---
