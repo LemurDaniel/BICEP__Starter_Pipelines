@@ -10,7 +10,7 @@ function Initialize-BicepStarterPipeline {
     None.
     
     #>
-    [Alias('bicep-init', 'bicep-init-deployment', 'bicep-init-registry')]
+    [Alias('bicep-init', 'bicep-deployment', 'bicep-registry')]
     param (
         [Parameter(
             Position = 0
@@ -67,8 +67,7 @@ function Initialize-BicepStarterPipeline {
         ) | Select-UtilsUserOption -Return Value
     }
 
-    $Target = Resolve-Path -Path $Target
-    | Select-Object -ExpandProperty Path
+    $Target = [System.IO.Path]::GetFullPath($Target) 
     $PSBoundParameters['Template'] = $Template
     Initialize-BicepTemplate -Template $Template -Target $Target -InitParameter $PSBoundParameters 
 }

@@ -107,10 +107,10 @@ Describe 'Initialize-BicepStartPipeline' {
             # Test-Path -Path "$destination/deploy.ps1" | Should -BeFalse # TODO
 
             if ($pipeline -IEQ 'Github') {
-                $expectedScript = $script -IEQ 'PowerShell' ? 'azure/cli@v2' : 'azure/powershell@v2'
-                $notExpectedScript = $script -IEQ 'PowerShell' ? 'azure/powershell@v2' : 'azure/cli@v2'
+                $expectedScript = $script -IEQ 'PowerShell' ? 'azure/powershell@v2' : 'azure/cli@v2'
+                $notExpectedScript = $script -IEQ 'PowerShell' ? 'azure/cli@v2' : 'azure/powershell@v2'
 
-                Get-ChildItem -Path "$destination/.github/workflows" 
+                Get-ChildItem -Path "$destination/.github/workflows"
                 | Where-Object -Property Name -LIKE 'tmpl.*.yml'
                 | ForEach-Object {
                     $_ | Should -FileContentMatch "uses: $expectedScript"
@@ -118,14 +118,14 @@ Describe 'Initialize-BicepStartPipeline' {
                 }
             }
             else {
-                $expectedScript = $script -IEQ 'PowerShell' ? 'bash' : 'pscore'
-                $notExpectedScript = $script -IEQ 'PowerShell' ? 'pscore' : 'bash'
+                $expectedScript = $script -IEQ 'PowerShell' ? 'pscore' : 'bash'
+                $notExpectedScript = $script -IEQ 'PowerShell' ? 'bash' : 'pscore'
 
                 Get-ChildItem -Path "$destination/.devops/stage"
                 | Where-Object -Property Name -LIKE 'tmpl.*.yml'
                 | ForEach-Object {
-                    $_ | Should -FileContentMatch "scriptType: expectedScript"
-                    $_ | Should -Not -FileContentMatch "scriptType: notExpectedScript"
+                    $_ | Should -FileContentMatch "scriptType: $expectedScript"
+                    $_ | Should -Not -FileContentMatch "scriptType: $notExpectedScript"
                 }
             }
         }

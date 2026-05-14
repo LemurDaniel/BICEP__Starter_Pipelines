@@ -197,13 +197,6 @@ function Initialize-BicepTemplate {
         if (-NOT $Target.Exists) {
             $Target.Create()
         }
-        
-        if ($IsWindows) {
-            $destination = New-Object -ComObject "Shell.Application"
-            $destination = $destination.NameSpace($Target.FullName)
-            $destination.CopyHere("$tempDir/*")
-            return
-        }
 
         try {
             Copy-Helper -sourceDir $tempDir -targetDir $Target

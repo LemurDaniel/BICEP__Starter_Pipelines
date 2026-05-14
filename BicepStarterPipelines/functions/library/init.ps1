@@ -128,7 +128,7 @@ foreach ($tmpl in $pipelineTemplates) {
   }
 
   $relativePath = $tmpl.FullName.Replace($pipelineTemplateFolder, "") 
-  $relativePath = $relativePath -split ".yaml"
+  $relativePath = $relativePath -split "\.yaml"
   # Removes all meta identifiers after .yaml, like resource_group, deploy, etc.
   $relativePath = $relativePath[0] + ".yaml" 
 
