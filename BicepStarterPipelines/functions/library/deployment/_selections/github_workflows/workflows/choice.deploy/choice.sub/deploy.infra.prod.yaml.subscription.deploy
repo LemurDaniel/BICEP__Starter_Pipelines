@@ -58,7 +58,7 @@ jobs:
       # environment: prod
 
       scope: subscription
-      location: germanywestcentral
+      location: westeurope
       
       deployment_name: 'sample-prod'
       template_file: ./main.bicep

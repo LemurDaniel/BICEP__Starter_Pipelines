@@ -72,7 +72,7 @@ jobs:
     secrets: inherit
     with:
       scope: subscription
-      location: germanywestcentral
+      location: westeurope
 
       deployment_name: 'sample-dev'
       template_file: ./main.bicep

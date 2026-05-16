@@ -186,7 +186,7 @@ Write-Host -ForegroundColor Magenta "`nPlease, Adjust the following in your temp
 
 if ($selectedScope -IEQ 'subscription') {
   Write-Host -ForegroundColor Magenta "`n"
-  Write-Host -ForegroundColor Magenta "Deployment location. Default is 'germanywestcentral'"
+  Write-Host -ForegroundColor Magenta "Deployment location. Default is 'westeurope'"
 }
 elseif ($selectedScope -IEQ 'resource_group') {
   Write-Host -ForegroundColor Magenta "`n"

@@ -10,5 +10,5 @@ var defaultLocations = {
   germanynorth: 'geno'
 
   'Germany West Central': 'gewc'
-  germanywestcentral: 'gewc'
+  westeurope: 'gewc'
 }

@@ -78,7 +78,7 @@ stages:
       scope: resourceGroup # subscription | resourceGroup
 
       # --- on subscription scope
-      # location: germanywestcentral
+      # location: westeurope
 
       # --- on resource group scope
       resourceGroup: rg-sample-dev
@@ -118,7 +118,7 @@ stages:
       scope: resourceGroup # subscription | resourceGroup
 
       # --- on subscription scope
-      # location: germanywestcentral
+      # location: westeurope
 
       # --- on resource group scope
       resourceGroup: rg-sample-test
@@ -158,7 +158,7 @@ stages:
       scope: resourceGroup # subscription | resourceGroup
 
       # --- on subscription scope
-      # location: germanywestcentral
+      # location: westeurope
 
       # --- on resource group scope
       resourceGroup: rg-sample-prod

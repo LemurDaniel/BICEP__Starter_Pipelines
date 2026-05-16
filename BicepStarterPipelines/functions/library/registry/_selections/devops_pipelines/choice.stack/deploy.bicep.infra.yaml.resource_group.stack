@@ -79,7 +79,7 @@ stages:
       parametersFile: ./infra/params/registry.prod.bicepparam
 
       # --- on subscription scope
-      # location: germanywestcentral
+      # location: westeurope
       # templateFile: ./infra/registry.scope.subscription.bicep
 
       # --- on resource group scope
@@ -129,7 +129,7 @@ stages:
       parametersFile: ./infra/params/registry.prod.bicepparam
 
       # --- on subscription scope
-      # location: germanywestcentral
+      # location: westeurope
       # templateFile: ./infra/registry.scope.subscription.bicep
 
       # --- on resource group scope

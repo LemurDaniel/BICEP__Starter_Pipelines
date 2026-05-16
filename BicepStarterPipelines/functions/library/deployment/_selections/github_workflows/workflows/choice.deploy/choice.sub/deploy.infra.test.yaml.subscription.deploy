@@ -60,7 +60,7 @@ jobs:
       # environment: test
       
       scope: subscription
-      location: germanywestcentral
+      location: westeurope
       
       deployment_name: 'sample-test'
       template_file: ./main.bicep
