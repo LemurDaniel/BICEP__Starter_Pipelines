@@ -1,4 +1,4 @@
-name: Dev | Detect and Publish Module Changes
+name: Test | Detect and Publish Module Changes
 
 # Define variables in github actions
 # REGISTRY_NAME: The name of the container registry to use for publishing images.
