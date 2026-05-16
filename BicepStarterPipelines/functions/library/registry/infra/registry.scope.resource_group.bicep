@@ -73,7 +73,56 @@ var validation = map(
 ////////////////////////////////////////////////
 //// Module Deployment
 
-resource resRegistry 'Microsoft.ContainerRegistry/registries@2025-04-01' = {
+
+resource resRegistryStandard 'Microsoft.ContainerRegistry/registries@2025-04-01' = if(sku == 'Standard') {
+  name: name.registry
+  location: location
+
+  sku: {
+    name: any(paramSku)
+  }
+
+  properties: {
+    adminUserEnabled: enableAdminUser
+    anonymousPullEnabled: enableAnonymousPulls
+
+    policies: {
+      exportPolicy: {
+        status: paramNetworking.access != 'Private' ? 'enabled' : 'disabled'
+      }
+    }
+  }
+
+  identity: {
+    type: filter(
+      [
+        {
+          type: 'None'
+          bool: !paramIdentity.systemAssigned && length(paramIdentity.userAssigned) == 0
+        }
+        {
+          type: 'SystemAssigned'
+          bool: paramIdentity.systemAssigned && length(paramIdentity.userAssigned) == 0
+        }
+        {
+          type: 'UserAssigned'
+          bool: !paramIdentity.systemAssigned && length(paramIdentity.userAssigned) > 0
+        }
+        {
+          type: 'SystemAssigned, UserAssigned'
+          bool: paramIdentity.systemAssigned && length(paramIdentity.userAssigned) > 0
+        }
+      ],
+      entry => entry.bool == true
+    )[0].type
+    userAssignedIdentities: length(paramIdentity.userAssigned) > 0
+      ? toObject(paramIdentity.userAssigned, id => id, id => {})
+      : {}
+  }
+}
+
+
+resource resRegistry 'Microsoft.ContainerRegistry/registries@2025-04-01' = if(sku != 'Standard') {
   name: name.registry
   location: location
 
@@ -89,7 +138,7 @@ resource resRegistry 'Microsoft.ContainerRegistry/registries@2025-04-01' = {
     networkRuleBypassOptions: paramNetworking.bypass
     networkRuleSet: {
       defaultAction: paramNetworking.access == 'Public' ? 'Allow' : 'Deny'
-      ipRules: sku != 'Standard' ? null : map(paramNetworking.ipRules, ipRule => {
+      ipRules: map(paramNetworking.ipRules, ipRule => {
         action: 'Allow'
         value: contains(ipRule, '/') ? ipRule : '${ipRule}/32'
       })
