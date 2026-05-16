@@ -1,6 +1,6 @@
 using '../registry.scope.resource_group.bicep'
 
-// param location = 'westeurope'
+param location = 'germanywestcentral'
 
 param tags = {}
 

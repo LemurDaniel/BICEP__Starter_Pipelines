@@ -3,7 +3,7 @@ targetScope = 'subscription'
 ////////////////////////////////////////////////
 //// Parameters - Naming, Location and Tags
 
-param location string?
+param location string
 param tags object = {}
 
 param name {
@@ -51,7 +51,7 @@ var paramIdentity = {
 
 resource resResourceGroup 'Microsoft.Resources/resourceGroups@2025-04-01' = {
   name: name.resourceGroup
-  location: any(location)
+  location: location
 }
 
 module modRegistry 'registry.scope.resource_group.bicep' = {
