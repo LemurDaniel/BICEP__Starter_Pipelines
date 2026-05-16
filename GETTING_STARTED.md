@@ -58,6 +58,7 @@ The wizard will interactively prompt for:
 - [ ] `AZURE_AUTH` secret created (repository or per environment)
 - [ ] Federated credential configured (OIDC) **or** App Registration client secret set
 - [ ] Pipeline identity has the required RBAC role on the target subscription / resource group
+
 - [ ] *(Registry only)* Workflow permissions set to **Read and write** (to push Git tags)
 - [ ] *(Registry only)* Pipeline identity has **AcrPush** role on the registry
 - [ ] *(Registry only)* Param files adjusted and pushed to trigger `deploy.infra.prod.yaml`
@@ -114,11 +115,30 @@ The secret can be scoped per environment (recommended) or at repository level as
 
 #### 🏗️ Deploy the Registry Infrastructure
 
-The scaffold includes a ready-to-use Bicep template under `infra/` and the pipeline `deploy.infra.prod.yaml` that deploys it.
+The scaffold includes a ready-to-use Bicep template under `infra/` and the pipelines `deploy.infra.prod.yaml` / `deploy.infra.test.yaml` that deploy it.
 
-Adjust the param files (`infra/params/registry.prod.bicepparam`, `infra/params/registry.test.bicepparam`) to set your registry name, location, and network settings, then push to trigger the pipeline.
+Adjust the param files (`infra/params/registry.prod.bicepparam`, `infra/params/registry.test.bicepparam`) to set your registry name, location, and network settings.
 
-`deploy.infra.prod.yaml` triggers on push/PR when files under `infra/` change. On Pull Requests it runs a what-if only; the actual deployment happens on merge.
+Also update the pipeline files to match your environment — replace the resource group, deployment name, and parameter file as needed:
+
+```yaml
+with:
+  environment: prod           # ← GitHub environment (optional, for scoped secrets/vars)
+
+  scope: resource_group
+  resource_group: 'rg-sample-prod'        # ← your resource group
+
+  deployment_name: 'sample-registry-prod' # ← deployment name
+  template_file: ./infra/registry.scope.resource_group.bicep
+  parameter_file: ./infra/params/registry.prod.bicepparam
+
+  what_if_only: ${{ github.EVENT_NAME == 'pull_request' || inputs.what_if_only == true }}
+
+  # set_temporary_ip_rules: |   # ← uncomment if your ACR has network restrictions
+  #   acrsampleprod
+```
+
+The pipelines trigger on push/PR when files under `infra/` change. On Pull Requests they run a what-if only; the actual deployment happens on merge.
 
 #### ⚙️ Configure Pipeline Variables
 

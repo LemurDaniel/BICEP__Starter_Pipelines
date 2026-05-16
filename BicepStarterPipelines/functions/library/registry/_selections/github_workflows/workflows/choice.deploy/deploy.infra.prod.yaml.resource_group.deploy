@@ -52,7 +52,7 @@ jobs:
       scope: resource_group
       resource_group: 'rg-sample-prod'
       
-      deployment_name: 'sample-prod'
+      deployment_name: 'sample-registry-prod'
       template_file: ./infra/registry.scope.resource_group.bicep
       parameter_file: ./infra/params/registry.prod.bicepparam
       

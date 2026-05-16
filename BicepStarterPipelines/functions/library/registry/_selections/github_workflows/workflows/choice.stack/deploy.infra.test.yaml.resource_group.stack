@@ -68,7 +68,7 @@ jobs:
       scope: resource_group
       resource_group: 'rg-sample-test'
       
-      deployment_name: 'sample-test'
+      deployment_name: 'sample-registry-test'
       template_file: ./infra/registry.scope.resource_group.bicep
       parameter_file: ./infra/params/registry.test.bicepparam
 

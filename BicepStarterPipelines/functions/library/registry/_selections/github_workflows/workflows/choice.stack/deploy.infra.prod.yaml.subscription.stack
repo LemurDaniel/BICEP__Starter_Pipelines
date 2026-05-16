@@ -69,7 +69,7 @@ jobs:
       scope: subscription
       location: westeurope
       
-      deployment_name: 'sample-prod'
+      deployment_name: 'sample-registry-prod'
       template_file: ./infra/registry.scope.subscription.bicep
       parameter_file: ./infra/params/registry.prod.bicepparam
 
