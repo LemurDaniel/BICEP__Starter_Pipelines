@@ -1,6 +1,6 @@
 {
-    "version": "1.0.0",
-    "description": "Naming module schemas.",
+    "description": "Naming module implementation.",
+    "version": "5.5.0",
     "deployment_tests": {
         "base_path": ".",
         "include": [
