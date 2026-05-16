@@ -80,8 +80,8 @@ jobs:
       template_file: ./infra/registry.scope.subscription.bicep
       parameter_file: ./infra/params/registry.prod.bicepparam
 
-      action_on_unmanage: ${{ inputs.action_on_unmanage }}
-      deny_settings_mode: ${{ inputs.deny_settings_mode }}
+      action_on_unmanage: ${{ inputs.action_on_unmanage || 'detachAll' }}
+      deny_settings_mode: ${{ inputs.deny_settings_mode || 'denyDelete' }}
       
       what_if_only: ${{ github.EVENT_NAME  == 'pull_request' || inputs.what_if_only == true }}
 
