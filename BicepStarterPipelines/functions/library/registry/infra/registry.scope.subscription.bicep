@@ -49,8 +49,9 @@ var paramIdentity = {
 ////////////////////////////////////////////////
 //// Module Deployment
 
-resource resResourceGroup 'Microsoft.Resources/resourceGroups@2025-04-01' existing = {
+resource resResourceGroup 'Microsoft.Resources/resourceGroups@2025-04-01' = {
   name: name.resourceGroup
+  location: any(location)
 }
 
 module modRegistry 'registry.scope.resource_group.bicep' = {
