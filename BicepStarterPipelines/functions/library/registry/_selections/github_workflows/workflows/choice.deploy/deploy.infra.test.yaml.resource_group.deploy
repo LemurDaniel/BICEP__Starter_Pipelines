@@ -9,13 +9,6 @@ on:
         type: boolean
         default: true
 
-  push:
-    branches:
-      - dev
-    paths:
-      - 'infra/*.bicep'
-      - 'infra/params/*.test.bicepparam'
-
   pull_request:
     branches:
       - dev

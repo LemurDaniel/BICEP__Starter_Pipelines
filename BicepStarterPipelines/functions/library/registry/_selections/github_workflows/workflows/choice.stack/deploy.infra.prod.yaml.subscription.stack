@@ -26,13 +26,6 @@ on:
           - detachAll
           - deleteResources
 
-  push:
-    branches:
-      - master
-    paths:
-      - 'infra/*.bicep'
-      - 'infra/params/*.prod.bicepparam'
-
   pull_request:
     branches:
       - master
