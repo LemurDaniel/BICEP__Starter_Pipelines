@@ -128,7 +128,7 @@ jobs:
   verify_solution:
     needs:
       - detect_changes
-    if: needs.detect_changes.outputs.deploy_module == 'true'
+    if: needs.detect_changes.outputs.deploy_module == 'true' && needs.detect_changes.outputs.module_changes != ''
     strategy:
       matrix:
         module: ${{ fromJson(needs.detect_changes.outputs.module_changes) }}
@@ -169,7 +169,7 @@ jobs:
     needs:
       - detect_changes
       - verify_solution
-    if: ${{ !failure() && !cancelled() && needs.detect_changes.outputs.publish_module == 'true' }}
+    if: ${{ !failure() && !cancelled() && needs.detect_changes.outputs.publish_module == 'true' && needs.detect_changes.outputs.module_changes != '' }}
     strategy:
       matrix:
         module: ${{ fromJson(needs.detect_changes.outputs.module_changes) }}

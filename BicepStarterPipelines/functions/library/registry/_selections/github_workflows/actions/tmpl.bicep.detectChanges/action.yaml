@@ -23,7 +23,7 @@ runs:
       shell: pwsh
       run: |
         $changes = $null
-        $FolderPrefix = Resolve-Path "./${{ inputs.folderPrefix }}"
+        $FolderPrefix = Resolve-Path "./${{ inputs.folder_prefix }}"
         | Select-Object -ExpandProperty Path
 
         if("${{ github.event_name }}" -EQ "pull_request") {
@@ -34,7 +34,7 @@ runs:
             Write-Host "Source Branch: $SourceBranch"
             Write-Host "Target Branch: $TargetBranch"
 
-            $filter = "$SourceBranch..$TargetBranch"
+            $filter = "$TargetBranch...$SourceBranch"
             $changes = git --no-pager diff --name-only $filter
         } else {
             $branch = "${{ github.ref_name }}" # git branch --show-current"
@@ -45,17 +45,17 @@ runs:
 
             # Delete local tag and refetch
             git tag -d $tagName 2>$null
-            git fetch --tags
+            git fetch --tags --force
 
             # Check if the tag exists
-            $tagName = git tag --list $tagName
+            $existingTag = git tag --list $tagName
 
-            if([System.String]::IsNullOrEmpty($tagName)) {
+            if([System.String]::IsNullOrEmpty($existingTag)) {
               Write-Host "Tag $tagName does not exist => treat all modules as changed"
-              $changes = Get-ChildItem -Path "$FolderPrefix" -Recurse -File 
+              $changes = Get-ChildItem -Path "$FolderPrefix" -Recurse -File
               | Select-Object -ExpandProperty FullName
             } else {
-              $changes = git --no-pager diff --name-only $tagName
+              $changes = git --no-pager diff --name-only $existingTag
               $changes = $changes -split "`n"
             }
         }
@@ -81,7 +81,7 @@ runs:
         }
         | ForEach-Object {
             $versionJson = Get-Content -Path "$FolderPrefix/$_/version.json" 
-            | ConvertFrom-Json -AsHashtable
+            | ConvertFrom-Json -AsHashtable -Depth 20
             $null = $versionJson.Add("module_path", $_)
             $null = $versionJson.Add("folder_prefix", $FolderPrefix)
             return $versionJson
@@ -98,7 +98,7 @@ runs:
 
         $changedVersionsJson = $changedVersions 
         | ConvertTo-Json -Compress -AsArray
-
+        
         # Debug output
         Write-Host "Module Folder: $FolderPrefix"
         Write-Host "Version.json changes: $changedVersionsJson"
