@@ -1,0 +1,105 @@
+name: "Manage ACR Access Restrictions"
+description: "Manages ACR access restrictions using PowerShell"
+inputs:
+  subscription_id:
+    description: 'Azure Subscription Id'
+    required: false
+    default: ''
+
+  azps_version:
+    description: The Azure PowerShell version to use
+    required: false
+    default: "12.1.0"
+
+  deployment_name:
+    description: The name of the deployment
+    required: true
+
+  template_file:
+    description: Path to the Bicep-File to deploy
+    required: true
+  parameter_file:
+    description: path to the bicep parameter file
+    required: true
+
+  scope:
+    description: Deployment Scope. subscription | resource_group
+    required: true
+  resource_group:
+    description: Set on deployment scope resourceGroup
+    required: false
+  location:
+    description: Set on deployment scope subscription
+    required: false
+
+
+  what_if:
+    description: Perform what if deployment
+    required: false
+    default: 'false'
+  what_if_result_format:
+    description: The result format to be used on whatif operations
+    required: false
+    default: 'FullResourcePayloads' # ResourceIdOnly | FullResourcePayloads
+  what_if_exclude_change:
+    description: Exclude change types from What-If results
+    required: false
+    default: '' # Ignore | NoChange | Deploy | Create | Modify | Delete
+    
+runs:
+  using: "composite"
+  steps:
+    - name: Run Bicep Deployment
+      uses: azure/powershell@v2
+      with:
+        azPSVersion: ${{ inputs.azps_version }}
+        inlineScript: |
+
+            if(-NOT [System.String]::IsNullOrEmpty('${{ inputs.subscription_id }}')) {
+              Set-AzContext -Subscription ${{ inputs.subscription_id }}
+            }
+
+            $Deployment = @{
+              Name                  = "${{ inputs.deployment_name }}"
+              TemplateFile          = "${{ inputs.template_file }}"
+              TemplateParameterFile = "${{ inputs.parameter_file }}"
+            }
+
+            if(-NOT [System.String]::IsNullOrEmpty('${{ inputs.what_if_exclude_change }}')) {
+                $Deployment.Add('WhatIfExcludeChangeType', '${{ inputs.what_if_exclude_change }}')
+            }
+
+            if([System.Boolean]::Parse('${{ inputs.what_if }}')) {
+                $Deployment.Add('WhatIf', $true)
+                $Deployment.Add('WhatIfResultFormat', '${{ inputs.what_if_result_format }}')
+                Start-Transcript -Path "./bicep_whatif.txt"
+            }
+
+            Write-Host "////////////////////////////////////////////////////////////////////////////////"
+            Write-Host "////////////////////////////////////////////////////////////////////////////////"
+            Write-Host "////// Bicep Deployment"
+            if('${{ inputs.scope }}' -EQ 'subscription') {
+              if([System.String]::IsNullOrEmpty('${{ inputs.location }}')) {
+                throw "Subscription Deployment needs a location!"
+              }
+
+              $Deployment.Add('location', '${{ inputs.location }}')
+              New-AzSubscriptionDeployment @Deployment -Verbose
+            } 
+            elseif('${{ inputs.scope }}' -EQ 'resource_group') {
+              if([System.String]::IsNullOrEmpty('${{ inputs.resource_group }}')) {
+                throw "Resource Group Deployment needs a resource group!"
+              }
+
+              $Deployment.Add('ResourceGroupName', '${{ inputs.resource_group }}')
+              New-AzResourceGroupDeployment @Deployment -Verbose
+            } else {
+              throw "Invalid Scope ${{ inputs.scope }}!"
+            }
+
+            if([System.Boolean]::Parse('${{ inputs.what_if }}')) {
+                Stop-Transcript
+            }
+
+            Write-Host "////////////////////////////////////////////////////////////////////////////////"
+            Write-Host "////////////////////////////////////////////////////////////////////////////////"

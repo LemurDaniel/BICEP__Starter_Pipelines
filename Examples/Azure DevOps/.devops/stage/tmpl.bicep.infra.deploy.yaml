@@ -1,0 +1,239 @@
+parameters:
+  - name: condition
+    type: string
+    default: true
+  - name: stage
+    type: string
+  - name: dependsOn
+    type: object
+    default: []
+
+  - name: displayName
+    type: string
+    default: ""
+  - name: serviceConnection
+    type: string
+  - name: variableGroup
+    type: string
+    default: ""
+
+  # General deployment parameter
+  - name: deploymentName
+    type: string
+  - name: templateFile
+    type: string
+  - name: parametersFile
+    type: string
+
+  - name: WhatIfOnly
+    type: string
+    default: true
+  - name: WhatIfResultFormat
+    type: string
+    default: "FullResourcePayloads" # ResourceIdOnly | FullResourcePayloads
+  - name: WhatIfExcludeChange
+    type: string
+    default: "" # Ignore | NoChange | Deploy | Create | Modify | Delete
+
+  # deployment scope
+  - name: scope
+    type: string
+    # subscription | resourceGroup
+
+  # deployment specific parameters
+  - name: subscriptionId
+    type: string
+    default: ""
+  - name: location
+    type: string
+    default: ""
+  - name: resourceGroup
+    type: string
+    default: ""
+
+  # others
+  - name: showTree
+    type: boolean
+    default: true
+  - name: runBicepTests
+    type: boolean
+    default: false
+  - name: azurePowerShellVersion
+    type: string
+    default: LatestVersion
+
+  # There is a bug in the ManualValidation task
+  # https://github.com/microsoft/azure-pipelines-tasks/issues/21179
+  # - name: approvers
+  #   type: string
+  #   default: ""
+  - name: allowSelfApprove
+    type: boolean
+    default: true
+  - name: skipApprove
+    type: boolean
+    default: false
+
+  # Name or Id of the registries
+  # Single mode
+  #  - setTemporaryIpRules: acr-bla-dev-001
+  # Multi mode
+  #  - setTemporaryIpRules: |
+  #     acr-bla-dev-001
+  #     acr-bla-dev-002
+  - name: setTemporaryIpRules
+    type: string
+    default: ""
+
+  # Checkout repositories to a path
+  # checkoutSubModules:
+  # - alias: sharedModules
+  #   path: ./modules
+  #
+  # Repositoires must be added with an alias before!
+  #  resources:
+  #    repositories:
+  #      - repository: sharedModules
+  #        name: <PROJECT>/<REPO_NAME>
+  #        type: git
+  #        ref: refs/tags/v1.0.0
+  - name: checkoutSubModules
+    type: object
+    default: {}
+
+stages:
+  - stage: ${{ parameters.stage }}
+    dependsOn: ${{ parameters.dependsOn }}
+    condition: and(succeeded(), ${{ parameters.condition }})
+
+    ${{ if eq(parameters.displayName, '') }}:
+      displayName: ${{ parameters.stage }} | Bicep Deployment
+    ${{ if ne(parameters.displayName, '') }}:
+      displayName: ${{ parameters.displayName }}
+
+    variables:
+      - ${{ if ne(parameters.variableGroup, '') }}:
+          - group: ${{ parameters.variableGroup }}
+    jobs:
+      #////////////////////////////////////////////////////////////
+      #////// WhatIf
+      - job: what_if_${{ parameters.stage }}
+        displayName: WhatIf Bicep
+        steps:
+          - checkout: self
+          - ${{ each subModule in parameters.checkoutSubModules }}:
+              - checkout: ${{ subModule.alias }}
+                path: s/$(Build.Repository.Name)/${{ subModule.path }}
+          #////////////////////////////////////////////////////////////
+          #////// Tree Command
+          - script: |
+              sudo apt-get update
+              sudo apt-get install -y tree
+            displayName: Install tree
+            condition: ${{ parameters.showTree }}
+          - script: |
+              tree $(Build.SourcesDirectory)
+            condition: ${{ parameters.showTree }}
+            displayName: Show directory
+          #////////////////////////////////////////////////////////////
+          #////// Bicep Tests
+          - task: AzurePowerShell@5
+            condition: eq(${{ parameters.runBicepTests }}, true)
+            displayName: Bicep Test
+            inputs:
+              azureSubscription: ${{ parameters.serviceConnection }}
+              azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
+              ScriptType: inlineScript
+              pwsh: true
+              inline: |
+                $testFiles = Get-ChildItem -Path "$(Build.SourcesDirectory)" -Filter *test.bicep -Recurse -Depth 4
+                foreach($file in $testFiles) {
+                  bicep test $file.FullName
+                }
+          #////////////////////////////////////////////////////////////
+          #////// WhatIf
+          - template: /.devops/steps/tmpl.bicep.infra.deploy.yaml
+            parameters:
+              displayName: WhatIf Bicep
+
+              subscriptionId: ${{ parameters.subscriptionId }}
+              serviceConnection: ${{ parameters.serviceConnection }}
+              azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
+
+              scope: ${{ parameters.scope }}
+              location: ${{ parameters.location }}
+              resourceGroup: ${{ parameters.resourceGroup }}
+
+              deploymentName: ${{ parameters.deploymentName }}
+              templateFile: ${{ parameters.templateFile }}
+              parametersFile: ${{ parameters.parametersFile }}
+
+              WhatIf: true
+              WhatIfResultFormat: ${{ parameters.WhatIfResultFormat }}
+              WhatIfExcludeChange: ${{ parameters.WhatIfExcludeChange }}
+
+              registries: ${{ parameters.setTemporaryIpRules }}
+
+          - task: PublishBuildArtifacts@1
+            displayName: "Bicep WhatIf Artifact"
+            inputs:
+              targetPath: "$(Build.ArtifactStagingDirectory)/bicep_whatif.txt"
+              artifactName: "bicep_whatif_${{ parameters.stage }}"
+
+      #////////////////////////////////////////////////////////////
+      #////// Validation
+      - job: validate_${{ parameters.stage }}
+        displayName: Approve Bicep
+        timeoutInMinutes: 4320
+        pool: server
+
+        dependsOn: what_if_${{ parameters.stage }}
+        condition: and(succeeded(), eq('${{ parameters.skipApprove }}', 'false'))
+        steps:
+          - task: ManualValidation@1
+            inputs:
+              # There is a bug in the ManualValidation task
+              # https://github.com/microsoft/azure-pipelines-tasks/issues/21179
+              # ${{ if ne(parameters.approvers, '') }}:
+              #   notifyUsers: ${{ parameters.approvers }}
+              #   approvers: ${{ parameters.approvers }}
+
+              notifyUsers: ''
+              instructions: Approve Bicep Deployment
+              onTimeout: "reject"
+
+              allowApproversToApproveTheirOwnRuns: ${{ parameters.allowSelfApprove }}
+
+      #////////////////////////////////////////////////////////////
+      #////// Deploy
+      - job: deploy_${{ parameters.stage }}
+        displayName: Deploy Bicep
+
+        dependsOn: validate_${{ parameters.stage }}
+        condition: and(succeeded(), or(eq('${{ parameters.skipApprove }}', 'true'), succeeded('validate_${{ parameters.stage }}')))
+
+        steps:
+          - checkout: self
+          - ${{ each subModule in parameters.checkoutSubModules }}:
+              - checkout: ${{ subModule.alias }}
+                path: s/$(Build.Repository.Name)/${{ subModule.path }}
+
+          #////////////////////////////////////////////////////////////
+          #////// Deploy
+          - template: /.devops/steps/tmpl.bicep.infra.deploy.yaml
+            parameters:
+              displayName: Deploy Bicep ${{ parameters.stage }}
+
+              subscriptionId: ${{ parameters.subscriptionId }}
+              serviceConnection: ${{ parameters.serviceConnection }}
+              azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
+
+              scope: ${{ parameters.scope }}
+              location: ${{ parameters.location }}
+              resourceGroup: ${{ parameters.resourceGroup }}
+
+              deploymentName: ${{ parameters.deploymentName }}
+              templateFile: ${{ parameters.templateFile }}
+              parametersFile: ${{ parameters.parametersFile }}
+
+              registries: ${{ parameters.setTemporaryIpRules }}

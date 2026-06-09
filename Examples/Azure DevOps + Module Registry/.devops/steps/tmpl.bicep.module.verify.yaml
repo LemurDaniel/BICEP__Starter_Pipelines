@@ -1,0 +1,65 @@
+parameters:
+  - name: serviceConnection
+    type: string
+
+  - name: folderPrefix
+    type: string
+  - name: modulePath
+    type: string
+  - name: location
+    type: string
+  - name: deployScript
+    type: string
+
+  # Name or Id of the registries
+  # Single mode
+  #  - registries: acr-bla-dev-001
+  # Multi mode
+  #  - registries: |
+  #     acr-bla-dev-001
+  #     acr-bla-dev-002
+  - name: registries
+    type: string
+    default: ""
+
+  # others
+  - name: azurePowerShellVersion
+    type: string
+    default: LatestVersion
+
+steps:
+  - template: ./tmpl.bicepRegistry.ipRules.yaml
+    parameters:
+      condition: and(ne('${{ parameters.registries }}', ''), succeeded())
+      restrictionMode: AllowAccess
+      serviceConnection: ${{ parameters.serviceConnection }}
+      azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
+      registries: ${{ parameters.registries }}
+  - task: AzurePowerShell@5
+    displayName: WhatIf Bicep ${{ parameters.modulePath }}
+    inputs:
+      azureSubscription: ${{ parameters.serviceConnection }}
+      azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
+      ScriptType: inlineScript
+      pwsh: true
+      inline: |
+        . ${{ parameters.deployScript }} -WhatIf -FolderPrefix "${{ parameters.folderPrefix }}" -ModulePath "${{ parameters.modulePath }}" -Location "${{ parameters.location }}"
+  
+
+  - task: AzurePowerShell@5
+    displayName: Deploy Bicep ${{ parameters.modulePath }}
+    inputs:
+      azureSubscription: ${{ parameters.serviceConnection }}
+      azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
+      ScriptType: inlineScript
+      pwsh: true
+      inline: |
+        . ${{ parameters.deployScript }} -FolderPrefix "${{ parameters.folderPrefix }}" -ModulePath "${{ parameters.modulePath }}" -Location "${{ parameters.location }}"
+    
+  - template: ./tmpl.bicepRegistry.ipRules.yaml
+    parameters:
+      condition: ne('${{ parameters.registries }}', '')
+      restrictionMode: RemoveAccess
+      serviceConnection: ${{ parameters.serviceConnection }}
+      azurePowerShellVersion: ${{ parameters.azurePowerShellVersion }}
+      registries: ${{ parameters.registries }}

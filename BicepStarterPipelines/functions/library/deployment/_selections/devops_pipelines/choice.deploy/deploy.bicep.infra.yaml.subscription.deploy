@@ -18,31 +18,15 @@ pool:
 
 trigger: none
 
-# # NOTE:
-# # Triggers on Pull Request are configured via branch policies in Azure DevOps
-# trigger:
-#   branches:
-#     include:
-#       - dev
-#       - main
-#       - master
-#   paths:
-#     include:
-#       - main.bicep
-#       - infraCore/**
-#       - modules/**
-#       - params/**
-
-variables:
-  - name: DEPLOY_PROD_WHEN
-    value: $[in(variables['Build.SourceBranchName'], 'main', 'master')]
-  - name: DEPLOY_TEST_WHEN
-    value: $[startsWith(variables['Build.SourceBranchName'], 'release')]
-  - name: DEPLOY_DEV_WHEN
-    value: $[and(ne(variables['isProduction'], True), ne(variables['isTest'], True))]
-
-
 parameters:
+  - name: environment
+    type: string
+    default: Dev
+    values:
+      - Dev
+      - Test
+      - Prod
+
   - name: WhatIfOnly
     type: boolean
     default: false
@@ -62,7 +46,7 @@ stages:
     parameters:
       stage: Dev
 
-      condition: eq(eq(variables['DEPLOY_DEV_WHEN'], True), True)
+      condition: eq('${{ parameters.environment }}', 'Dev')
 
       serviceConnection: project-connection-dev
       # variableGroup: bicep-deploy-dev
@@ -102,8 +86,8 @@ stages:
       # - Dev
       stage: Test
 
-      condition: eq(variables['DEPLOY_TEST_WHEN'], True)
-      
+      condition: eq('${{ parameters.environment }}', 'Test')
+
       serviceConnection: project-connection-test
       # variableGroup: bicep-deploy-test
 
@@ -142,8 +126,8 @@ stages:
       # - Test
       stage: Prod
 
-      condition: eq(variables['DEPLOY_PROD_WHEN'], True)
-      
+      condition: eq('${{ parameters.environment }}', 'Prod')
+
       serviceConnection: project-connection-prod
       # variableGroup: bicep-deploy-prod
 

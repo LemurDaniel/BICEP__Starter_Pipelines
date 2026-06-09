@@ -1,0 +1,50 @@
+name: "Login to Azure"
+description: "Logs into Azure using the provided credentials."
+inputs:
+  AZURE_AUTH:
+    description: "Azure authentication details in JSON format."
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Prepare Azure Credentials
+      id: prepare_creds
+      shell: pwsh
+      run: |
+
+        if([System.String]::IsNullOrEmpty('${{ inputs.AZURE_AUTH }}')) {
+          Write-Error "Azure authentication details are required."
+          exit 1
+        }
+
+        $azureAuth = '${{ inputs.AZURE_AUTH }}' | ConvertFrom-Json
+
+        $authType = [System.String]::IsNullOrEmpty($azureAuth.auth_type) ? "ClientSecret" : $azureAuth.auth_type
+
+        $creds = $azureAuth | Select-Object -Property tenantId, subscriptionId, clientId, clientSecret
+        $creds = $creds | ConvertTo-Json -Compress
+
+        if("$authType" -NOTIN ("ClientSecret", "OIDC")) {
+          Write-Error "Unsupported auth_type '$authType'. Supported types are 'ClientSecret' and 'OIDC'."
+          exit 1
+        }
+        
+        "creds=$creds"  >> $env:GITHUB_OUTPUT
+        "authType=$authType"  >> $env:GITHUB_OUTPUT
+
+    - name: Azure Login | Client Secret
+      uses: azure/login@v1
+      if: ${{ steps.prepare_creds.outputs.authType == 'ClientSecret' }}
+      with:
+        creds: ${{ steps.prepare_creds.outputs.creds }}
+        enable-AzPSSession: true
+
+    - name: Azure Login | OIDC
+      uses: azure/login@v1
+      if: ${{ steps.prepare_creds.outputs.authType == 'OIDC' }}
+      with:
+        tenant-id: ${{ fromJson(steps.prepare_creds.outputs.creds).tenantId }}
+        subscription-id: ${{ fromJson(steps.prepare_creds.outputs.creds).subscriptionId }}
+        client-id: ${{ fromJson(steps.prepare_creds.outputs.creds).clientId }}
+        enable-AzPSSession: true

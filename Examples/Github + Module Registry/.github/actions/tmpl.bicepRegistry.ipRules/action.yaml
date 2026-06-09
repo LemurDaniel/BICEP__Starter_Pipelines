@@ -1,0 +1,128 @@
+name: "Manage ACR Access Restrictions"
+description: "Manages ACR access restrictions using PowerShell"
+inputs:
+  azps_version:
+    description: "Azure PowerShell Version"
+    required: false
+    default: "LatestVersion"
+  restriction_mode:
+    description: "AllowAccess or RemoveAccess"
+    required: true
+    default: "RemoveAccess"
+
+  # Name or Id of the registries
+  # Single mode
+  #  - registries: acr-bla-dev-001
+  # Multi mode
+  #  - registries: |
+  #     acr-bla-dev-001
+  #     acr-bla-dev-002
+  registries:
+    description: Container Registry Names
+    required: true
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: ${{ inputs.restriction_mode == 'AllowAccess' && 'Add ACR IP Rule' || 'Remove ACR IP Rule' }}
+      uses: azure/powershell@v2
+      with:
+        azPSVersion: ${{ inputs.azps_version }}
+        inlineScript: |
+
+          $agentHostPublicIp = Invoke-RestMethod -Uri "https://api.ipify.org"
+          $allowAgentIp = '${{ inputs.restriction_mode }}' -EQ 'AllowAccess'
+
+          $contexts = @()
+          $defaultContext = Get-AzContext
+          foreach($subscription in (Get-AzSubscription)) {
+            $contexts += Set-AzContext -SubscriptionId $subscription.Id
+          }
+          Set-AzContext -Context $defaultContext
+
+          $registries = "${{ inputs.registries }}" -replace "`r`n", "," -replace "`n", "," -split ','
+          | Where-Object { -NOT [System.String]::IsNullOrEmpty($_) } 
+          | ForEach-Object {
+            $name = $_ -split '/' | Select-Object -Last 1
+
+            foreach($context in $contexts) {
+              Write-Host "Searching for Registry: $name in context: $($context.Subscription.Id)"
+
+              $registry = Get-AzResource -AzContext $context -Name $name -ResourceType Microsoft.ContainerRegistry/registries 
+              if($null -NE $registry) {
+                $registry = Get-AzContainerRegistry -Name $name -ResourceGroupName $registry.ResourceGroupName -AzureRMContext $context
+                $registry | Add-Member NoteProperty AzContext $context -Force
+                return $registry
+              }
+            }
+
+            Write-Error "Container Registry not found: $name"
+          }
+
+          Write-Host "Public IP of agent: $agentHostPublicIp"
+          Write-Host ""
+
+          foreach($registry in $registries) {
+            Write-Host "############################################"
+            Write-Host "#### Removing access restriction from Container Registry: $($registry.Name)"
+
+            $rules = $null
+            $rules = $registry.NetworkRuleSetIPRule 
+            | Where-Object -Property IPAddressOrRange -NE $agentHostPublicIp
+
+            Write-Host "$($rules | ConvertTo-Json)"
+
+            if($rules.Count -EQ 0) {
+              $rules = @()
+            }
+
+            $result = Update-AzContainerRegistry -AzureRMContext $registry.AzContext -Name $registry.Name `
+              -ResourceGroupName $registry.ResourceGroupName `
+              -NetworkRuleBypassOption $registry.NetworkRuleBypassOption `
+              -NetworkRuleSetDefaultAction $registry.NetworkRuleSetDefaultAction `
+              -NetworkRuleSetIPRule $rules
+
+            $result | Select-Object -Property Name, Location, NetworkRuleSetDefaultAction, NetworkRuleSetIPRule
+          }
+
+          # Check if we should add the access restriction
+          # If AllowAgentIp is true, we skip adding the access restriction
+          if(-NOT $allowAgentIp) {
+            return
+          }
+
+
+          Write-Host "############################################"
+
+          foreach($registry in $registries) {
+            Write-Host "############################################"
+            Write-Host "#### Adding access restriction to Container Registry: $($registry.Name)"
+
+            $rules = $null
+            $rules = $registry.NetworkRuleSetIPRule
+
+            if($registry.NetworkRuleSetDefaultAction -EQ 'Allow') {
+              Write-Host "Default action is Allow, skipping Adding of IP rules."
+              continue
+            }
+
+            if($agentHostPublicIp -IN $rules.IPAddressOrRange) {
+              Write-Host "IP already exists in rules, skipping..."
+              continue
+            }
+
+            $rules += New-AzContainerRegistryIPRuleObject -Action 'Allow' -IPAddressOrRange $agentHostPublicIp
+
+            Write-Host "$($rules | ConvertTo-Json)"
+
+            $result = Update-AzContainerRegistry -AzureRMContext $registry.AzContext -Name $registry.Name `
+              -ResourceGroupName $registry.ResourceGroupName `
+              -NetworkRuleBypassOption $registry.NetworkRuleBypassOption `
+              -NetworkRuleSetDefaultAction $registry.NetworkRuleSetDefaultAction `
+              -NetworkRuleSetIPRule $rules
+
+            $result | Select-Object -Property Name, Location, NetworkRuleSetDefaultAction, NetworkRuleSetIPRule
+          }
+
+          Start-Sleep -Seconds 15 # Sleep to allow changes to propagate before any subsequent steps that may depend on this

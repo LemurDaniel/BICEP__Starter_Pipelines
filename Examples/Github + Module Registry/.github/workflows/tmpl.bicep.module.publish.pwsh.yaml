@@ -1,0 +1,211 @@
+name: (Template) Publish to Bicep Registry
+
+#
+# This workflow is a template for publishing a module.bicep to an Azure Container Registry.
+# Optionally lock the image to make it immutable.
+#
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        description: The github environment with the credentials
+        required: false
+      folder_prefix:
+        type: string
+        description: This is prefix to the module path and left out from the automatic image name
+        required: false
+        default: .
+      module_path:
+        type: string
+        description: Path to the Bicep-File to publish
+        required: true
+      registry_name:
+        type: string
+        description: Name of the Azure Registry to publish into
+        required: true
+      registry_url:
+        type: string
+        description: The URL of the Azure Container Registry
+        required: false
+        default: ''
+
+      image_tag:
+        type: string
+        description: Tag of the image to publish
+        required: true
+      image_name:
+        type: string
+        description: Name of the image to publish
+        required: true
+      image_prefix:
+        type: string
+        description: A prefix before the image name
+        required: false
+        default: ''
+
+      allow_image_overwrite:
+        type: boolean
+        description: Allow overwriting of existing images
+        required: false
+        default: true
+      set_image_immutable:
+        type: boolean
+        description: Define if the tagged-version should be read-only
+        required: false
+        default: false
+      
+
+      ###
+      azps_version:
+        type: string
+        description: The version of the Azure CLI to use
+        required: false
+        default: '12.1.0'
+      runs-on: 
+        type: string
+        description: The type of the runner
+        required: false
+        default: 'ubuntu-latest'
+
+      # Name or Id of the set_temporary_ip_rules
+      # Single mode
+      #  - set_temporary_ip_rules: acr-bla-dev-001
+      # Multi mode
+      #  - set_temporary_ip_rules: |
+      #     acr-bla-dev-001
+      #     acr-bla-dev-002
+      set_temporary_ip_rules:
+        type: string
+        description: Temporary IP Rules to apply on container registries
+        required: false
+        default: ''
+
+jobs:
+  publish_module:
+    name: Publish ${{ inputs.image_name }}
+    environment: ${{ inputs.environment != '' && inputs.environment || null }}
+    runs-on: ${{ inputs.runs-on }}
+    env:
+      LOCAL_PATH: ''
+      ACR_REGISTRY_URL: ''
+      ACR_IMAGE_NAME: ''
+      ACR_IMAGE_TAG: ''
+      ACR_IMAGE_FULL: ''
+
+    steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        - name: Set env
+          id: read_version
+          shell: pwsh
+          run: |
+            $localPath = "${{ inputs.folder_prefix }}/${{ inputs.module_path }}"
+
+            $customRegistryUrl = "${{ inputs.registry_url }}"
+            $defaultRegistryUrl = "${{ inputs.registry_name }}.azurecr.io"
+            $registryUrl = [System.String]::IsNullOrEmpty($customRegistryUrl) ? $defaultRegistryUrl : $customRegistryUrl
+
+            # This is the full path in the registry
+            $acrImageName = "${{ inputs.image_prefix }}${{ inputs.image_name }}" 
+            $acrImageName = $acrImageName -replace "/+", "/" -replace "/+$", ""
+
+            $acrImageTag = "${{ inputs.image_tag }}"
+            $acrImageFull = "br:$registryUrl/$acrImageName`:$acrImageTag"
+
+
+            "LOCAL_PATH=$localPath" >> $env:GITHUB_ENV
+
+            "ACR_IMAGE_TAG=$acrImageTag" >> $env:GITHUB_ENV
+            "ACR_IMAGE_NAME=$acrImageName" >> $env:GITHUB_ENV
+            "ACR_IMAGE_FULL=$acrImageFull" >> $env:GITHUB_ENV
+            "ACR_REGISTRY_URL=$registryUrl" >> $env:GITHUB_ENV
+
+        - name: Azure Login
+          uses: azure/login@v1
+          with:
+            creds: ${{ secrets.AZURE_AUTH }}
+            enable-AzPSSession: true              
+   
+        # ////////////////////////////////////////////////////////////////////////////////////////
+        # Publish and optionally lock image
+        #
+        - name: Add ACR IP Rule
+          uses: ./.github/actions/tmpl.bicepRegistry.ipRules
+          if: ${{ inputs.set_temporary_ip_rules!= '' }}
+          with:
+            restriction_mode: AllowAccess
+            registries: ${{ inputs.set_temporary_ip_rules }}
+            azps_version: ${{ inputs.azps_version }}
+
+        - name: Publish Bicep ${{ env.ACR_IMAGE_NAME }}:${{ env.ACR_IMAGE_TAG }}
+          uses: azure/powershell@v2
+          with:
+            azPSVersion: ${{ inputs.azps_version }}
+            inlineScript: |
+
+              $allowImageOverwrite = [System.Boolean]::Parse("${{ inputs.allow_image_overwrite }}")
+
+              $registryUrl = "${{ env.ACR_REGISTRY_URL }}"
+              $acrImageName = "${{ env.ACR_IMAGE_NAME }}"
+              $acrImageTag = "${{ env.ACR_IMAGE_TAG }}"
+              $acrFullImage = "${{ env.ACR_IMAGE_FULL }}"
+              $localPath = "${{ env.LOCAL_PATH }}"
+
+              Write-Host "Local Path: $localPath"
+              Write-Host "Registry URL: $registryUrl"
+              Write-Host "ACR Image Tag: $acrImageTag"
+              Write-Host "ACR Image Name: $acrImageName"
+              Write-Host "ACR Full Image: $acrFullImage"
+
+              az bicep install
+
+              $result = $null
+              if($allowImageOverwrite) {
+                $result = az bicep publish --force `
+                  --file "$localPath/module.bicep" `
+                  --target "$acrFullImage" `
+                  2>&1
+              } else {
+                $result = az bicep publish `
+                  --file "$localPath/module.bicep" `
+                  --target "$acrFullImage" `
+                  2>&1
+              }
+
+              # Prevent null result to avoid error with .startsWith
+              $result = $result ?? ''
+
+              if($LASTEXITCODE -NE 0 -OR $result.startsWith('ERROR:')) {
+                Write-Error "$result"
+                exit -1
+              }
+
+        - name: Lock Image ${{ env.ACR_IMAGE_NAME }}:${{ env.ACR_IMAGE_TAG }}
+          if: inputs.set_image_immutable == true
+          uses: azure/powershell@v2
+          with:
+            azPSVersion: ${{ inputs.azps_version }}
+            inlineScript: |
+
+              $registryName = "${{ inputs.registry_name }}"
+              $acrImageName = "${{ env.ACR_IMAGE_NAME }}"
+              $acrImageTag = "${{ env.ACR_IMAGE_TAG }}"
+              $localPath = "${{ env.LOCAL_PATH }}"
+
+              Update-AzContainerRegistryTag `
+                -RegistryName "$registryName" `
+                -RepositoryName "$acrImageName" `
+                -Name "$acrImageTag" `
+                -WriteEnabled $false `
+                -DeleteEnabled $false
+
+        - name: Remove ACR IP Rule
+          uses: ./.github/actions/tmpl.bicepRegistry.ipRules
+          if: ${{ always() && inputs.set_temporary_ip_rules!= '' }}
+          with:
+            restriction_mode: RemoveAccess
+            registries: ${{ inputs.set_temporary_ip_rules }}
+            azps_version: ${{ inputs.azps_version }}

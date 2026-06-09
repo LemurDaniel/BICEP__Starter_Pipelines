@@ -1,0 +1,119 @@
+name: Bicep Deployment
+
+# NOTE:
+# This may need to be adjusted to your used pool
+pool:
+  name: "Azure Pipelines"
+  vmImage: "ubuntu-latest"
+
+# NOTE:
+# Triggers on Pull Request are configured via branch policies in Azure DevOps
+trigger:
+  branches:
+    include:
+      - dev
+      - main
+      - master
+  paths:
+    include:
+      - infra/*.bicep
+      - infra/params/*.bicepparam
+
+variables:
+  - name: DEPLOY_PROD_WHEN
+    value: $[in(variables['Build.SourceBranchName'], 'main', 'master')]
+  - name: DEPLOY_DEV_WHEN
+    value: $[eq(variables['Build.SourceBranch'], 'refs/heads/dev')]
+
+parameters:
+  - name: WhatIfOnly
+    type: boolean
+    default: false
+  - name: WhatIfResultFormat
+    type: string
+    default: 'FullResourcePayloads'
+    values:
+      - ResourceIdOnly
+      - FullResourcePayloads
+
+# NOTE:
+# ServiceConnection must be known at pipeline compile time.
+#
+#
+stages:
+  - template: stage/tmpl.bicep.infra.deploy.yaml
+    parameters:
+      stage: Dev
+
+      condition: eq(variables['DEPLOY_DEV_WHEN'], True)
+
+      serviceConnection: project-connection
+      # variableGroup: bicep-deploy-test
+
+      whatIfOnly: ${{ parameters.whatIfOnly }}
+
+      # env parameters
+      scope: resourceGroup # subscription | resourceGroup
+      deploymentName: deploy-registry-test
+      parametersFile: ./infra/params/registry.test.bicepparam
+
+      # --- on subscription scope
+      # location: westeurope
+      # templateFile: ./infra/registry.scope.subscription.bicep
+
+      # --- on resource group scope
+      resourceGroup: rg-sample-test
+      templateFile: ./infra/registry.scope.resource_group.bicep
+
+      # --- (Optional) Sets temporary IP rules on the ACR
+      # Use this when the ACR network is restricted
+      # setTemporaryIpRules: |
+      #   acrsampletest
+
+      # --- (Optional) Change approval settings and users here
+      # allowSelfApprove: false
+      # skipApprove: false
+
+      # --- (Optional) Change approval settings and users here
+      # allowSelfApprove: false
+      # skipApprove: false
+
+
+
+  - template: stage/tmpl.bicep.infra.deploy.yaml
+    parameters:
+      # Optionally depend on other stages
+      # Will not execute if the dependent stage was skipped!!!
+      # dependsOn:
+      # - Dev
+      stage: Prod
+
+      condition: eq(variables['DEPLOY_PROD_WHEN'], True)
+      
+      serviceConnection: project-connection
+      # variableGroup: bicep-deploy-prod
+
+      whatIfOnly: ${{ parameters.whatIfOnly }}
+
+      # env parameters
+      scope: resourceGroup # subscription | resourceGroup
+
+      deploymentName:  deploy-registry-prod
+      parametersFile: ./infra/params/registry.prod.bicepparam
+
+      # --- on subscription scope
+      # location: westeurope
+      # templateFile: ./infra/registry.scope.subscription.bicep
+
+      # --- on resource group scope
+      resourceGroup: rg-sample-prod
+      templateFile: ./infra/registry.scope.resource_group.bicep
+
+      # --- (Optional) Sets temporary IP rules on the ACR
+      # Use this when the ACR network is restricted
+      # setTemporaryIpRules: |
+      #   acrsampleprod
+
+      # --- (Optional) Change approval settings and users here
+      # allowSelfApprove: false
+      # skipApprove: false

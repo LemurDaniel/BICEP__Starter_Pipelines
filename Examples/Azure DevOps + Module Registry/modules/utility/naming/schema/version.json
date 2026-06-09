@@ -1,0 +1,13 @@
+{
+    "description": "Naming module schemas.",
+    "version": "3.2.0",
+    "deployment_tests": {
+        "base_path": ".",
+        "include": [
+            {
+                "description": "Include all example folders in the test deployment",
+                "pattern": "example*"
+            }
+        ]
+    }
+}

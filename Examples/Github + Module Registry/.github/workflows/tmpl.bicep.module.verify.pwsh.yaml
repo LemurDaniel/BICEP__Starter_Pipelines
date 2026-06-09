@@ -1,0 +1,127 @@
+name: (Template) Verify Bicep Modul
+
+#
+# This workflow is a template for publishing a module.bicep to an Azure Container Registry.
+# Optionally lock the image to make it immutable.
+#
+
+on:
+  workflow_call:
+    inputs:
+      folder_prefix:
+        type: string
+        description: This is prefix to the module path and left out from the automatic image name
+        required: false
+        default: .
+      module_path:
+        type: string
+        description: Path to the Bicep-File to publish
+        required: true
+      default_location:
+        type: string
+        description: The Azure region where the module will be deployed
+        required: true
+
+      deploy_script:
+        type: string
+        description: The script to deploy the module
+        required: false
+        default: ./.scripts/deploy.ps1
+
+      environment:
+        type: string
+        description: The github environment with the credentials
+        required: false
+
+      ###
+      azps_version:
+        type: string
+        description: The version of the Azure PowerShell to use
+        required: false
+        default: "12.1.0"
+      run_bicep_test:
+        type: boolean
+        description: Enable bicep test framework
+        required: false
+        default: false
+      runs-on:
+        type: string
+        description: The type of the runner
+        required: false
+        default: "ubuntu-latest"
+
+      # Name or Id of the set_temporary_ip_rules
+      # Single mode
+      #  - set_temporary_ip_rules: acr-bla-dev-001
+      # Multi mode
+      #  - set_temporary_ip_rules: |
+      #     acr-bla-dev-001
+      #     acr-bla-dev-002
+      set_temporary_ip_rules:
+        type: string
+        description: Temporary IP Rules to apply on container registries
+        required: false
+        default: ""
+
+jobs:
+  publish_module:
+    name: Verify ${{ inputs.module_path }}
+    environment: ${{ inputs.environment != '' && inputs.environment || null }}
+    runs-on: ${{ inputs.runs-on }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_AUTH }}
+          enable-AzPSSession: true
+
+      # ////////////////////////////////////////////////////////////////////////////////////////
+      # Runs bicep tests and Test deployment
+      #
+      - name: Add ACR IP Rule
+        uses: ./.github/actions/tmpl.bicepRegistry.ipRules
+        if: ${{ inputs.set_temporary_ip_rules!= '' }}
+        with:
+          restriction_mode: AllowAccess
+          registries: ${{ inputs.set_temporary_ip_rules }}
+          azps_version: ${{ inputs.azps_version }}
+
+      - name: Test Frame Work for ${{ inputs.module_path }}
+        if: ${{ inputs.run_bicep_test }}
+        uses: azure/powershell@v2
+        with:
+          azPSVersion: ${{ inputs.azps_version }}
+          inlineScript: |
+            az bicep install
+
+            $module = "${{ inputs.folder_prefix }}/${{ inputs.module_path }}"
+            $TestFiles = Get-ChildItem -Path $module -Filter "*test.bicep" -Recurse -Depth 3
+            foreach($file in $TestFiles) {
+              bicep test $file.FullName
+            }
+
+      - name: WhatIf Deployment for ${{ inputs.module_path }}
+        uses: azure/powershell@v2
+        with:
+          azPSVersion: ${{ inputs.azps_version }}
+          inlineScript: |
+            . ${{ inputs.deploy_script }} -WhatIf -FolderPrefix "${{ inputs.folder_prefix }}" -ModulePath "${{ inputs.module_path }}" -Location "${{ inputs.default_location }}"
+
+      - name: Test Deployment for ${{ inputs.module_path }}
+        uses: azure/powershell@v2
+        with:
+          azPSVersion: ${{ inputs.azps_version }}
+          inlineScript: |
+            . ${{ inputs.deploy_script }} -FolderPrefix "${{ inputs.folder_prefix }}" -ModulePath "${{ inputs.module_path }}" -Location "${{ inputs.default_location }}"
+
+      - name: Remove ACR IP Rule
+        uses: ./.github/actions/tmpl.bicepRegistry.ipRules
+        if: ${{ always() && inputs.set_temporary_ip_rules!= '' }}
+        with:
+          restriction_mode: RemoveAccess
+          registries: ${{ inputs.set_temporary_ip_rules }}
+          azps_version: ${{ inputs.azps_version }}
