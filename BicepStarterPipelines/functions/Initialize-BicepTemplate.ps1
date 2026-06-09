@@ -127,20 +127,24 @@ function Initialize-BicepTemplate {
             $Target = [System.IO.DirectoryInfo]::new($rootedPath)
         }
 
+        $tempDirPath = [System.IO.Path]::GetFullPath(
+            [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), 'bicep-staging', [System.Guid]::NewGuid().ToString())
+        )
+        $tempDir = $null
+
     }
 
     END {
 
         <#
-        ////////////////////////////////////////////////////////////////////////////////    
-        
+        ////////////////////////////////////////////////////////////////////////////////
+
         All files are copied to the staging directory,
         where they are modified and then copied to the target directory.
 
         #>
-        
-        $tempDir = "{0}/bicep-staging/{1}" -f [System.IO.Path]::GetTempPath(), [System.Guid]::NewGuid()
-        $tempDir = New-Item -ItemType Directory -Path $tempDir
+
+        $tempDir = New-Item -ItemType Directory -Path $tempDirPath
 
         Copy-Helper -sourceDir $rootDir -targetDir $tempDir
         Copy-Helper -sourceDir $common -targetDir $tempDir
@@ -197,38 +201,39 @@ function Initialize-BicepTemplate {
         if (-NOT $Target.Exists) {
             $Target.Create()
         }
+        
+        $existingFiles = Get-ChildItem -Path $Target -Recurse -Force -File -ErrorAction SilentlyContinue
+        $overwrite = $existingFiles.Count -EQ 0
 
-        try {
-            Copy-Helper -sourceDir $tempDir -targetDir $Target
-        }
-        catch {
+        if (-NOT $overwrite) {
             Write-Host -ForegroundColor RED "`n`nTarget: $Target"
-            Write-Host -ForegroundColor RED "`Files already exist in the target directory."
+            Write-Host -ForegroundColor RED "Files already exist in the target directory."
             $overwrite = Select-UtilsUserOption -Prompt "Overwrite? (Yes/No) "
-
-            Copy-Helper -sourceDir $tempDir -targetDir $Target -overwrite:$($overwrite) -onlyWarn
         }
+
+        Get-ChildItem -Path $tempDir -Force | Copy-Item -Destination $Target.FullName -Recurse -Force:$overwrite
     }
 
     CLEAN {
 
-        # This cleans up staging directory from directories older than 10 minutes.
-        # In case of a crash, when the staging directory was not deleted.
-        Get-ChildItem -Path $tempDir.Parent -Directory
-        | Where-Object -Property CreationTime -LT (Get-Date).AddMinutes(-10)
-        | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+        if ($null -NE $tempDir) {
+            # This cleans up staging directory from directories older than 10 minutes.
+            # In case of a crash, when the staging directory was not deleted.
+            Get-ChildItem -Path $tempDir.Parent -Directory
+            | Where-Object -Property CreationTime -LT (Get-Date).AddMinutes(-10)
+            | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 
-        
-        [System.GC]::Collect()
-        [System.GC]::WaitForPendingFinalizers()
-        
-        # To make sure that the staging directory is definitly deleted.
-        for ($tries = 1; $tries -LE 5; $tries++) {
-            try {
-                Remove-Item -Path $tempDir -Recurse -Force -ErrorAction Stop -ProgressAction SilentlyContinue
-            }
-            catch {
-                Start-Sleep -Milliseconds 50
+            [System.GC]::Collect()
+            [System.GC]::WaitForPendingFinalizers()
+
+            # To make sure that the staging directory is definitly deleted.
+            for ($tries = 1; $tries -LE 5; $tries++) {
+                try {
+                    Remove-Item -Path $tempDir -Recurse -Force -ErrorAction Stop -ProgressAction SilentlyContinue
+                }
+                catch {
+                    Start-Sleep -Milliseconds 50
+                }
             }
         }
 
